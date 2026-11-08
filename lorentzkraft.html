@@ -244,7 +244,7 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
           </div>
         </div>
         <label class="check" id="l-lines-wrap"><input type="checkbox" id="l-lines">Feldlinienbild überlagern</label>
-        <div class="btn-row"><button class="btn primary" id="l-on">Strom ausschalten</button></div>
+        <div class="btn-row"><button class="btn primary" id="l-on">Schalter öffnen (Strom aus)</button></div>
         <dl class="readouts">
           <dt>Kraft F</dt><dd id="ro-l-f"></dd>
           <dt>Gewichtskraft (m = 10 g)</dt><dd id="ro-l-g"></dd>
@@ -585,6 +585,7 @@ function lUpdate(dt) {
   }
 }
 function lDraw(ctx, w, h) {
+  L.switchHit = null;
   if (L.view === "front") return lDrawFront(ctx, w, h);
   const d = lDirs();
   const cx = w / 2, pivotY = Math.max(34, h * 0.08);
@@ -654,7 +655,9 @@ function lDraw(ctx, w, h) {
     arrow(ctx, rx + sx * 18, ry, rx + sx * (18 + flen), ry, C.F, 3.4, 12);
     text(ctx, "F", rx + sx * (30 + flen), ry, C.F, 16, "center", 700, C.mono);
   }
-  pill(ctx, `Blick in Leiterrichtung · I = ${fmt(L.I, 1)} A ${L.on ? "" : "(aus)"}`, 12, 22, C.ink);
+  pill(ctx, `Blick in Leiterrichtung · I = ${L.on ? fmt(L.I, 1) + " A" : "0 A (Schalter offen)"}`, 12, 22, C.ink);
+  L.switchHit = null;
+  drawSchematic(ctx, w, h);
 }
 /* Vorderansicht als Schrägbild. Weltkoordinaten wie in der Seitenansicht:
    X = Kraftrichtung (Bogen des Magneten bei +X), Y = oben, Z = Leiterachse.
@@ -709,23 +712,38 @@ function lDrawFront(ctx, w, h) {
   text(ctx, "B", bl.x + 10, bl.y, C.B, 16, "left", 700, C.mono);
 
   // Netzgerät mit Anschlüssen
-  box(-0.1, 0.1, 1.14, 1.4, -0.24, 0.24, C.metal, "", C.ink);
-  const plusZ = -a * 0.12, minusZ = a * 0.12;
-  const tP = [-0.1, 1.24, plusZ], tM = [-0.1, 1.24, minusZ];
+  box(-0.1, 0.12, 1.12, 1.44, -0.3, 0.3, C.metal, "", C.ink);
+  // Anzeige auf der Frontplatte
+  const quad = (pts, col) => { const q = pts.map((v) => P3(...v)); ctx.beginPath(); q.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y))); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); };
+  quad([[-0.1, 1.29, -0.2], [-0.1, 1.39, -0.2], [-0.1, 1.39, 0.06], [-0.1, 1.29, 0.06]], "#14202b");
+  const disp = P3(-0.1, 1.34, -0.07);
+  text(ctx, (L.on ? fmt(L.I, 1) : "0,0") + " A", disp.x, disp.y + 1, "#7dffb0", Math.max(11, s * 0.05), "center", 500, C.mono);
+  const knob = P3(-0.1, 1.34, 0.18);
+  ctx.fillStyle = "#2a2f38"; ctx.beginPath(); ctx.arc(knob.x, knob.y, Math.max(5, s * 0.03), 0, TAU); ctx.fill();
+  const ngl = P3(-0.1, 1.5, 0);
+  text(ctx, "Netzgerät (Gleichstrom)", ngl.x, ngl.y, C.ink, 12, "center", 600);
+  const plusZ = -a * 0.2, minusZ = a * 0.2;
+  const tP = [-0.1, 1.19, plusZ], tM = [-0.1, 1.19, minusZ];
   const lp = P3(...tP), lm = P3(...tM);
   for (const [pt, isPlus] of [[lp, true], [lm, false]]) {
-    ctx.fillStyle = isPlus ? C.north : C.ink; ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, TAU); ctx.fill();
-    text(ctx, isPlus ? "+" : "−", pt.x, pt.y - 13, isPlus ? C.north : C.ink, 16, "center", 700);
+    ctx.fillStyle = isPlus ? "#d23a3a" : "#1b1f26"; ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, TAU); ctx.fill();
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+    text(ctx, isPlus ? "+" : "−", pt.x + (pt.x < ngl.x ? -14 : 14), pt.y, isPlus ? C.north : C.ink, 17, "center", 700);
   }
-  const ng = P3(-0.1, 1.33, 0);
-  text(ctx, "Netzgerät", ng.x, ng.y, "#ffffff", 11, "center", 600);
 
   // Stromkreis (technische Richtung): + → Aufhängung → Leiter → Aufhängung → −
   const path = [tP, [0, 1.02, -a * half], [xr, yr, -a * half], [xr, yr, a * half], [0, 1.02, a * half], tM];
   ctx.lineJoin = "round";
-  for (let i = 0; i < path.length - 1; i++) {
+  for (let i = 1; i < path.length - 1; i++) {
     const isRod = i === 2;
     line3(path[i], path[i + 1], isRod ? C.ink : withAlpha(C.ink, 0.7), isRod ? 1 : 2);
+  }
+  // Zuleitung vom Pluspol mit Schalter
+  {
+    const A0 = P3(...path[0]), A1 = P3(...path[1]);
+    const ca = { x: A0.x + (A1.x - A0.x) * 0.48, y: A0.y + (A1.y - A0.y) * 0.48 };
+    const cb = { x: A0.x + (A1.x - A0.x) * 0.84, y: A0.y + (A1.y - A0.y) * 0.84 };
+    drawSwitch(ctx, A0, A1, ca, cb, L.on, true);
   }
   // Leiterstab
   const r0 = P3(xr, yr, -half), r1 = P3(xr, yr, half);
@@ -764,9 +782,89 @@ function lDrawFront(ctx, w, h) {
     arrow(ctx, f0.x, f0.y, f1.x, f1.y, C.F, 3.6, 13);
     text(ctx, "F", fL.x, fL.y, C.F, 16, "center", 700, C.mono);
   }
-  pill(ctx, `Ansicht von vorne · I = ${fmt(L.I, 1)} A ${L.on ? "" : "(aus)"}`, 12, 22, C.ink);
+  pill(ctx, `Ansicht von vorne · I = ${L.on ? fmt(L.I, 1) + " A" : "0 A (Schalter offen)"}`, 12, 22, C.ink);
+  drawSchematic(ctx, w, h);
   const kd = keyOf(lView(d.F));
-  pill(ctx, d.F[0] > 0 ? "Leiter wird in den Magneten hineingezogen" : "Leiter wird aus dem Magneten herausgedrückt", 12, h - 22, C.F);
+  pill(ctx, !L.on ? "Stromkreis offen: kein Strom, keine Kraft" : d.F[0] > 0 ? "Leiter wird in den Magneten hineingezogen" : "Leiter wird aus dem Magneten herausgedrückt", 12, h - 22, L.on ? C.F : C.muted);
+}
+// Schalter im Schrägbild: Leitung A0→A1 mit Kontakten ca/cb
+function drawSwitch(ctx, A0, A1, ca, cb, closed, big) {
+  ctx.strokeStyle = withAlpha(C.ink, 0.7); ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(A0.x, A0.y); ctx.lineTo(ca.x, ca.y); ctx.moveTo(cb.x, cb.y); ctx.lineTo(A1.x, A1.y); ctx.stroke();
+  const mx = (ca.x + cb.x) / 2, my = (ca.y + cb.y) / 2;
+  const len = Math.hypot(cb.x - ca.x, cb.y - ca.y);
+  const ang = Math.atan2(cb.y - ca.y, cb.x - ca.x);
+  // Sockel
+  ctx.save(); ctx.translate(mx, my); ctx.rotate(ang);
+  ctx.fillStyle = withAlpha(C.metal, 0.9); ctx.strokeStyle = withAlpha(C.ink, 0.35); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-len / 2 - 12, -9, len + 24, 18, 5) : ctx.rect(-len / 2 - 12, -9, len + 24, 18); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  // Hebel: geschlossen auf der Leitung, offen um 40° nach oben geklappt
+  const up = (Math.cos(ang) >= 0 ? -1 : 1) * 0.7;
+  const la = closed ? ang : ang + up;
+  const ex = ca.x + Math.cos(la) * (len + 4), ey = ca.y + Math.sin(la) * (len + 4);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(ca.x, ca.y); ctx.lineTo(ex, ey); ctx.stroke();
+  const hx = ca.x + Math.cos(la) * (len * 0.75), hy = ca.y + Math.sin(la) * (len * 0.75);
+  ctx.fillStyle = "#d23a3a"; ctx.beginPath(); ctx.arc(hx, hy, 6.5, 0, TAU); ctx.fill();
+  for (const c of [ca, cb]) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(c.x, c.y, 3.6, 0, TAU); ctx.fill(); }
+  L.switchHit = { x: mx, y: my, r: Math.max(34, len) };
+  if (big) {
+    const side = A1.x >= A0.x ? 1 : -1, al = side > 0 ? "left" : "right";
+    const lx = cb.x + side * 26, ly = cb.y + 4;
+    text(ctx, closed ? "Schalter geschlossen" : "Schalter offen", lx, ly, closed ? C.good : C.bad, 12.5, al, 700);
+    text(ctx, "zum Umschalten antippen", lx, ly + 15, C.muted, 11, al, 500);
+  }
+}
+// Schaltskizze (Ecke rechts oben, beide Ansichten)
+function drawSchematic(ctx, w, h) {
+  const bw = 196, bh = 128, bx = w - bw - 12, by = 12;
+  L.schemHit = { x: bx, y: by, w: bw, h: bh };
+  ctx.save();
+  ctx.fillStyle = withAlpha(C.surface, 0.94); ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 8) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+  text(ctx, "Schaltskizze", bx + 10, by + 14, C.muted, 11, "left", 700);
+  const a = lDirs().I[2]; // Vorderansicht: +1 = Strom im Leiter nach rechts
+  const x0 = bx + 26, x1 = bx + bw - 22, y0 = by + 40, y1 = by + bh - 24;
+  const ym = (y0 + y1) / 2;
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+  // Quelle links (Strom im Leiter nach links) bzw. rechts (nach rechts); + immer oben, Schalter oben, Leiter unten
+  const xb = a === -1 ? x0 : x1, xo = a === -1 ? x1 : x0, sgn = a === -1 ? -1 : 1;
+  ctx.beginPath(); ctx.moveTo(xb, y0); ctx.lineTo(xb, ym - 5); ctx.moveTo(xb, ym + 5); ctx.lineTo(xb, y1); ctx.moveTo(xo, y0); ctx.lineTo(xo, y1); ctx.stroke();
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(xb - 11, ym - 5); ctx.lineTo(xb + 11, ym - 5); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(xb - 5, ym + 5); ctx.lineTo(xb + 5, ym + 5); ctx.stroke();
+  text(ctx, "+", xb + sgn * 18, ym - 8, C.north, 13, "center", 700);
+  text(ctx, "−", xb + sgn * 18, ym + 8, C.ink, 13, "center", 700);
+  // oben: Schalter
+  const sa = (x0 + x1) / 2 - 14, sb = (x0 + x1) / 2 + 14, ys = y0, yo = y1;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(x0, ys); ctx.lineTo(sa, ys); ctx.moveTo(sb, ys); ctx.lineTo(x1, ys); ctx.stroke();
+  ctx.fillStyle = C.ink;
+  for (const xx of [sa, sb]) { ctx.beginPath(); ctx.arc(xx, ys, 2.4, 0, TAU); ctx.fill(); }
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sa, ys);
+  if (L.on) ctx.lineTo(sb, ys); else ctx.lineTo(sa + 25 * Math.cos(-0.6), ys + 25 * Math.sin(-0.6));
+  ctx.stroke();
+  text(ctx, L.on ? "S geschlossen" : "S offen", (sa + sb) / 2 + 40, ys - 9, L.on ? C.good : C.bad, 10.5, "center", 700);
+  // unten: Leiter im Magnetfeld
+  const la = x0 + 30, lb = x1 - 30;
+  ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x0, yo); ctx.lineTo(la, yo); ctx.moveTo(lb, yo); ctx.lineTo(x1, yo); ctx.stroke();
+  ctx.strokeStyle = C.metal; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(la, yo); ctx.lineTo(lb, yo); ctx.stroke();
+  text(ctx, "Leiter im B-Feld", (la + lb) / 2, yo + 13, C.muted, 10.5, "center", 600);
+  // Stromrichtung: oben weg von der Quelle (−a), unten im Leiter (a)
+  if (L.on) {
+    const elec = L.conv === "elec";
+    const col = elec ? C.particle : C.v, k = elec ? -1 : 1;
+    const cxm = (la + lb) / 2;
+    arrow(ctx, cxm - a * k * 16, yo - 8, cxm + a * k * 16, yo - 8, col, 2, 7);
+    const xt = (x0 + sa) / 2;
+    arrow(ctx, xt + a * k * 8, ys + 8, xt - a * k * 8, ys + 8, col, 2, 7);
+    text(ctx, elec ? "e⁻" : "I", cxm + 26, yo - 9, col, 11, "left", 700, C.mono);
+  }
+  ctx.restore();
+}
+function lToggle() {
+  L.on = !L.on;
+  $("#l-on").textContent = L.on ? "Schalter öffnen (Strom aus)" : "Schalter schließen (Strom an)";
 }
 // Richtungen in Koordinaten der aktuellen Ansicht (für Hand und Texte)
 function lView(v) { return L.view === "front" ? [v[2], v[1], -v[0]] : v; }
@@ -781,7 +879,7 @@ function lReadouts() {
   $("#ro-l-f").textContent = fmt(F * 1000, 1) + " mN";
   $("#ro-l-g").textContent = fmt(L_MASS * G * 1000, 1) + " mN";
   $("#ro-l-theta").textContent = fmt(Math.abs(L.th) * 180 / Math.PI, 1) + "°";
-  $("#stage-bar").innerHTML = `<span>F = I·l·B = <b>${fmt(L.I, 1)} A · ${fmt(L.len / 100, 3)} m · ${fmt(L.B / 1000, 3)} T = ${fmt(lForce() * 1000, 1)} mN</b></span><span>Kraft ${DIRTXT[keyOf(lView(lDirs().F))]}</span>`;
+  $("#stage-bar").innerHTML = `<span>F = I·l·B = <b>${fmt(L.I, 1)} A · ${fmt(L.len / 100, 3)} m · ${fmt(L.B / 1000, 3)} T = ${fmt(lForce() * 1000, 1)} mN</b></span><span>${L.on ? "Kraft " + DIRTXT[keyOf(lView(lDirs().F))] : "Schalter offen: I = 0, also F = 0"}</span>`;
 }
 
 /* ================= Modus 3: Wien-Filter ================= */
@@ -1142,7 +1240,7 @@ function lViewLabels() {
 bindRadio("l-view", L, "view", false, lViewLabels);
 lViewLabels();
 $("#l-lines").addEventListener("change", (e) => { L.lines = e.target.checked; });
-$("#l-on").addEventListener("click", (e) => { L.on = !L.on; e.target.textContent = L.on ? "Strom ausschalten" : "Strom einschalten"; });
+$("#l-on").addEventListener("click", lToggle);
 
 bindRange("w-e", Wf, "E", "o-w-e", (x) => fmt(x, 0) + " kV/m");
 bindRange("w-b", Wf, "B", "o-w-b", (x) => fmt(x, 0) + " mT");
@@ -1157,6 +1255,15 @@ $("#q-next").addEventListener("click", qNew);
 
 /* ================= Hauptschleife ================= */
 const sim = $("#sim");
+function lHitAt(e) {
+  if (mode !== "leiter") return false;
+  const r = sim.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const sh = L.switchHit, sc = L.schemHit;
+  if (sh && Math.hypot(x - sh.x, y - sh.y) < sh.r) return true;
+  return !!(sc && x >= sc.x && x <= sc.x + sc.w && y >= sc.y && y <= sc.y + sc.h);
+}
+sim.addEventListener("click", (e) => { if (lHitAt(e)) lToggle(); });
+sim.addEventListener("pointermove", (e) => { sim.style.cursor = lHitAt(e) ? "pointer" : ""; });
 let lastT = performance.now(), roT = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
