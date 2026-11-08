@@ -204,14 +204,21 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
       <div class="card mode-panel" data-mode="leiter" hidden>
         <h2>Einstellungen</h2>
         <div class="ctl">
+          <span class="ctl-head">Ansicht</span>
+          <div class="seg" role="radiogroup" aria-label="Ansicht">
+            <input type="radio" name="l-view" id="l-view-front" value="front" checked><label for="l-view-front">Von vorne (Schrägbild)</label>
+            <input type="radio" name="l-view" id="l-view-side" value="side"><label for="l-view-side">Entlang des Leiters</label>
+          </div>
+        </div>
+        <div class="ctl">
           <div class="ctl-head"><label for="l-i">Stromstärke I</label><output id="o-l-i"></output></div>
           <input type="range" id="l-i" min="0.5" max="5" step="0.1" value="3">
         </div>
         <div class="ctl">
           <span class="ctl-head">Technische Stromrichtung im Leiter</span>
           <div class="seg" role="radiogroup" aria-label="Stromrichtung">
-            <input type="radio" name="l-idir" id="l-idir-in" value="in" checked><label for="l-idir-in">⊗ hinein</label>
-            <input type="radio" name="l-idir" id="l-idir-out" value="out"><label for="l-idir-out">⊙ heraus</label>
+            <input type="radio" name="l-idir" id="l-idir-in" value="in" checked><label for="l-idir-in" id="lab-l-idir-in">⊗ hinein</label>
+            <input type="radio" name="l-idir" id="l-idir-out" value="out"><label for="l-idir-out" id="lab-l-idir-out">⊙ heraus</label>
           </div>
         </div>
         <div class="ctl">
@@ -236,7 +243,7 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
             <input type="radio" name="l-conv" id="l-conv-elec" value="elec"><label for="l-conv-elec">Elektronenfluss</label>
           </div>
         </div>
-        <label class="check"><input type="checkbox" id="l-lines">Feldlinienbild überlagern</label>
+        <label class="check" id="l-lines-wrap"><input type="checkbox" id="l-lines">Feldlinienbild überlagern</label>
         <div class="btn-row"><button class="btn primary" id="l-on">Strom ausschalten</button></div>
         <dl class="readouts">
           <dt>Kraft F</dt><dd id="ro-l-f"></dd>
@@ -559,7 +566,7 @@ function pReadouts() {
 }
 
 /* ================= Modus 2: Leiterschaukel ================= */
-const L = { I: 3, idir: "in", B: 100, north: "top", len: 5, conv: "tech", lines: false, on: true, th: 0, om: 0 };
+const L = { I: 3, idir: "in", B: 100, north: "top", len: 5, conv: "tech", lines: false, on: true, th: 0, om: 0, view: "front", t: 0 };
 const L_MASS = 0.01, L_ARM = 0.2;
 function lForce() { return L.I * (L.len / 100) * (L.B / 1000); } // N
 function lDirs() {
@@ -570,6 +577,7 @@ function lDirs() {
 function lUpdate(dt) {
   const d = lDirs();
   const F = L.on ? lForce() * d.F[0] : 0;
+  L.t += dt;
   const n = 6, h = Math.min(dt, 0.05) / n;
   for (let i = 0; i < n; i++) {
     const acc = -(G / L_ARM) * Math.sin(L.th) + (F / (L_MASS * L_ARM)) * Math.cos(L.th) - 2.2 * L.om;
@@ -577,6 +585,7 @@ function lUpdate(dt) {
   }
 }
 function lDraw(ctx, w, h) {
+  if (L.view === "front") return lDrawFront(ctx, w, h);
   const d = lDirs();
   const cx = w / 2, pivotY = Math.max(34, h * 0.08);
   const arm = h * 0.62;
@@ -590,8 +599,10 @@ function lDraw(ctx, w, h) {
     ctx.fillRect(p.x, p.y, poleW, poleH);
     text(ctx, isN ? "N" : "S", p.x + poleW / 2, p.y + poleH / 2 + 1, "#ffffff", 26, "center", 700, C.display);
   };
+  ctx.fillStyle = C.metal;
+  ctx.fillRect(topPole.x + poleW, topPole.y, Math.min(60, w * 0.07), botPole.y + poleH - topPole.y);
   drawPole(topPole, nTop); drawPole(botPole, !nTop);
-  text(ctx, "Hufeisenmagnet (Bogen liegt hinter der Bildebene)", cx, botPole.y + poleH + 18, C.muted, 12, "center");
+  text(ctx, "Hufeisenmagnet von der Seite (Bogen rechts)", cx, botPole.y + poleH + 18, C.muted, 12, "center");
   // Feldlinien zwischen den Polen
   const nLines = 7;
   for (let i = 0; i < nLines; i++) {
@@ -645,8 +656,123 @@ function lDraw(ctx, w, h) {
   }
   pill(ctx, `Blick in Leiterrichtung · I = ${fmt(L.I, 1)} A ${L.on ? "" : "(aus)"}`, 12, 22, C.ink);
 }
-function lHand() {
+/* Vorderansicht als Schrägbild. Weltkoordinaten wie in der Seitenansicht:
+   X = Kraftrichtung (Bogen des Magneten bei +X), Y = oben, Z = Leiterachse.
+   Der Betrachter steht bei −X und blickt in +X-Richtung: rechts = +Z. */
+const FV = { yaw: -0.5, pitch: 0.32 };
+function lDrawFront(ctx, w, h) {
   const d = lDirs();
+  const s = Math.min(w * 0.42, h * 0.44);
+  const cx = w * 0.5, cy = h * 0.1 + 1.36 * s;
+  const cY = Math.cos(FV.yaw), sY = Math.sin(FV.yaw), cP = Math.cos(FV.pitch), sP = Math.sin(FV.pitch);
+  const rot = (X, Y, Z) => { const vx = Z, vy = Y, vz = -X; const x1 = vx * cY + vz * sY, z1 = -vx * sY + vz * cY; return [x1, vy * cP - z1 * sP, vy * sP + z1 * cP]; };
+  const P3 = (X, Y, Z) => { const r = rot(X, Y, Z); const k = 1 / (1 - r[2] * 0.12); return { x: cx + r[0] * s * k, y: cy - r[1] * s * k, z: r[2] }; };
+  const line3 = (a, b, col, lw) => { const p = P3(...a), q = P3(...b); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); };
+  const box = (x0, x1, y0, y1, z0, z1, col, lab, labCol) => {
+    const F = [
+      { n: [-1, 0, 0], p: [[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]], sh: 0 },
+      { n: [1, 0, 0], p: [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], sh: -0.25 },
+      { n: [0, 1, 0], p: [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], sh: 0.2 },
+      { n: [0, -1, 0], p: [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], sh: -0.3 },
+      { n: [0, 0, 1], p: [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], sh: -0.18 },
+      { n: [0, 0, -1], p: [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], sh: -0.18 },
+    ];
+    for (const f of F) {
+      if (rot(...f.n)[2] <= 0) continue;
+      const q = f.p.map((v) => P3(...v));
+      ctx.beginPath(); q.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y))); ctx.closePath();
+      ctx.fillStyle = col; ctx.fill();
+      if (f.sh) { ctx.fillStyle = f.sh > 0 ? `rgba(255,255,255,${f.sh})` : `rgba(0,0,0,${-f.sh})`; ctx.fill(); }
+      ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 1; ctx.stroke();
+    }
+    if (lab) { const c = P3(x0, (y0 + y1) / 2, (z0 + z1) / 2); text(ctx, lab, c.x, c.y + 1, labCol || "#ffffff", Math.max(14, s * 0.09), "center", 700, C.display); }
+  };
+  const nTop = L.north === "top";
+  const a = d.I[2]; // +1: techn. Strom läuft nach +Z (rechts)
+  const xr = Math.sin(L.th), yr = 1 - Math.cos(L.th), half = 0.55;
+
+  // Stative und Querstange
+  for (const z of [-0.78, 0.78]) line3([0, -0.62, z], [0, 1.02, z], C.metal, 5);
+  line3([0, 1.02, -0.85], [0, 1.02, 0.85], C.metal, 6);
+  // Magnet: Bogen hinten (+X), dann Pole
+  box(0.35, 0.58, -0.47, 0.47, -0.3, 0.3, C.metal);
+  box(-0.35, 0.35, -0.47, -0.25, -0.3, 0.3, nTop ? C.south : C.north, nTop ? "S" : "N");
+  // Feldlinien zwischen den Polen
+  for (const fx of [-0.22, 0, 0.22]) for (const fz of [-0.2, 0, 0.2]) {
+    const top = [fx, 0.24, fz], bot = [fx, -0.24, fz];
+    line3(top, bot, withAlpha(C.B, 0.5), 1.4);
+    const m1 = P3(fx, nTop ? 0.05 : -0.05, fz), m2 = P3(fx, nTop ? -0.07 : 0.07, fz);
+    arrow(ctx, m1.x, m1.y, m2.x, m2.y, withAlpha(C.B, 0.9), 1.4, 7);
+  }
+  box(-0.35, 0.35, 0.25, 0.47, -0.3, 0.3, nTop ? C.north : C.south, nTop ? "N" : "S");
+  const bl = P3(-0.35, -0.1, 0.33);
+  text(ctx, "B", bl.x + 10, bl.y, C.B, 16, "left", 700, C.mono);
+
+  // Netzgerät mit Anschlüssen
+  box(-0.1, 0.1, 1.14, 1.4, -0.24, 0.24, C.metal, "", C.ink);
+  const plusZ = -a * 0.12, minusZ = a * 0.12;
+  const tP = [-0.1, 1.24, plusZ], tM = [-0.1, 1.24, minusZ];
+  const lp = P3(...tP), lm = P3(...tM);
+  for (const [pt, isPlus] of [[lp, true], [lm, false]]) {
+    ctx.fillStyle = isPlus ? C.north : C.ink; ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, TAU); ctx.fill();
+    text(ctx, isPlus ? "+" : "−", pt.x, pt.y - 13, isPlus ? C.north : C.ink, 16, "center", 700);
+  }
+  const ng = P3(-0.1, 1.33, 0);
+  text(ctx, "Netzgerät", ng.x, ng.y, "#ffffff", 11, "center", 600);
+
+  // Stromkreis (technische Richtung): + → Aufhängung → Leiter → Aufhängung → −
+  const path = [tP, [0, 1.02, -a * half], [xr, yr, -a * half], [xr, yr, a * half], [0, 1.02, a * half], tM];
+  ctx.lineJoin = "round";
+  for (let i = 0; i < path.length - 1; i++) {
+    const isRod = i === 2;
+    line3(path[i], path[i + 1], isRod ? C.ink : withAlpha(C.ink, 0.7), isRod ? 1 : 2);
+  }
+  // Leiterstab
+  const r0 = P3(xr, yr, -half), r1 = P3(xr, yr, half);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 13; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(r1.x, r1.y); ctx.stroke();
+  ctx.strokeStyle = C.metal; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(r1.x, r1.y); ctx.stroke();
+
+  // Laufende Strommarken entlang des Kreises
+  if (L.on) {
+    const pts = path.map((v) => P3(...v));
+    const segs = []; let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y); segs.push({ a: pts[i], b: pts[i + 1], l, s0: total }); total += l; }
+    const gapPx = 42, speed = 14 * L.I;
+    const elec = L.conv === "elec";
+    let ph = (L.t * speed) % gapPx; if (elec) ph = gapPx - ph;
+    for (let u = ph; u < total; u += gapPx) {
+      const sg = segs.find((g) => u >= g.s0 && u < g.s0 + g.l); if (!sg || sg.l < 1) continue;
+      const f = (u - sg.s0) / sg.l, ux = (sg.b.x - sg.a.x) / sg.l, uy = (sg.b.y - sg.a.y) / sg.l;
+      const x = sg.a.x + (sg.b.x - sg.a.x) * f, y = sg.a.y + (sg.b.y - sg.a.y) * f;
+      if (elec) { ctx.fillStyle = C.particle; ctx.beginPath(); ctx.arc(x, y, 3.6, 0, TAU); ctx.fill(); }
+      else arrow(ctx, x - ux * 7, y - uy * 7, x + ux * 7, y + uy * 7, C.v, 2.6, 8);
+    }
+    // großer Richtungspfeil unter dem Leiter
+    const q0 = P3(xr, yr - 0.1, -a * 0.32), q1 = P3(xr, yr - 0.1, a * 0.32);
+    if (elec) {
+      arrow(ctx, q1.x, q1.y, q0.x, q0.y, C.particle, 2.6, 11);
+      text(ctx, "Elektronen", (q0.x + q1.x) / 2, (q0.y + q1.y) / 2 + 14, C.particle, 13, "center", 700, C.mono);
+    } else {
+      arrow(ctx, q0.x, q0.y, q1.x, q1.y, C.v, 2.6, 11);
+      text(ctx, "I", (q0.x + q1.x) / 2, (q0.y + q1.y) / 2 + 14, C.v, 15, "center", 700, C.mono);
+    }
+    // Kraftpfeil
+    const fl = 0.15 + 0.55 * lForce() / 0.1;
+    const f0 = P3(xr, yr, 0), f1 = P3(xr + d.F[0] * fl, yr, 0), fL = P3(xr + d.F[0] * (fl + 0.09), yr, 0);
+    arrow(ctx, f0.x, f0.y, f1.x, f1.y, C.F, 3.6, 13);
+    text(ctx, "F", fL.x, fL.y, C.F, 16, "center", 700, C.mono);
+  }
+  pill(ctx, `Ansicht von vorne · I = ${fmt(L.I, 1)} A ${L.on ? "" : "(aus)"}`, 12, 22, C.ink);
+  const kd = keyOf(lView(d.F));
+  pill(ctx, d.F[0] > 0 ? "Leiter wird in den Magneten hineingezogen" : "Leiter wird aus dem Magneten herausgedrückt", 12, h - 22, C.F);
+}
+// Richtungen in Koordinaten der aktuellen Ansicht (für Hand und Texte)
+function lView(v) { return L.view === "front" ? [v[2], v[1], -v[0]] : v; }
+function lHand() {
+  const d0 = lDirs();
+  const d = { I: lView(d0.I), B: lView(d0.B), F: lView(d0.F) };
   if (L.conv === "tech") return { q: 1, thumb: d.I, index: d.B, middle: L.on ? d.F : d.F, names: ["I (technisch)", "B", "F"] };
   return { q: -1, thumb: scale(d.I, -1), index: d.B, middle: d.F, names: ["Elektronenfluss", "B", "F"] };
 }
@@ -655,7 +781,7 @@ function lReadouts() {
   $("#ro-l-f").textContent = fmt(F * 1000, 1) + " mN";
   $("#ro-l-g").textContent = fmt(L_MASS * G * 1000, 1) + " mN";
   $("#ro-l-theta").textContent = fmt(Math.abs(L.th) * 180 / Math.PI, 1) + "°";
-  $("#stage-bar").innerHTML = `<span>F = I·l·B = <b>${fmt(L.I, 1)} A · ${fmt(L.len / 100, 3)} m · ${fmt(L.B / 1000, 3)} T = ${fmt(lForce() * 1000, 1)} mN</b></span><span>Kraft ${DIRTXT[keyOf(lDirs().F)]}</span>`;
+  $("#stage-bar").innerHTML = `<span>F = I·l·B = <b>${fmt(L.I, 1)} A · ${fmt(L.len / 100, 3)} m · ${fmt(L.B / 1000, 3)} T = ${fmt(lForce() * 1000, 1)} mN</b></span><span>Kraft ${DIRTXT[keyOf(lView(lDirs().F))]}</span>`;
 }
 
 /* ================= Modus 3: Wien-Filter ================= */
@@ -1007,6 +1133,14 @@ bindRange("l-len", L, "len", "o-l-len", (x) => fmt(x, 1) + " cm");
 bindRadio("l-idir", L, "idir", false);
 bindRadio("l-north", L, "north", false);
 bindRadio("l-conv", L, "conv", false);
+function lViewLabels() {
+  const fr = L.view === "front";
+  $("#lab-l-idir-in").textContent = fr ? "← nach links" : "⊗ hinein";
+  $("#lab-l-idir-out").textContent = fr ? "→ nach rechts" : "⊙ heraus";
+  $("#l-lines-wrap").hidden = fr;
+}
+bindRadio("l-view", L, "view", false, lViewLabels);
+lViewLabels();
 $("#l-lines").addEventListener("change", (e) => { L.lines = e.target.checked; });
 $("#l-on").addEventListener("click", (e) => { L.on = !L.on; e.target.textContent = L.on ? "Strom ausschalten" : "Strom einschalten"; });
 
