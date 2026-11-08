@@ -134,6 +134,36 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
 .explain .card p { margin: 0; font-size: 14px; max-width: 65ch; }
 .explain h3 { font-family: var(--font-display); font-size: 17px; margin: 0; }
 .mode-panel[hidden] { display: none !important; }
+.main-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tasks h2 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tasks .lead { margin: 0; font-size: 14.5px; max-width: 70ch; }
+.tasklist { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 16px; }
+.tasklist > li { padding-left: 4px; }
+.tasklist > li::marker { font-family: var(--font-display); font-weight: 700; color: var(--accent); }
+.tasklist p { margin: 0 0 6px; max-width: 70ch; }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 7px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; }
+.tag.do { background: var(--grid-strong); color: var(--ink); }
+.tag.plus { background: var(--c-e); color: var(--surface); }
+.tasks textarea, .tasks input[type="text"], .tasks select {
+  width: 100%; font: 14px/1.4 var(--font-body); color: var(--ink); background: var(--stage);
+  border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px;
+}
+.tasks textarea { resize: vertical; min-height: 2.6em; }
+.tasks select { width: auto; display: inline-block; padding: 3px 6px; }
+.tasks textarea:focus, .tasks input:focus, .tasks select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.gap-text { line-height: 2.2; }
+.mtable-wrap { overflow-x: auto; }
+.mtable { border-collapse: collapse; font-size: 14px; }
+.mtable th, .mtable td { border: 1px solid var(--line); padding: 4px 8px; text-align: center; }
+.mtable th { background: var(--bg); font-weight: 600; white-space: nowrap; }
+.mtable input[type="text"] { width: 6.5em; padding: 3px 6px; text-align: center; font-family: var(--font-mono); }
+.sol { display: none; margin-top: 6px; font-size: 13.5px; border-left: 3px solid var(--good); padding: 4px 10px; background: var(--bg); border-radius: 0 6px 6px 0; max-width: 70ch; }
+body.sol-on .sol { display: block; }
+.card.task-foot { flex-direction: row; }
+.task-foot { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; }
+details.pro { font-size: 13.5px; }
+details.pro summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+details.pro .formula { margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 
@@ -151,17 +181,120 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Versuche">
-    <button class="tab" role="tab" data-mode="teilchen" id="tab-teilchen" type="button"><span class="num">1</span>Teilchen im B-Feld<small>Kreisbahn, Fadenstrahlrohr</small></button>
+    <button class="tab" role="tab" data-mode="teilchen" id="tab-teilchen" type="button"><span class="num">1</span>Elektronen im Magnetfeld<small>Ablenkung von Elektronen</small></button>
     <button class="tab" role="tab" data-mode="leiter" id="tab-leiter" type="button"><span class="num">2</span>Leiterschaukel<small>Kraft auf stromdurchflossenen Leiter</small></button>
-    <button class="tab" role="tab" data-mode="wien" id="tab-wien" type="button"><span class="num">3</span>Wien-Filter<small>Geschwindigkeitsfilter</small></button>
+    <button class="tab" role="tab" data-mode="wien" id="tab-wien" type="button"><span class="num">3</span>Wien-Filter<small>Zusatz für Schnelle</small></button>
     <button class="tab" role="tab" data-mode="uebung" id="tab-uebung" type="button"><span class="num">4</span>Übung<small>Richtung der Kraft bestimmen</small></button>
   </nav>
 
   <div class="layout">
+    <div class="main-col">
     <section class="stage" aria-label="Simulation">
       <canvas id="sim" aria-label="Simulationsfläche"></canvas>
       <div class="stage-bar" id="stage-bar"></div>
     </section>
+
+      <!-- Arbeitsaufträge -->
+      <section class="card tasks mode-panel" data-mode="teilchen">
+        <h2><span>Arbeitsauftrag · Station 1</span><span>Elektronen im Magnetfeld</span></h2>
+        <p class="lead">Ein Elektronenstrahl fliegt von links in ein Magnetfeld. Bearbeite die Aufgaben mit der Simulation oben.</p>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Beobachten</span>Starte mit Elektron und Feld „⊗ hinein“. Beschreibe, wie das Elektron im Magnetfeld fliegt.</p>
+            <textarea id="t1-1" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Es wird abgelenkt und fliegt auf einer Kreisbahn (hier ein Halbkreis) nach unten und wieder zurück.</p></li>
+          <li><p><span class="tag do">Regel</span>Elektronen sind negativ, also nimmst du die <b>linke Hand</b>. Daumen in Flugrichtung (nach rechts), Zeigefinger in Feldrichtung (in die Ebene hinein). Wohin zeigt der Mittelfinger?</p>
+            <textarea id="t1-2" rows="1" placeholder="Richtung der Kraft"></textarea>
+            <p class="sol">Nach unten. Genau dorthin wird das Elektron abgelenkt. Vergleiche mit der 3D-Hand.</p></li>
+          <li><p><span class="tag do">Verändern</span>Stelle die Feldrichtung auf „⊙ heraus“. Was ändert sich?</p>
+            <textarea id="t1-3" rows="1" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Das Elektron wird jetzt nach oben abgelenkt. Dreht man das Feld um, dreht sich die Kraft um.</p></li>
+          <li><p><span class="tag do">Verändern</span>Wechsle zum Positron (positiv geladen). Was passiert, und welche Hand brauchst du jetzt?</p>
+            <textarea id="t1-4" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Das Positron wird in die entgegengesetzte Richtung abgelenkt. Für positive Ladungen nimmt man die rechte Hand.</p></li>
+          <li><p><span class="tag do">Messen</span>Stelle B = 1,00 mT ein. Lies den Bahnradius r für verschiedene Geschwindigkeiten ab.</p>
+            <div class="mtable-wrap"><table class="mtable">
+              <tr><th>v in 10⁶ m/s</th><td>2,0</td><td>4,0</td><td>8,0</td></tr>
+              <tr><th>r in cm</th><td><input type="text" id="t1-m1" aria-label="r bei 2,0"></td><td><input type="text" id="t1-m2" aria-label="r bei 4,0"></td><td><input type="text" id="t1-m3" aria-label="r bei 8,0"></td></tr>
+            </table></div>
+            <p class="gap-text">Je größer die Geschwindigkeit, desto
+              <select id="t1-g1" aria-label="Lücke 1"><option value="">…</option><option>größer</option><option>kleiner</option></select> der Kreis.
+              Stellt man ein stärkeres Magnetfeld ein, wird der Kreis
+              <select id="t1-g2" aria-label="Lücke 2"><option value="">…</option><option>größer</option><option>kleiner</option></select>.</p>
+            <p class="sol">r ≈ 1,14 cm / 2,28 cm / 4,55 cm. Doppelte Geschwindigkeit ergibt doppelten Radius. Je größer v, desto größer der Kreis. Stärkeres Feld: Kreis wird kleiner.</p></li>
+          <li><p><span class="tag plus">Zusatz</span>Kreuze „Feld überall“ an (so sieht es im Fadenstrahlrohr aus). Warum fliegt das Elektron immer weiter im Kreis? Achte auf die Pfeile v und F.</p>
+            <textarea id="t1-6" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Die Kraft F steht immer quer zur Flugrichtung v und zeigt zur Kreismitte. Sie ändert nur die Richtung, nicht die Geschwindigkeit. Deshalb entsteht ein Kreis.</p></li>
+        </ol>
+      </section>
+
+      <section class="card tasks mode-panel" data-mode="leiter" hidden>
+        <h2><span>Arbeitsauftrag · Station 2</span><span>Leiterschaukel</span></h2>
+        <p class="lead">Ein Metallstab hängt an zwei Drähten zwischen den Polen eines Hufeisenmagneten. Über ein Netzgerät und einen Schalter kann Strom durch den Stab fließen.</p>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Aufbau</span>Benenne die Bauteile in der Ansicht „Von vorne“. Verfolge den Weg des Stroms vom Pluspol bis zum Minuspol.</p>
+            <textarea id="t2-1" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Netzgerät, Schalter, Zuleitungen, Haltedrähte, Leiterstab, Hufeisenmagnet (N und S). Strom: vom Pluspol über den Schalter, den rechten Haltedraht hinunter, durch den Stab nach links, den linken Draht hinauf zum Minuspol.</p></li>
+          <li><p><span class="tag do">Beobachten</span>Öffne und schließe den Schalter (auf den Schalter im Bild tippen). Was beobachtest du? Was folgt daraus?</p>
+            <textarea id="t2-2" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Nur wenn Strom fließt, wird die Schaukel ausgelenkt. Ohne Strom wirkt keine Kraft. Die Kraft entsteht durch bewegte Ladungen im Magnetfeld.</p></li>
+          <li><p><span class="tag do">Regel</span>Bestimme mit der Drei-Finger-Regel die Richtung der Kraft für die Starteinstellung. Prüfe danach mit der Simulation.</p>
+            <textarea id="t2-3" rows="2" placeholder="Daumen: … Zeigefinger: … Mittelfinger: …"></textarea>
+            <p class="sol">Rechte Hand (technische Stromrichtung): Daumen nach links (Strom), Zeigefinger nach unten (von N nach S), Mittelfinger zeigt aus der Ebene heraus. Die Schaukel schwingt aus dem Magneten heraus.</p></li>
+          <li><p><span class="tag do">Verändern</span>Fülle die Tabelle aus. Schwingt die Schaukel in den Magneten hinein oder heraus?</p>
+            <div class="mtable-wrap"><table class="mtable">
+              <tr><th>Einstellung</th><th>Bewegung</th></tr>
+              <tr><td>Start (Strom nach links, N oben)</td><td><select id="t2-v1"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+              <tr><td>Stromrichtung umgedreht</td><td><select id="t2-v2"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+              <tr><td>Magnet umgedreht (S oben)</td><td><select id="t2-v3"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+              <tr><td>Strom und Magnet umgedreht</td><td><select id="t2-v4"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+            </table></div>
+            <p class="sol">heraus, hinein, hinein, heraus. Dreht man eine Sache um, dreht sich die Kraft um. Dreht man beides um, bleibt sie gleich.</p></li>
+          <li><p><span class="tag do">Messen</span>Stelle B = 100 mT und l = 5 cm ein. Miss die Kraft F für verschiedene Stromstärken.</p>
+            <div class="mtable-wrap"><table class="mtable">
+              <tr><th>I in A</th><td>1,0</td><td>2,0</td><td>3,0</td><td>4,0</td></tr>
+              <tr><th>F in mN</th><td><input type="text" id="t2-m1" aria-label="F bei 1 A"></td><td><input type="text" id="t2-m2" aria-label="F bei 2 A"></td><td><input type="text" id="t2-m3" aria-label="F bei 3 A"></td><td><input type="text" id="t2-m4" aria-label="F bei 4 A"></td></tr>
+            </table></div>
+            <p class="gap-text">Verdoppelt man die Stromstärke, dann
+              <select id="t2-g1" aria-label="Lücke"><option value="">…</option><option>verdoppelt sich</option><option>halbiert sich</option><option>bleibt gleich</option></select> die Kraft.</p>
+            <p class="sol">5,0 / 10,0 / 15,0 / 20,0 mN. Die Kraft verdoppelt sich, wenn die Stromstärke verdoppelt wird (F ist proportional zu I).</p></li>
+          <li><p><span class="tag plus">Zusatz</span>Wo wird diese Kraft im Alltag genutzt? Nenne zwei Geräte.</p>
+            <textarea id="t2-6" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Elektromotor (z. B. Ventilator, E-Bike, Bohrmaschine), Lautsprecher und Kopfhörer, Drehspulmessgerät.</p></li>
+        </ol>
+      </section>
+
+      <section class="card tasks mode-panel" data-mode="wien" hidden>
+        <h2><span>Zusatzauftrag</span><span>Wien-Filter</span></h2>
+        <p class="lead">Teilchen mit ganz unterschiedlichen Geschwindigkeiten fliegen zwischen zwei geladenen Platten durch ein Magnetfeld. Die Farbe zeigt die Geschwindigkeit: blau ist langsam, orange ist schnell.</p>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Beobachten</span>Welche Teilchen kommen durch den Spalt bis zum Detektor? Achte auf die Farbe.</p>
+            <textarea id="t3-1" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Nur Teilchen mit einer bestimmten Geschwindigkeit (grün, etwa 5·10⁵ m/s). Langsamere und schnellere treffen auf die Platten oder die Blende.</p></li>
+          <li><p><span class="tag do">Erklären</span>Oben im Bild siehst du zwei Kräfte. Warum fliegt ein Teilchen genau geradeaus?</p>
+            <textarea id="t3-2" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Die elektrische Kraft zieht nach unten, die Lorentzkraft drückt nach oben. Sind beide gleich groß, heben sie sich auf. Die Lorentzkraft hängt von der Geschwindigkeit ab, deshalb klappt das nur bei einer bestimmten Geschwindigkeit.</p></li>
+          <li><p><span class="tag do">Verändern</span>Erhöhe B. Welche Farbe kommt jetzt durch, schnellere oder langsamere Teilchen?</p>
+            <textarea id="t3-3" rows="1" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Langsamere (Richtung blau). Bei stärkerem Magnetfeld reicht schon eine kleinere Geschwindigkeit, damit die Lorentzkraft so groß ist wie die elektrische Kraft.</p></li>
+          <li><p><span class="tag plus">Knobeln</span>Stelle „B ⊙ heraus“ ein. Warum kommt jetzt kein Teilchen mehr durch?</p>
+            <textarea id="t3-4" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Die Lorentzkraft zeigt jetzt in dieselbe Richtung wie die elektrische Kraft. Die Kräfte heben sich nicht mehr auf, alle Teilchen werden abgelenkt.</p></li>
+        </ol>
+      </section>
+
+      <section class="card tasks mode-panel" data-mode="uebung" hidden>
+        <h2><span>Arbeitsauftrag · Station 3</span><span>Übung</span></h2>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Üben</span>Löse mindestens 10 Aufgaben auf Stufe 1. Benutze dabei deine eigene Hand. Trage dein Ergebnis ein.</p>
+            <input type="text" id="t4-1" placeholder="z. B. 8 von 10 richtig"></li>
+          <li><p><span class="tag do">Erklären</span>Wähle eine Aufgabe aus und erkläre deinem Partner Schritt für Schritt, wie du die Richtung der Kraft gefunden hast. Schreibe die Schritte auf.</p>
+            <textarea id="t4-2" rows="3" placeholder="1. … 2. … 3. …"></textarea>
+            <p class="sol">1. Ladung prüfen: positiv oder technischer Strom → rechte Hand, Elektronen → linke Hand. 2. Daumen in Bewegungs- bzw. Stromrichtung. 3. Zeigefinger in Richtung des Magnetfelds (von N nach S). 4. Mittelfinger abspreizen: Er zeigt die Richtung der Kraft.</p></li>
+          <li><p><span class="tag plus">Zusatz</span>Schaffst du eine Serie von 5 richtigen Antworten auf Stufe 2?</p>
+            <input type="text" id="t4-3" placeholder="Beste Serie"></li>
+        </ol>
+      </section>
+    </div>
 
     <aside class="panel">
       <!-- Teilchen -->
@@ -194,10 +327,10 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
         <dl class="readouts">
           <dt>Lorentzkraft F</dt><dd id="ro-p-f"></dd>
           <dt>Bahnradius r</dt><dd id="ro-p-r"></dd>
-          <dt>Umlaufdauer T</dt><dd id="ro-p-t"></dd>
+
         </dl>
-        <div class="formula">F = e·v·B<br>e·v·B = m·v²/r ⇒ r = m·v / (e·B)</div>
-        <p class="hint">Die Lorentzkraft steht immer senkrecht zur Bewegung. Sie ändert die Richtung, aber nicht den Betrag der Geschwindigkeit, deshalb entsteht eine Kreisbahn.</p>
+        <p class="hint">Die Lorentzkraft steht immer quer zur Flugrichtung und zeigt zur Mitte des Kreises. Sie lenkt das Elektron ab, macht es aber nicht schneller oder langsamer.</p>
+        <details class="pro"><summary>Für Profis (Oberstufe)</summary><div class="formula">F = e·v·B<br>Zentripetalkraft: e·v·B = m·v²/r<br>⇒ r = m·v / (e·B)</div></details>
       </div>
 
       <!-- Leiterschaukel -->
@@ -250,7 +383,8 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
           <dt>Gewichtskraft (m = 10 g)</dt><dd id="ro-l-g"></dd>
           <dt>Auslenkung</dt><dd id="ro-l-theta"></dd>
         </dl>
-        <div class="formula">F = I·l·B<br>tan α = F / (m·g)</div>
+        <div class="formula">F = I · l · B</div>
+        <p class="hint">Je größer die Stromstärke, das Magnetfeld und die Leiterlänge im Feld, desto größer die Kraft.</p>
       </div>
 
       <!-- Wien-Filter -->
@@ -284,12 +418,20 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
           <dt>Durch den Spalt</dt><dd id="ro-w-pass"></dd>
           <dt>Mittl. v am Detektor</dt><dd id="ro-w-mean"></dd>
         </dl>
-        <div class="formula">F_el = q·E (zur −Platte)<br>F_L = q·v·B<br>F_el = F_L ⇒ v = E / B</div>
-        <p class="hint">Die Quelle schießt Teilchen mit 2 bis 8·10⁵ m/s. Nur bei Kräftegleichgewicht fliegen sie geradeaus durch den Spalt. Die Ablenkung ist überhöht dargestellt.</p>
+        <p class="hint">Auf jedes Teilchen wirken zwei Kräfte: die elektrische Kraft der Platten und die Lorentzkraft des Magnetfelds. Sind beide gleich groß und entgegengesetzt, fliegt das Teilchen geradeaus durch den Spalt. Die Ablenkung ist übertrieben groß dargestellt.</p>
+        <details class="pro"><summary>Für Profis (Oberstufe)</summary><div class="formula">F_el = q·E<br>F_L = q·v·B<br>F_el = F_L ⇒ v = E / B</div></details>
       </div>
 
       <!-- Übung -->
       <div class="card mode-panel" data-mode="uebung" hidden>
+        <div class="ctl">
+          <span class="ctl-head">Schwierigkeit</span>
+          <div class="seg" role="radiogroup" aria-label="Schwierigkeit">
+            <input type="radio" name="q-level" id="q-level-1" value="1" checked><label for="q-level-1">Stufe 1</label>
+            <input type="radio" name="q-level" id="q-level-2" value="2"><label for="q-level-2">Stufe 2</label>
+          </div>
+          <span class="hint" id="q-level-hint">Magnetfeld zeigt immer in die Ebene hinein oder heraus.</span>
+        </div>
         <h2>Aufgabe <span id="q-num"></span></h2>
         <p class="quiz-task" id="q-task"></p>
         <div class="answers" id="q-answers">
@@ -321,6 +463,11 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
     </aside>
   </div>
 
+  <div class="card task-foot">
+    <label class="check"><input type="checkbox" id="show-sol">Lösungen einblenden (für Lehrkräfte)</label>
+    <span class="hint">Antworten werden nur in diesem Browser gespeichert.</span>
+    <button class="btn" id="clear-answers" type="button">Alle Antworten löschen</button>
+  </div>
   <div class="explain">
     <div class="card">
       <h3>Die Drei-Finger-Regel (UVW)</h3>
@@ -332,7 +479,7 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
     </div>
     <div class="card">
       <h3>Wann gibt es keine Kraft?</h3>
-      <p>Bewegt sich die Ladung parallel zu den Feldlinien, ist F = 0. Allgemein gilt F = q·v·B·sin φ, wobei φ der Winkel zwischen v und B ist. Ruhende Ladungen spüren im Magnetfeld ebenfalls keine Kraft.</p>
+      <p>Bewegt sich die Ladung genau entlang der Feldlinien, wirkt keine Kraft. Auch ruhende Ladungen spüren im Magnetfeld keine Kraft. Ohne Strom bewegt sich die Leiterschaukel deshalb nicht.</p>
     </div>
   </div>
 </div>
@@ -561,7 +708,6 @@ function pReadouts() {
   const T = (TAU * M_E) / (E_CH * P.B * 1e-3);
   $("#ro-p-f").textContent = sci(F) + " N";
   $("#ro-p-r").textContent = r < 1 ? fmt(r * 100, 2) + " cm" : fmt(r, 2) + " m";
-  $("#ro-p-t").textContent = fmt(T * 1e9, 1) + " ns";
   $("#stage-bar").innerHTML = `<span>v = <b>${fmt(P.v, 1)}·10⁶ m/s</b></span><span>B = <b>${fmt(P.B, 2)} mT</b></span><span>r = <b>${$("#ro-p-r").textContent}</b></span><span>Zeitlupe: 1 s im Bild ≈ <b>${sci((35 * 0.16) / ((sim.getBoundingClientRect().width || 800) * 1e6), 1)} s</b> real</span>`;
 }
 
@@ -990,16 +1136,19 @@ function wReadouts() {
 }
 
 /* ================= Modus 4: Übung ================= */
-const Q = { s: null, answered: false, chosen: null, right: 0, total: 0, streak: 0, n: 0 };
+const Q = { level: 1, s: null, answered: false, chosen: null, right: 0, total: 0, streak: 0, n: 0 };
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 function qNew() {
   const keys = Object.keys(DIRS);
   const kind = Math.random() < 0.55 ? "teilchen" : "leiter";
   const q = Math.random() < 0.5 ? 1 : -1;
-  const v = pick(keys);
-  let b;
-  if (Math.random() < 0.1) b = Math.random() < 0.5 ? v : OPP[v];
-  else { do { b = pick(keys); } while (b === v || b === OPP[v]); }
+  let v, b;
+  if (Q.level === 1) { v = pick(["left", "right", "up", "down"]); b = pick(["in", "out"]); }
+  else {
+    v = pick(keys);
+    if (Math.random() < 0.1) b = Math.random() < 0.5 ? v : OPP[v];
+    else { do { b = pick(keys); } while (b === v || b === OPP[v]); }
+  }
   const f = keyOf(norm(scale(cross(DIRS[v], DIRS[b]), q)));
   Q.s = { kind, q, v, b, f };
   Q.answered = false; Q.chosen = null; Q.n++;
@@ -1252,6 +1401,27 @@ $("#w-reset").addEventListener("click", wClear);
 
 $$("#q-answers button").forEach((b) => b.addEventListener("click", () => qAnswer(b.dataset.dir)));
 $("#q-next").addEventListener("click", qNew);
+bindRadio("q-level", Q, "level", true, () => {
+  $("#q-level-hint").textContent = Q.level === 1 ? "Magnetfeld zeigt immer in die Ebene hinein oder heraus." : "Alle Richtungen sind möglich, auch v oder I aus der Ebene heraus.";
+  qNew();
+});
+
+/* ================= Arbeitsaufträge ================= */
+const fields = $$(".tasks textarea, .tasks input[type=text], .tasks select");
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+fields.forEach((f) => {
+  const v = store.get("lk-" + f.id); if (v !== null) f.value = v;
+  f.addEventListener("input", () => store.set("lk-" + f.id, f.value));
+  f.addEventListener("change", () => store.set("lk-" + f.id, f.value));
+});
+let clearArmed = false;
+$("#clear-answers").addEventListener("click", (e) => {
+  if (!clearArmed) { clearArmed = true; e.target.textContent = "Wirklich löschen?"; setTimeout(() => { clearArmed = false; e.target.textContent = "Alle Antworten löschen"; }, 3000); return; }
+  fields.forEach((f) => { f.value = ""; store.del("lk-" + f.id); });
+  clearArmed = false; e.target.textContent = "Gelöscht";
+  setTimeout(() => { e.target.textContent = "Alle Antworten löschen"; }, 1500);
+});
+$("#show-sol").addEventListener("change", (e) => document.body.classList.toggle("sol-on", e.target.checked));
 
 /* ================= Hauptschleife ================= */
 const sim = $("#sim");
