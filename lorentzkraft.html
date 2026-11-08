@@ -64,14 +64,17 @@ h1 .f { color: var(--c-f); }
 .legend-chips { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
 .chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.tabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tab {
-  font: 600 14px/1 var(--font-body); color: var(--muted); background: none; border: 0; cursor: pointer;
-  padding: 11px 14px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font: 600 14.5px/1.2 var(--font-body); color: var(--ink); background: var(--surface); cursor: pointer; text-align: left;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; min-width: 0;
 }
-.tab:hover { color: var(--ink); }
-.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-.tab small { display: block; font-weight: 400; font-size: 12px; margin-top: 4px; color: var(--muted); }
+.tab:hover { border-color: var(--accent); }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.tab .num { font-family: var(--font-mono); font-weight: 500; font-size: 12px; opacity: 0.75; margin-right: 6px; }
+.tab small { display: block; font-weight: 400; font-size: 12px; margin-top: 3px; color: var(--muted); }
+.tab[aria-selected="true"] small { color: var(--surface); opacity: 0.85; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 16px; align-items: start; }
 @media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
 .stage { background: var(--stage); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; }
@@ -148,10 +151,10 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Versuche">
-    <button class="tab" role="tab" data-mode="teilchen" id="tab-teilchen">Teilchen im B-Feld<small>Kreisbahn, Fadenstrahlrohr</small></button>
-    <button class="tab" role="tab" data-mode="leiter" id="tab-leiter">Leiterschaukel<small>Kraft auf stromdurchflossenen Leiter</small></button>
-    <button class="tab" role="tab" data-mode="wien" id="tab-wien">Wien-Filter<small>Geschwindigkeitsfilter</small></button>
-    <button class="tab" role="tab" data-mode="uebung" id="tab-uebung">Übung<small>Richtung der Kraft bestimmen</small></button>
+    <button class="tab" role="tab" data-mode="teilchen" id="tab-teilchen" type="button"><span class="num">1</span>Teilchen im B-Feld<small>Kreisbahn, Fadenstrahlrohr</small></button>
+    <button class="tab" role="tab" data-mode="leiter" id="tab-leiter" type="button"><span class="num">2</span>Leiterschaukel<small>Kraft auf stromdurchflossenen Leiter</small></button>
+    <button class="tab" role="tab" data-mode="wien" id="tab-wien" type="button"><span class="num">3</span>Wien-Filter<small>Geschwindigkeitsfilter</small></button>
+    <button class="tab" role="tab" data-mode="uebung" id="tab-uebung" type="button"><span class="num">4</span>Übung<small>Richtung der Kraft bestimmen</small></button>
   </nav>
 
   <div class="layout">
@@ -974,10 +977,10 @@ function setMode(m) {
   if (m === "uebung" && !Q.s) qNew();
   if (m === "teilchen") { P.alive = false; P.wait = 0.1; }
   lastHandKey = "";
-  if (location.hash.slice(1) !== m) { try { history.replaceState(null, "", "#" + m); } catch (e) { location.hash = m; } }
 }
-$$(".tab").forEach((t) => t.addEventListener("click", () => setMode(t.dataset.mode)));
-window.addEventListener("hashchange", () => setMode(location.hash.slice(1)));
+const MODES = ["teilchen", "leiter", "wien", "uebung"];
+$$(".tab").forEach((t) => t.addEventListener("click", (e) => { e.preventDefault(); setMode(t.dataset.mode); }));
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (MODES.includes(h) && h !== mode) setMode(h); });
 
 function bindRange(id, obj, key, out, f) {
   const el = $("#" + id);
@@ -1039,7 +1042,7 @@ function frame(t) {
   }
   requestAnimationFrame(frame);
 }
-setMode(location.hash.slice(1) || "teilchen");
+setMode(MODES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "teilchen");
 requestAnimationFrame(frame);
 })();
 </script>
