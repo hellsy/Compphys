@@ -1,0 +1,1459 @@
+<title>Lorentzkraft-Labor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Labortisch – große Simulationsfläche links, Steuerpult + 3D-Hand rechts; auf dem Handy untereinander.
+   Farbcode durchgehend: v / I = blau (Daumen), B = grün (Zeigefinger), F = orange (Mittelfinger). */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --stage: #f8f9fb;
+  --ink: #18202d;
+  --muted: #5a6476;
+  --line: #d4d9e2;
+  --grid: #e3e7ee;
+  --grid-strong: #cfd5df;
+  --accent: #2b52c4;
+  --c-v: #2b52c4;
+  --c-b: #18865a;
+  --c-f: #e0561b;
+  --c-e: #b07f00;
+  --north: #c42f3c;
+  --south: #2c8653;
+  --skin: #f0c9a4;
+  --skin-edge: #b5865f;
+  --particle: #18202d;
+  --particle-ink: #ffffff;
+  --metal: #9aa3b1;
+  --good: #1d7f4e;
+  --bad: #c0392b;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f131a; --surface: #171d26; --stage: #11161e; --ink: #e6eaf1; --muted: #98a2b4;
+    --line: #29313e; --grid: #1b222c; --grid-strong: #252e3b; --accent: #7f9cff;
+    --c-v: #7f9cff; --c-b: #42cf8f; --c-f: #ff8a4a; --c-e: #efc246; --north: #ff5c68; --south: #4cc484;
+    --skin: #e2b48d; --skin-edge: #96694a; --particle: #e6eaf1; --particle-ink: #11161e; --metal: #6f7a8a;
+    --good: #4cc484; --bad: #ff6b5e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f131a; --surface: #171d26; --stage: #11161e; --ink: #e6eaf1; --muted: #98a2b4;
+  --line: #29313e; --grid: #1b222c; --grid-strong: #252e3b; --accent: #7f9cff;
+  --c-v: #7f9cff; --c-b: #42cf8f; --c-f: #ff8a4a; --c-e: #efc246; --north: #ff5c68; --south: #4cc484;
+  --skin: #e2b48d; --skin-edge: #96694a; --particle: #e6eaf1; --particle-ink: #11161e; --metal: #6f7a8a;
+  --good: #4cc484; --bad: #ff6b5e; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1260px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.6rem, 3.4vw, 2.3rem); line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 .f { color: var(--c-f); }
+.sub { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+.legend-chips { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tab {
+  font: 600 14.5px/1.2 var(--font-body); color: var(--ink); background: var(--surface); cursor: pointer; text-align: left;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; min-width: 0;
+}
+.tab:hover { border-color: var(--accent); }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.tab .num { font-family: var(--font-mono); font-weight: 500; font-size: 12px; opacity: 0.75; margin-right: 6px; }
+.tab small { display: block; font-weight: 400; font-size: 12px; margin-top: 3px; color: var(--muted); }
+.tab[aria-selected="true"] small { color: var(--surface); opacity: 0.85; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 16px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.stage { background: var(--stage); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; }
+#sim { display: block; width: 100%; height: clamp(340px, 64vh, 640px); touch-action: manipulation; }
+@media (max-width: 600px) { #sim { height: 420px; } }
+.stage-bar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface); font-size: 13px; color: var(--muted); }
+.stage-bar b { color: var(--ink); font-weight: 500; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card h2 { font: 700 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0; }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.ctl-head output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { flex: 1; text-align: center; padding: 7px 6px; font-size: 13px; cursor: pointer; color: var(--muted); border-left: 1px solid var(--line); user-select: none; }
+.seg label:first-of-type { border-left: 0; }
+.seg input:checked + label { background: var(--accent); color: var(--surface); font-weight: 600; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -3px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+button.btn {
+  font: 600 13px/1 var(--font-body); padding: 9px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+button.btn:hover { border-color: var(--muted); }
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.readouts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; margin: 0; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.formula { font-family: var(--font-mono); font-size: 13.5px; background: var(--bg); border-radius: 6px; padding: 8px 10px; line-height: 1.7; overflow-x: auto; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+#hand { display: block; width: 100%; height: 250px; cursor: grab; touch-action: none; border-radius: 8px; background: var(--stage); }
+#hand:active { cursor: grabbing; }
+.hand-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hand-name { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.fingers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.fingers li { display: grid; grid-template-columns: 12px 92px 1fr; gap: 8px; align-items: baseline; }
+.fingers i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; transform: translateY(1px); }
+.fingers span:last-child { color: var(--muted); }
+.quiz-task { font-size: 15px; margin: 0; min-height: 4.5em; }
+.answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.answers button { font: 600 14px/1.2 var(--font-body); padding: 10px 4px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.answers button .sym { font-size: 20px; line-height: 1; }
+.answers button small { font-weight: 400; font-size: 11px; color: var(--muted); }
+.answers button:hover:not(:disabled) { border-color: var(--c-f); }
+.answers button.right { border-color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
+.answers button.wrong { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.answers button:disabled { cursor: default; }
+.feedback { font-size: 14px; margin: 0; min-height: 3em; }
+.feedback.ok strong { color: var(--good); }
+.feedback.no strong { color: var(--bad); }
+.explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.explain .card p { margin: 0; font-size: 14px; max-width: 65ch; }
+.explain h3 { font-family: var(--font-display); font-size: 17px; margin: 0; }
+.mode-panel[hidden] { display: none !important; }
+.main-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tasks h2 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tasks .lead { margin: 0; font-size: 14.5px; max-width: 70ch; }
+.tasklist { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 16px; }
+.tasklist > li { padding-left: 4px; }
+.tasklist > li::marker { font-family: var(--font-display); font-weight: 700; color: var(--accent); }
+.tasklist p { margin: 0 0 6px; max-width: 70ch; }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 7px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; }
+.tag.do { background: var(--grid-strong); color: var(--ink); }
+.tag.plus { background: var(--c-e); color: var(--surface); }
+.tasks textarea, .tasks input[type="text"], .tasks select {
+  width: 100%; font: 14px/1.4 var(--font-body); color: var(--ink); background: var(--stage);
+  border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px;
+}
+.tasks textarea { resize: vertical; min-height: 2.6em; }
+.tasks select { width: auto; display: inline-block; padding: 3px 6px; }
+.tasks textarea:focus, .tasks input:focus, .tasks select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.gap-text { line-height: 2.2; }
+.mtable-wrap { overflow-x: auto; }
+.mtable { border-collapse: collapse; font-size: 14px; }
+.mtable th, .mtable td { border: 1px solid var(--line); padding: 4px 8px; text-align: center; }
+.mtable th { background: var(--bg); font-weight: 600; white-space: nowrap; }
+.mtable input[type="text"] { width: 6.5em; padding: 3px 6px; text-align: center; font-family: var(--font-mono); }
+.sol { display: none; margin-top: 6px; font-size: 13.5px; border-left: 3px solid var(--good); padding: 4px 10px; background: var(--bg); border-radius: 0 6px 6px 0; max-width: 70ch; }
+body.sol-on .sol { display: block; }
+.card.task-foot { flex-direction: row; }
+.task-foot { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; }
+details.pro { font-size: 13.5px; }
+details.pro summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+details.pro .formula { margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Lorentzkraft-Labor <span class="f">·</span> Drei-Finger-Regel</h1>
+      <p class="sub">Geladene Teilchen und Ströme im Magnetfeld. Regler bewegen, beobachten, mit der 3D-Hand nachprüfen.</p>
+    </div>
+    <div class="legend-chips" aria-label="Farbcode">
+      <span class="chip"><i style="background:var(--c-v)"></i>Daumen: v bzw. I</span>
+      <span class="chip"><i style="background:var(--c-b)"></i>Zeigefinger: B</span>
+      <span class="chip"><i style="background:var(--c-f)"></i>Mittelfinger: F</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Versuche">
+    <button class="tab" role="tab" data-mode="teilchen" id="tab-teilchen" type="button"><span class="num">1</span>Elektronen im Magnetfeld<small>Ablenkung von Elektronen</small></button>
+    <button class="tab" role="tab" data-mode="leiter" id="tab-leiter" type="button"><span class="num">2</span>Leiterschaukel<small>Kraft auf stromdurchflossenen Leiter</small></button>
+    <button class="tab" role="tab" data-mode="wien" id="tab-wien" type="button"><span class="num">3</span>Wien-Filter<small>Zusatz für Schnelle</small></button>
+    <button class="tab" role="tab" data-mode="uebung" id="tab-uebung" type="button"><span class="num">4</span>Übung<small>Richtung der Kraft bestimmen</small></button>
+  </nav>
+
+  <div class="layout">
+    <div class="main-col">
+    <section class="stage" aria-label="Simulation">
+      <canvas id="sim" aria-label="Simulationsfläche"></canvas>
+      <div class="stage-bar" id="stage-bar"></div>
+    </section>
+
+      <!-- Arbeitsaufträge -->
+      <section class="card tasks mode-panel" data-mode="teilchen">
+        <h2><span>Arbeitsauftrag · Station 1</span><span>Elektronen im Magnetfeld</span></h2>
+        <p class="lead">Ein Elektronenstrahl fliegt von links in ein Magnetfeld. Bearbeite die Aufgaben mit der Simulation oben.</p>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Beobachten</span>Starte mit Elektron und Feld „⊗ hinein“. Beschreibe, wie das Elektron im Magnetfeld fliegt.</p>
+            <textarea id="t1-1" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Es wird abgelenkt und fliegt auf einer Kreisbahn (hier ein Halbkreis) nach unten und wieder zurück.</p></li>
+          <li><p><span class="tag do">Regel</span>Elektronen sind negativ, also nimmst du die <b>linke Hand</b>. Daumen in Flugrichtung (nach rechts), Zeigefinger in Feldrichtung (in die Ebene hinein). Wohin zeigt der Mittelfinger?</p>
+            <textarea id="t1-2" rows="1" placeholder="Richtung der Kraft"></textarea>
+            <p class="sol">Nach unten. Genau dorthin wird das Elektron abgelenkt. Vergleiche mit der 3D-Hand.</p></li>
+          <li><p><span class="tag do">Verändern</span>Stelle die Feldrichtung auf „⊙ heraus“. Was ändert sich?</p>
+            <textarea id="t1-3" rows="1" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Das Elektron wird jetzt nach oben abgelenkt. Dreht man das Feld um, dreht sich die Kraft um.</p></li>
+          <li><p><span class="tag do">Verändern</span>Wechsle zum Positron (positiv geladen). Was passiert, und welche Hand brauchst du jetzt?</p>
+            <textarea id="t1-4" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Das Positron wird in die entgegengesetzte Richtung abgelenkt. Für positive Ladungen nimmt man die rechte Hand.</p></li>
+          <li><p><span class="tag do">Messen</span>Stelle B = 1,00 mT ein. Lies den Bahnradius r für verschiedene Geschwindigkeiten ab.</p>
+            <div class="mtable-wrap"><table class="mtable">
+              <tr><th>v in 10⁶ m/s</th><td>2,0</td><td>4,0</td><td>8,0</td></tr>
+              <tr><th>r in cm</th><td><input type="text" id="t1-m1" aria-label="r bei 2,0"></td><td><input type="text" id="t1-m2" aria-label="r bei 4,0"></td><td><input type="text" id="t1-m3" aria-label="r bei 8,0"></td></tr>
+            </table></div>
+            <p class="gap-text">Je größer die Geschwindigkeit, desto
+              <select id="t1-g1" aria-label="Lücke 1"><option value="">…</option><option>größer</option><option>kleiner</option></select> der Kreis.
+              Stellt man ein stärkeres Magnetfeld ein, wird der Kreis
+              <select id="t1-g2" aria-label="Lücke 2"><option value="">…</option><option>größer</option><option>kleiner</option></select>.</p>
+            <p class="sol">r ≈ 1,14 cm / 2,28 cm / 4,55 cm. Doppelte Geschwindigkeit ergibt doppelten Radius. Je größer v, desto größer der Kreis. Stärkeres Feld: Kreis wird kleiner.</p></li>
+          <li><p><span class="tag plus">Zusatz</span>Kreuze „Feld überall“ an (so sieht es im Fadenstrahlrohr aus). Warum fliegt das Elektron immer weiter im Kreis? Achte auf die Pfeile v und F.</p>
+            <textarea id="t1-6" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Die Kraft F steht immer quer zur Flugrichtung v und zeigt zur Kreismitte. Sie ändert nur die Richtung, nicht die Geschwindigkeit. Deshalb entsteht ein Kreis.</p></li>
+        </ol>
+      </section>
+
+      <section class="card tasks mode-panel" data-mode="leiter" hidden>
+        <h2><span>Arbeitsauftrag · Station 2</span><span>Leiterschaukel</span></h2>
+        <p class="lead">Ein Metallstab hängt an zwei Drähten zwischen den Polen eines Hufeisenmagneten. Über ein Netzgerät und einen Schalter kann Strom durch den Stab fließen.</p>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Aufbau</span>Benenne die Bauteile in der Ansicht „Von vorne“. Verfolge den Weg des Stroms vom Pluspol bis zum Minuspol.</p>
+            <textarea id="t2-1" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Netzgerät, Schalter, Zuleitungen, Haltedrähte, Leiterstab, Hufeisenmagnet (N und S). Strom: vom Pluspol über den Schalter, den rechten Haltedraht hinunter, durch den Stab nach links, den linken Draht hinauf zum Minuspol.</p></li>
+          <li><p><span class="tag do">Beobachten</span>Öffne und schließe den Schalter (auf den Schalter im Bild tippen). Was beobachtest du? Was folgt daraus?</p>
+            <textarea id="t2-2" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Nur wenn Strom fließt, wird die Schaukel ausgelenkt. Ohne Strom wirkt keine Kraft. Die Kraft entsteht durch bewegte Ladungen im Magnetfeld.</p></li>
+          <li><p><span class="tag do">Regel</span>Bestimme mit der Drei-Finger-Regel die Richtung der Kraft für die Starteinstellung. Prüfe danach mit der Simulation.</p>
+            <textarea id="t2-3" rows="2" placeholder="Daumen: … Zeigefinger: … Mittelfinger: …"></textarea>
+            <p class="sol">Rechte Hand (technische Stromrichtung): Daumen nach links (Strom), Zeigefinger nach unten (von N nach S), Mittelfinger zeigt aus der Ebene heraus. Die Schaukel schwingt aus dem Magneten heraus.</p></li>
+          <li><p><span class="tag do">Verändern</span>Fülle die Tabelle aus. Schwingt die Schaukel in den Magneten hinein oder heraus?</p>
+            <div class="mtable-wrap"><table class="mtable">
+              <tr><th>Einstellung</th><th>Bewegung</th></tr>
+              <tr><td>Start (Strom nach links, N oben)</td><td><select id="t2-v1"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+              <tr><td>Stromrichtung umgedreht</td><td><select id="t2-v2"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+              <tr><td>Magnet umgedreht (S oben)</td><td><select id="t2-v3"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+              <tr><td>Strom und Magnet umgedreht</td><td><select id="t2-v4"><option value="">…</option><option>hinein</option><option>heraus</option></select></td></tr>
+            </table></div>
+            <p class="sol">heraus, hinein, hinein, heraus. Dreht man eine Sache um, dreht sich die Kraft um. Dreht man beides um, bleibt sie gleich.</p></li>
+          <li><p><span class="tag do">Messen</span>Stelle B = 100 mT und l = 5 cm ein. Miss die Kraft F für verschiedene Stromstärken.</p>
+            <div class="mtable-wrap"><table class="mtable">
+              <tr><th>I in A</th><td>1,0</td><td>2,0</td><td>3,0</td><td>4,0</td></tr>
+              <tr><th>F in mN</th><td><input type="text" id="t2-m1" aria-label="F bei 1 A"></td><td><input type="text" id="t2-m2" aria-label="F bei 2 A"></td><td><input type="text" id="t2-m3" aria-label="F bei 3 A"></td><td><input type="text" id="t2-m4" aria-label="F bei 4 A"></td></tr>
+            </table></div>
+            <p class="gap-text">Verdoppelt man die Stromstärke, dann
+              <select id="t2-g1" aria-label="Lücke"><option value="">…</option><option>verdoppelt sich</option><option>halbiert sich</option><option>bleibt gleich</option></select> die Kraft.</p>
+            <p class="sol">5,0 / 10,0 / 15,0 / 20,0 mN. Die Kraft verdoppelt sich, wenn die Stromstärke verdoppelt wird (F ist proportional zu I).</p></li>
+          <li><p><span class="tag plus">Zusatz</span>Wo wird diese Kraft im Alltag genutzt? Nenne zwei Geräte.</p>
+            <textarea id="t2-6" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Elektromotor (z. B. Ventilator, E-Bike, Bohrmaschine), Lautsprecher und Kopfhörer, Drehspulmessgerät.</p></li>
+        </ol>
+      </section>
+
+      <section class="card tasks mode-panel" data-mode="wien" hidden>
+        <h2><span>Zusatzauftrag</span><span>Wien-Filter</span></h2>
+        <p class="lead">Teilchen mit ganz unterschiedlichen Geschwindigkeiten fliegen zwischen zwei geladenen Platten durch ein Magnetfeld. Die Farbe zeigt die Geschwindigkeit: blau ist langsam, orange ist schnell.</p>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Beobachten</span>Welche Teilchen kommen durch den Spalt bis zum Detektor? Achte auf die Farbe.</p>
+            <textarea id="t3-1" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Nur Teilchen mit einer bestimmten Geschwindigkeit (grün, etwa 5·10⁵ m/s). Langsamere und schnellere treffen auf die Platten oder die Blende.</p></li>
+          <li><p><span class="tag do">Erklären</span>Oben im Bild siehst du zwei Kräfte. Warum fliegt ein Teilchen genau geradeaus?</p>
+            <textarea id="t3-2" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Die elektrische Kraft zieht nach unten, die Lorentzkraft drückt nach oben. Sind beide gleich groß, heben sie sich auf. Die Lorentzkraft hängt von der Geschwindigkeit ab, deshalb klappt das nur bei einer bestimmten Geschwindigkeit.</p></li>
+          <li><p><span class="tag do">Verändern</span>Erhöhe B. Welche Farbe kommt jetzt durch, schnellere oder langsamere Teilchen?</p>
+            <textarea id="t3-3" rows="1" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Langsamere (Richtung blau). Bei stärkerem Magnetfeld reicht schon eine kleinere Geschwindigkeit, damit die Lorentzkraft so groß ist wie die elektrische Kraft.</p></li>
+          <li><p><span class="tag plus">Knobeln</span>Stelle „B ⊙ heraus“ ein. Warum kommt jetzt kein Teilchen mehr durch?</p>
+            <textarea id="t3-4" rows="2" placeholder="Deine Antwort"></textarea>
+            <p class="sol">Die Lorentzkraft zeigt jetzt in dieselbe Richtung wie die elektrische Kraft. Die Kräfte heben sich nicht mehr auf, alle Teilchen werden abgelenkt.</p></li>
+        </ol>
+      </section>
+
+      <section class="card tasks mode-panel" data-mode="uebung" hidden>
+        <h2><span>Arbeitsauftrag · Station 3</span><span>Übung</span></h2>
+        <ol class="tasklist">
+          <li><p><span class="tag do">Üben</span>Löse mindestens 10 Aufgaben auf Stufe 1. Benutze dabei deine eigene Hand. Trage dein Ergebnis ein.</p>
+            <input type="text" id="t4-1" placeholder="z. B. 8 von 10 richtig"></li>
+          <li><p><span class="tag do">Erklären</span>Wähle eine Aufgabe aus und erkläre deinem Partner Schritt für Schritt, wie du die Richtung der Kraft gefunden hast. Schreibe die Schritte auf.</p>
+            <textarea id="t4-2" rows="3" placeholder="1. … 2. … 3. …"></textarea>
+            <p class="sol">1. Ladung prüfen: positiv oder technischer Strom → rechte Hand, Elektronen → linke Hand. 2. Daumen in Bewegungs- bzw. Stromrichtung. 3. Zeigefinger in Richtung des Magnetfelds (von N nach S). 4. Mittelfinger abspreizen: Er zeigt die Richtung der Kraft.</p></li>
+          <li><p><span class="tag plus">Zusatz</span>Schaffst du eine Serie von 5 richtigen Antworten auf Stufe 2?</p>
+            <input type="text" id="t4-3" placeholder="Beste Serie"></li>
+        </ol>
+      </section>
+    </div>
+
+    <aside class="panel">
+      <!-- Teilchen -->
+      <div class="card mode-panel" data-mode="teilchen">
+        <h2>Einstellungen</h2>
+        <div class="ctl">
+          <span class="ctl-head">Teilchen</span>
+          <div class="seg" role="radiogroup" aria-label="Teilchen">
+            <input type="radio" name="p-q" id="p-q-neg" value="-1" checked><label for="p-q-neg">Elektron (−e)</label>
+            <input type="radio" name="p-q" id="p-q-pos" value="1"><label for="p-q-pos">Positron (+e)</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="p-v">Geschwindigkeit v</label><output id="o-p-v"></output></div>
+          <input type="range" id="p-v" min="1" max="10" step="0.1" value="4">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="p-b">Flussdichte B</label><output id="o-p-b"></output></div>
+          <input type="range" id="p-b" min="0.2" max="3" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <span class="ctl-head">Richtung von B</span>
+          <div class="seg" role="radiogroup" aria-label="Richtung von B">
+            <input type="radio" name="p-bdir" id="p-bdir-in" value="in" checked><label for="p-bdir-in">⊗ hinein</label>
+            <input type="radio" name="p-bdir" id="p-bdir-out" value="out"><label for="p-bdir-out">⊙ heraus</label>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="p-full">Feld überall (Fadenstrahlrohr, volle Kreisbahn)</label>
+        <div class="btn-row"><button class="btn primary" id="p-reset">Neu abschießen</button><button class="btn" id="p-pause">Pause</button></div>
+        <dl class="readouts">
+          <dt>Lorentzkraft F</dt><dd id="ro-p-f"></dd>
+          <dt>Bahnradius r</dt><dd id="ro-p-r"></dd>
+
+        </dl>
+        <p class="hint">Die Lorentzkraft steht immer quer zur Flugrichtung und zeigt zur Mitte des Kreises. Sie lenkt das Elektron ab, macht es aber nicht schneller oder langsamer.</p>
+        <details class="pro"><summary>Für Profis (Oberstufe)</summary><div class="formula">F = e·v·B<br>Zentripetalkraft: e·v·B = m·v²/r<br>⇒ r = m·v / (e·B)</div></details>
+      </div>
+
+      <!-- Leiterschaukel -->
+      <div class="card mode-panel" data-mode="leiter" hidden>
+        <h2>Einstellungen</h2>
+        <div class="ctl">
+          <span class="ctl-head">Ansicht</span>
+          <div class="seg" role="radiogroup" aria-label="Ansicht">
+            <input type="radio" name="l-view" id="l-view-front" value="front" checked><label for="l-view-front">Von vorne (Schrägbild)</label>
+            <input type="radio" name="l-view" id="l-view-side" value="side"><label for="l-view-side">Entlang des Leiters</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="l-i">Stromstärke I</label><output id="o-l-i"></output></div>
+          <input type="range" id="l-i" min="0.5" max="5" step="0.1" value="3">
+        </div>
+        <div class="ctl">
+          <span class="ctl-head">Technische Stromrichtung im Leiter</span>
+          <div class="seg" role="radiogroup" aria-label="Stromrichtung">
+            <input type="radio" name="l-idir" id="l-idir-in" value="in" checked><label for="l-idir-in" id="lab-l-idir-in">⊗ hinein</label>
+            <input type="radio" name="l-idir" id="l-idir-out" value="out"><label for="l-idir-out" id="lab-l-idir-out">⊙ heraus</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="l-b">Flussdichte B</label><output id="o-l-b"></output></div>
+          <input type="range" id="l-b" min="20" max="200" step="5" value="100">
+        </div>
+        <div class="ctl">
+          <span class="ctl-head">Hufeisenmagnet</span>
+          <div class="seg" role="radiogroup" aria-label="Lage der Pole">
+            <input type="radio" name="l-north" id="l-north-top" value="top" checked><label for="l-north-top">N oben</label>
+            <input type="radio" name="l-north" id="l-north-bottom" value="bottom"><label for="l-north-bottom">S oben</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="l-len">Leiterlänge im Feld l</label><output id="o-l-len"></output></div>
+          <input type="range" id="l-len" min="2" max="10" step="0.5" value="5">
+        </div>
+        <div class="ctl">
+          <span class="ctl-head">Regel anwenden mit</span>
+          <div class="seg" role="radiogroup" aria-label="Betrachtung">
+            <input type="radio" name="l-conv" id="l-conv-tech" value="tech" checked><label for="l-conv-tech">techn. Strom</label>
+            <input type="radio" name="l-conv" id="l-conv-elec" value="elec"><label for="l-conv-elec">Elektronenfluss</label>
+          </div>
+        </div>
+        <label class="check" id="l-lines-wrap"><input type="checkbox" id="l-lines">Feldlinienbild überlagern</label>
+        <div class="btn-row"><button class="btn primary" id="l-on">Schalter öffnen (Strom aus)</button></div>
+        <dl class="readouts">
+          <dt>Kraft F</dt><dd id="ro-l-f"></dd>
+          <dt>Gewichtskraft (m = 10 g)</dt><dd id="ro-l-g"></dd>
+          <dt>Auslenkung</dt><dd id="ro-l-theta"></dd>
+        </dl>
+        <div class="formula">F = I · l · B</div>
+        <p class="hint">Je größer die Stromstärke, das Magnetfeld und die Leiterlänge im Feld, desto größer die Kraft.</p>
+      </div>
+
+      <!-- Wien-Filter -->
+      <div class="card mode-panel" data-mode="wien" hidden>
+        <h2>Einstellungen</h2>
+        <div class="ctl">
+          <div class="ctl-head"><label for="w-e">Elektrische Feldstärke E</label><output id="o-w-e"></output></div>
+          <input type="range" id="w-e" min="10" max="100" step="1" value="50">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="w-b">Flussdichte B</label><output id="o-w-b"></output></div>
+          <input type="range" id="w-b" min="50" max="300" step="5" value="100">
+        </div>
+        <div class="ctl">
+          <span class="ctl-head">Teilchen</span>
+          <div class="seg" role="radiogroup" aria-label="Teilchen">
+            <input type="radio" name="w-q" id="w-q-pos" value="1" checked><label for="w-q-pos">Protonen</label>
+            <input type="radio" name="w-q" id="w-q-neg" value="-1"><label for="w-q-neg">Elektronen</label>
+          </div>
+        </div>
+        <div class="ctl">
+          <span class="ctl-head">Richtung von B</span>
+          <div class="seg" role="radiogroup" aria-label="Richtung von B">
+            <input type="radio" name="w-bdir" id="w-bdir-in" value="in" checked><label for="w-bdir-in">⊗ hinein</label>
+            <input type="radio" name="w-bdir" id="w-bdir-out" value="out"><label for="w-bdir-out">⊙ heraus</label>
+          </div>
+        </div>
+        <div class="btn-row"><button class="btn" id="w-reset">Zähler zurücksetzen</button></div>
+        <dl class="readouts">
+          <dt>Durchlassgeschw. E/B</dt><dd id="ro-w-vp"></dd>
+          <dt>Durch den Spalt</dt><dd id="ro-w-pass"></dd>
+          <dt>Mittl. v am Detektor</dt><dd id="ro-w-mean"></dd>
+        </dl>
+        <p class="hint">Auf jedes Teilchen wirken zwei Kräfte: die elektrische Kraft der Platten und die Lorentzkraft des Magnetfelds. Sind beide gleich groß und entgegengesetzt, fliegt das Teilchen geradeaus durch den Spalt. Die Ablenkung ist übertrieben groß dargestellt.</p>
+        <details class="pro"><summary>Für Profis (Oberstufe)</summary><div class="formula">F_el = q·E<br>F_L = q·v·B<br>F_el = F_L ⇒ v = E / B</div></details>
+      </div>
+
+      <!-- Übung -->
+      <div class="card mode-panel" data-mode="uebung" hidden>
+        <div class="ctl">
+          <span class="ctl-head">Schwierigkeit</span>
+          <div class="seg" role="radiogroup" aria-label="Schwierigkeit">
+            <input type="radio" name="q-level" id="q-level-1" value="1" checked><label for="q-level-1">Stufe 1</label>
+            <input type="radio" name="q-level" id="q-level-2" value="2"><label for="q-level-2">Stufe 2</label>
+          </div>
+          <span class="hint" id="q-level-hint">Magnetfeld zeigt immer in die Ebene hinein oder heraus.</span>
+        </div>
+        <h2>Aufgabe <span id="q-num"></span></h2>
+        <p class="quiz-task" id="q-task"></p>
+        <div class="answers" id="q-answers">
+          <button data-dir="out"><span class="sym">⊙</span><small>aus der Ebene</small></button>
+          <button data-dir="up"><span class="sym">↑</span><small>nach oben</small></button>
+          <button data-dir="in"><span class="sym">⊗</span><small>in die Ebene</small></button>
+          <button data-dir="left"><span class="sym">←</span><small>nach links</small></button>
+          <button data-dir="none"><span class="sym">0</span><small>keine Kraft</small></button>
+          <button data-dir="right"><span class="sym">→</span><small>nach rechts</small></button>
+          <span></span>
+          <button data-dir="down"><span class="sym">↓</span><small>nach unten</small></button>
+          <span></span>
+        </div>
+        <p class="feedback" id="q-feedback" aria-live="polite"></p>
+        <div class="btn-row"><button class="btn primary" id="q-next">Nächste Aufgabe</button></div>
+        <dl class="readouts"><dt>Richtig</dt><dd id="ro-q-score">0 / 0</dd><dt>Serie</dt><dd id="ro-q-streak">0</dd></dl>
+      </div>
+
+      <!-- 3D-Hand -->
+      <div class="card">
+        <div class="hand-top">
+          <span class="hand-name" id="hand-name">Linke Hand</span>
+          <button class="btn" id="hand-reset" title="Blickrichtung zurücksetzen">Ansicht</button>
+        </div>
+        <canvas id="hand" aria-label="3D-Darstellung der Drei-Finger-Regel, mit der Maus oder dem Finger drehbar"></canvas>
+        <ul class="fingers" id="hand-fingers"></ul>
+        <p class="hint">Ziehen dreht die Hand. Die graue Fläche ist die Bildebene des Versuchs.</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="card task-foot">
+    <label class="check"><input type="checkbox" id="show-sol">Lösungen einblenden (für Lehrkräfte)</label>
+    <span class="hint">Antworten werden nur in diesem Browser gespeichert.</span>
+    <button class="btn" id="clear-answers" type="button">Alle Antworten löschen</button>
+  </div>
+  <div class="explain">
+    <div class="card">
+      <h3>Die Drei-Finger-Regel (UVW)</h3>
+      <p><b>U</b>rsache: Daumen in Bewegungsrichtung der Ladung bzw. Stromrichtung. <b>V</b>ermittlung: Zeigefinger in Richtung des Magnetfelds (von N nach S). <b>W</b>irkung: der abgespreizte Mittelfinger zeigt die Richtung der Lorentzkraft. Alle drei Finger stehen senkrecht aufeinander.</p>
+    </div>
+    <div class="card">
+      <h3>Rechte oder linke Hand?</h3>
+      <p>Für positive Ladungen und die technische Stromrichtung (+ nach −) nimmt man die <b>rechte Hand</b>. Für Elektronen und die Elektronenflussrichtung (− nach +) die <b>linke Hand</b>. Beide Wege liefern dieselbe Kraftrichtung, das zeigt der Schalter in der Leiterschaukel.</p>
+    </div>
+    <div class="card">
+      <h3>Wann gibt es keine Kraft?</h3>
+      <p>Bewegt sich die Ladung genau entlang der Feldlinien, wirkt keine Kraft. Auch ruhende Ladungen spüren im Magnetfeld keine Kraft. Ohne Strom bewegt sich die Leiterschaukel deshalb nicht.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const TAU = Math.PI * 2;
+const E_CH = 1.602e-19, M_E = 9.109e-31, G = 9.81;
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const fmt = (x, d) => x.toFixed(d).replace(".", ",");
+const SUP = { "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+function sci(x, d = 2) {
+  if (x === 0) return "0";
+  const e = Math.floor(Math.log10(Math.abs(x)));
+  const m = x / Math.pow(10, e);
+  return fmt(m, d) + " · 10" + String(e).split("").map((c) => SUP[c]).join("");
+}
+
+/* ---------- Farben aus den CSS-Tokens ---------- */
+let C = {};
+function refreshColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  C = {
+    stage: g("--stage"), surface: g("--surface"), ink: g("--ink"), muted: g("--muted"), line: g("--line"),
+    grid: g("--grid"), gridStrong: g("--grid-strong"), v: g("--c-v"), B: g("--c-b"), F: g("--c-f"), E: g("--c-e"),
+    north: g("--north"), south: g("--south"), skin: g("--skin"), skinEdge: g("--skin-edge"),
+    particle: g("--particle"), particleInk: g("--particle-ink"), metal: g("--metal"), good: g("--good"), bad: g("--bad"),
+    mono: g("--font-mono"), body: g("--font-body"), display: g("--font-display"),
+  };
+}
+refreshColors();
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", refreshColors); } catch (e) {}
+new MutationObserver(refreshColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+
+/* ---------- Canvas-Helfer ---------- */
+function fit(cv) {
+  const r = cv.getBoundingClientRect();
+  const d = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  return { ctx, w: r.width, h: r.height };
+}
+function withAlpha(col, a) {
+  // akzeptiert #rrggbb
+  if (col && col[0] === "#" && col.length === 7) {
+    const n = parseInt(col.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  return col;
+}
+function arrow(ctx, x1, y1, x2, y2, col, w = 3, head = 11) {
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  if (len < 2) return;
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  head = Math.min(head, len * 0.6);
+  ctx.save();
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - Math.cos(a) * head * 0.7, y2 - Math.sin(a) * head * 0.7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - Math.cos(a - 0.42) * head, y2 - Math.sin(a - 0.42) * head);
+  ctx.lineTo(x2 - Math.cos(a + 0.42) * head, y2 - Math.sin(a + 0.42) * head);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function dirSym(ctx, x, y, r, dir, col, lw = 1.6, fill) {
+  ctx.save();
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw;
+  if (fill) { ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); ctx.fillStyle = col; }
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+  if (dir === "out") { ctx.beginPath(); ctx.arc(x, y, Math.max(1.4, r * 0.28), 0, TAU); ctx.fill(); }
+  else { const k = r * 0.6; ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke(); }
+  ctx.restore();
+}
+function text(ctx, s, x, y, col, size = 13, align = "left", weight = 500, font) {
+  ctx.save();
+  ctx.fillStyle = col; ctx.font = `${weight} ${size}px ${font || C.body}`; ctx.textAlign = align; ctx.textBaseline = "middle";
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function pill(ctx, s, x, y, col, size = 12) {
+  ctx.save();
+  ctx.font = `500 ${size}px ${C.mono}`;
+  const w = ctx.measureText(s).width + 14, h = size + 10;
+  ctx.fillStyle = withAlpha(C.surface, 0.9);
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y - h / 2, w, h, 6) : ctx.rect(x, y - h / 2, w, h); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = col; ctx.textBaseline = "middle"; ctx.fillText(s, x + 7, y + 1);
+  ctx.restore();
+  return w;
+}
+function symbolGrid(ctx, x0, y0, x1, y1, dir, col, step = 38) {
+  const nx = Math.max(1, Math.floor((x1 - x0) / step)), ny = Math.max(1, Math.floor((y1 - y0) / step));
+  const sx = (x1 - x0) / nx, sy = (y1 - y0) / ny;
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++)
+    dirSym(ctx, x0 + sx * (i + 0.5), y0 + sy * (j + 0.5), 6.5, dir, col, 1.3);
+}
+
+/* ---------- Vektoren ---------- */
+const DIRS = { right: [1, 0, 0], left: [-1, 0, 0], up: [0, 1, 0], down: [0, -1, 0], out: [0, 0, 1], in: [0, 0, -1] };
+const OPP = { right: "left", left: "right", up: "down", down: "up", out: "in", in: "out" };
+const DIRTXT = { right: "nach rechts", left: "nach links", up: "nach oben", down: "nach unten", out: "aus der Zeichenebene heraus", in: "in die Zeichenebene hinein", none: "keine Kraft" };
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const scale = (a, k) => a.map((x) => x * k);
+const norm = (a) => { const l = Math.hypot(a[0], a[1], a[2]); return l < 1e-9 ? null : a.map((x) => x / l); };
+function keyOf(v) {
+  if (!v) return "none";
+  for (const k in DIRS) { const d = DIRS[k]; if (Math.abs(d[0] - v[0]) + Math.abs(d[1] - v[1]) + Math.abs(d[2] - v[2]) < 1e-6) return k; }
+  return "none";
+}
+
+/* ================= Modus 1: Teilchen im Magnetfeld ================= */
+const P = { q: -1, v: 4, B: 1, bdir: "in", full: false, paused: false, x: 0, y: 0, phi: 0, alive: false, wait: 0.2, trail: [], center: null };
+function pRadius() { return (M_E * P.v * 1e6) / (E_CH * P.B * 1e-3); } // m
+function pGeom(w, h) {
+  const s = w / 0.16; // 16 cm Bildbreite
+  return { s, fx0: P.full ? 0 : w * 0.22, gunX: w * 0.13 };
+}
+function pLaunch(w, h) {
+  const g = pGeom(w, h);
+  P.phi = 0; P.alive = true; P.trail = [];
+  if (P.full) {
+    const bz = P.bdir === "out" ? 1 : -1;
+    const fy = -P.q * bz; // Anfangskraft-Richtung (y nach oben)
+    const r = Math.min(pRadius() * g.s, h * 0.42);
+    P.x = w * 0.5; P.y = h * 0.5 - fy * r;
+  } else {
+    P.x = g.gunX; P.y = h * 0.5;
+  }
+}
+function pUpdate(dt, w, h) {
+  if (P.paused) return;
+  if (!P.alive) { P.wait -= dt; if (P.wait <= 0) pLaunch(w, h); return; }
+  const g = pGeom(w, h);
+  const rpx = pRadius() * g.s;
+  const bz = P.bdir === "out" ? 1 : -1;
+  const speed = 35 * P.v; // px/s (Zeitlupe)
+  const total = speed * dt, n = Math.max(1, Math.ceil(total / 2)), ds = total / n;
+  for (let i = 0; i < n; i++) {
+    const inF = P.full || P.x >= g.fx0;
+    const dphi = inF ? (-P.q * bz * ds) / rpx : 0;
+    P.phi += dphi / 2;
+    P.x += Math.cos(P.phi) * ds; P.y += Math.sin(P.phi) * ds;
+    P.phi += dphi / 2;
+  }
+  const last = P.trail[P.trail.length - 1];
+  if (!last || Math.hypot(last[0] - P.x, last[1] - P.y) > 2) P.trail.push([P.x, P.y]);
+  if (P.trail.length > 1600) P.trail.shift();
+  if (P.x < -30 || P.x > w + 30 || P.y < -30 || P.y > h + 30) { P.alive = false; P.wait = 0.9; }
+}
+function pDraw(ctx, w, h) {
+  const g = pGeom(w, h);
+  const Y = (y) => h - y;
+  // Zentimeterraster
+  const cm = g.s * 0.01;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += cm) { ctx.moveTo(Math.round(x) + 0.5, 0); ctx.lineTo(Math.round(x) + 0.5, h); }
+  for (let y = h / 2 % cm; y <= h; y += cm) { ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(w, Math.round(y) + 0.5); }
+  ctx.stroke();
+  // Feldbereich
+  ctx.fillStyle = withAlpha(C.B, 0.06);
+  ctx.fillRect(g.fx0, 0, w - g.fx0, h);
+  if (!P.full) { ctx.strokeStyle = withAlpha(C.B, 0.6); ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.moveTo(g.fx0 + 0.5, 0); ctx.lineTo(g.fx0 + 0.5, h); ctx.stroke(); ctx.setLineDash([]); }
+  symbolGrid(ctx, g.fx0, 0, w, h, P.bdir, withAlpha(C.B, 0.55), 40);
+  pill(ctx, `B = ${fmt(P.B, 2)} mT ${P.bdir === "in" ? "⊗" : "⊙"}`, w - 150, 22, C.B);
+  // Maßstab
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(14, h - 16); ctx.lineTo(14 + cm, h - 16); ctx.moveTo(14, h - 21); ctx.lineTo(14, h - 11); ctx.moveTo(14 + cm, h - 21); ctx.lineTo(14 + cm, h - 11); ctx.stroke();
+  text(ctx, "1 cm", 20 + cm, h - 16, C.muted, 12, "left", 500, C.mono);
+  // Kanone
+  if (!P.full) {
+    const gy = h / 2;
+    ctx.fillStyle = C.metal; ctx.fillRect(g.gunX - 70, gy - 16, 56, 32); ctx.fillRect(g.gunX - 14, gy - 7, 12, 14);
+    text(ctx, P.q < 0 ? "e⁻-Kanone" : "e⁺-Quelle", g.gunX - 42, gy + 30, C.muted, 12, "center");
+  }
+  // Spur
+  if (P.trail.length > 1) {
+    ctx.strokeStyle = withAlpha(C.particle, 0.45); ctx.lineWidth = 2; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(P.trail[0][0], Y(P.trail[0][1]));
+    for (const p of P.trail) ctx.lineTo(p[0], Y(p[1]));
+    ctx.stroke();
+  }
+  if (!P.alive) return;
+  const x = P.x, y = Y(P.y);
+  const inF = P.full || P.x >= g.fx0;
+  const vx = Math.cos(P.phi), vy = Math.sin(P.phi);
+  const bz = P.bdir === "out" ? 1 : -1;
+  const fx = P.q * vy * bz, fy = -P.q * vx * bz; // F ∝ q v×B
+  if (inF) {
+    const rpx = pRadius() * g.s;
+    const cx = x + fx * rpx, cy = y - fy * rpx;
+    if (rpx < 3 * w) {
+      ctx.save(); ctx.strokeStyle = withAlpha(C.muted, 0.6); ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(cx, cy); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = C.muted; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, TAU); ctx.fill();
+      text(ctx, "r", (x + cx) / 2 + 8, (y + cy) / 2 - 8, C.muted, 13, "left", 600, C.mono);
+    }
+    const flen = 26 + 44 * (P.v * P.B) / 30;
+    arrow(ctx, x, y, x + fx * flen, y - fy * flen, C.F, 3.2);
+    text(ctx, "F", x + fx * (flen + 12), y - fy * (flen + 12), C.F, 15, "center", 700, C.mono);
+  }
+  const vlen = 22 + 5 * P.v;
+  arrow(ctx, x, y, x + vx * vlen, y - vy * vlen, C.v, 3.2);
+  text(ctx, "v", x + vx * (vlen + 12), y - vy * (vlen + 12), C.v, 15, "center", 700, C.mono);
+  ctx.fillStyle = C.particle; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.fill();
+  text(ctx, P.q < 0 ? "−" : "+", x, y + 0.5, C.particleInk, 14, "center", 700);
+}
+function pHand() {
+  const bz = P.bdir === "out" ? 1 : -1;
+  const v = [Math.cos(P.phi), Math.sin(P.phi), 0];
+  return {
+    q: P.q,
+    thumb: v, index: [0, 0, bz], middle: norm(scale(cross(v, [0, 0, bz]), P.q)),
+    names: P.q < 0 ? ["v des Elektrons", "B", "F"] : ["v des Positrons", "B", "F"],
+  };
+}
+function pReadouts() {
+  const F = E_CH * P.v * 1e6 * P.B * 1e-3;
+  const r = pRadius();
+  const T = (TAU * M_E) / (E_CH * P.B * 1e-3);
+  $("#ro-p-f").textContent = sci(F) + " N";
+  $("#ro-p-r").textContent = r < 1 ? fmt(r * 100, 2) + " cm" : fmt(r, 2) + " m";
+  $("#stage-bar").innerHTML = `<span>v = <b>${fmt(P.v, 1)}·10⁶ m/s</b></span><span>B = <b>${fmt(P.B, 2)} mT</b></span><span>r = <b>${$("#ro-p-r").textContent}</b></span><span>Zeitlupe: 1 s im Bild ≈ <b>${sci((35 * 0.16) / ((sim.getBoundingClientRect().width || 800) * 1e6), 1)} s</b> real</span>`;
+}
+
+/* ================= Modus 2: Leiterschaukel ================= */
+const L = { I: 3, idir: "in", B: 100, north: "top", len: 5, conv: "tech", lines: false, on: true, th: 0, om: 0, view: "front", t: 0 };
+const L_MASS = 0.01, L_ARM = 0.2;
+function lForce() { return L.I * (L.len / 100) * (L.B / 1000); } // N
+function lDirs() {
+  const a = L.idir === "out" ? 1 : -1;
+  const b = L.north === "top" ? -1 : 1;
+  return { I: [0, 0, a], B: [0, b, 0], F: norm(cross([0, 0, a], [0, b, 0])) };
+}
+function lUpdate(dt) {
+  const d = lDirs();
+  const F = L.on ? lForce() * d.F[0] : 0;
+  L.t += dt;
+  const n = 6, h = Math.min(dt, 0.05) / n;
+  for (let i = 0; i < n; i++) {
+    const acc = -(G / L_ARM) * Math.sin(L.th) + (F / (L_MASS * L_ARM)) * Math.cos(L.th) - 2.2 * L.om;
+    L.om += acc * h; L.th += L.om * h;
+  }
+}
+function lDraw(ctx, w, h) {
+  L.switchHit = null;
+  if (L.view === "front") return lDrawFront(ctx, w, h);
+  const d = lDirs();
+  const cx = w / 2, pivotY = Math.max(34, h * 0.08);
+  const arm = h * 0.62;
+  const restY = pivotY + arm;
+  const gap = Math.min(70, h * 0.13), poleW = Math.min(300, w * 0.5), poleH = Math.min(70, h * 0.12);
+  const topPole = { x: cx - poleW / 2, y: restY - gap - poleH }, botPole = { x: cx - poleW / 2, y: restY + gap };
+  const nTop = L.north === "top";
+  // Pole
+  const drawPole = (p, isN) => {
+    ctx.fillStyle = isN ? C.north : C.south;
+    ctx.fillRect(p.x, p.y, poleW, poleH);
+    text(ctx, isN ? "N" : "S", p.x + poleW / 2, p.y + poleH / 2 + 1, "#ffffff", 26, "center", 700, C.display);
+  };
+  ctx.fillStyle = C.metal;
+  ctx.fillRect(topPole.x + poleW, topPole.y, Math.min(60, w * 0.07), botPole.y + poleH - topPole.y);
+  drawPole(topPole, nTop); drawPole(botPole, !nTop);
+  text(ctx, "Hufeisenmagnet von der Seite (Bogen rechts)", cx, botPole.y + poleH + 18, C.muted, 12, "center");
+  // Feldlinien zwischen den Polen
+  const nLines = 7;
+  for (let i = 0; i < nLines; i++) {
+    const x = topPole.x + (poleW / nLines) * (i + 0.5);
+    const y1 = topPole.y + poleH + 4, y2 = botPole.y - 4;
+    ctx.strokeStyle = withAlpha(C.B, 0.55); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+    const mid = (y1 + y2) / 2 + (i % 2 ? 22 : -22);
+    if (nTop) arrow(ctx, x, mid - 8, x, mid + 6, withAlpha(C.B, 0.85), 1.5, 8);
+    else arrow(ctx, x, mid + 8, x, mid - 6, withAlpha(C.B, 0.85), 1.5, 8);
+  }
+  text(ctx, "B", topPole.x + poleW + 14, restY, C.B, 16, "left", 700, C.mono);
+  // Aufhängung
+  ctx.fillStyle = C.metal; ctx.fillRect(cx - 90, pivotY - 8, 180, 8);
+  const rx = cx + arm * Math.sin(L.th), ry = pivotY + arm * Math.cos(L.th);
+  ctx.strokeStyle = withAlpha(C.ink, 0.55); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, pivotY); ctx.lineTo(rx, ry); ctx.stroke();
+  // Feldlinienbild
+  if (L.lines) {
+    const ccw = L.idir === "out"; // Rechte-Faust-Regel, Blick von vorn
+    for (const r of [26, 40, 56]) {
+      ctx.strokeStyle = withAlpha(C.v, 0.45); ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.arc(rx, ry, r, 0, TAU); ctx.stroke();
+      for (const ang of [0, Math.PI]) {
+        const px = rx + r * Math.cos(ang), py = ry + r * Math.sin(ang);
+        const tdir = ccw ? -1 : 1; // Bildschirm: y nach unten
+        const tx = -Math.sin(ang) * tdir, ty = Math.cos(ang) * tdir;
+        arrow(ctx, px - tx * 5, py - ty * 5, px + tx * 5, py + ty * 5, withAlpha(C.v, 0.8), 1.4, 7);
+      }
+    }
+    // rechts vom Leiter: Kreisfeld zeigt (Physik-Koordinaten) I×x̂
+    const right = cross(d.I, [1, 0, 0])[1]; // y-Komponente
+    const strongRight = right * d.B[1] > 0;
+    text(ctx, "Feld verstärkt", rx + (strongRight ? 70 : -70), ry - 20, C.ink, 12, strongRight ? "left" : "right", 600);
+    text(ctx, "Feld geschwächt", rx + (strongRight ? -70 : 70), ry - 20, C.muted, 12, strongRight ? "right" : "left", 500);
+  }
+  // Leiter
+  dirSym(ctx, rx, ry, 15, L.idir, C.v, 2.2, C.metal);
+  text(ctx, L.conv === "tech" ? "I" : "I (techn.)", rx + 22, ry + 22, C.v, 14, "left", 700, C.mono);
+  if (L.conv === "elec") {
+    const ed = L.idir === "in" ? "out" : "in";
+    dirSym(ctx, rx - 34, ry + 30, 8, ed, C.particle, 1.5);
+    text(ctx, "e⁻", rx - 46, ry + 30, C.particle, 13, "right", 600);
+  }
+  // Kraft
+  if (L.on) {
+    const flen = 20 + 110 * lForce() / 0.1;
+    const sx = d.F[0];
+    arrow(ctx, rx + sx * 18, ry, rx + sx * (18 + flen), ry, C.F, 3.4, 12);
+    text(ctx, "F", rx + sx * (30 + flen), ry, C.F, 16, "center", 700, C.mono);
+  }
+  pill(ctx, `Blick in Leiterrichtung · I = ${L.on ? fmt(L.I, 1) + " A" : "0 A (Schalter offen)"}`, 12, 22, C.ink);
+  L.switchHit = null;
+  drawSchematic(ctx, w, h);
+}
+/* Vorderansicht als Schrägbild. Weltkoordinaten wie in der Seitenansicht:
+   X = Kraftrichtung (Bogen des Magneten bei +X), Y = oben, Z = Leiterachse.
+   Der Betrachter steht bei −X und blickt in +X-Richtung: rechts = +Z. */
+const FV = { yaw: -0.5, pitch: 0.32 };
+function lDrawFront(ctx, w, h) {
+  const d = lDirs();
+  const s = Math.min(w * 0.42, h * 0.44);
+  const cx = w * 0.5, cy = h * 0.1 + 1.36 * s;
+  const cY = Math.cos(FV.yaw), sY = Math.sin(FV.yaw), cP = Math.cos(FV.pitch), sP = Math.sin(FV.pitch);
+  const rot = (X, Y, Z) => { const vx = Z, vy = Y, vz = -X; const x1 = vx * cY + vz * sY, z1 = -vx * sY + vz * cY; return [x1, vy * cP - z1 * sP, vy * sP + z1 * cP]; };
+  const P3 = (X, Y, Z) => { const r = rot(X, Y, Z); const k = 1 / (1 - r[2] * 0.12); return { x: cx + r[0] * s * k, y: cy - r[1] * s * k, z: r[2] }; };
+  const line3 = (a, b, col, lw) => { const p = P3(...a), q = P3(...b); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); };
+  const box = (x0, x1, y0, y1, z0, z1, col, lab, labCol) => {
+    const F = [
+      { n: [-1, 0, 0], p: [[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]], sh: 0 },
+      { n: [1, 0, 0], p: [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], sh: -0.25 },
+      { n: [0, 1, 0], p: [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], sh: 0.2 },
+      { n: [0, -1, 0], p: [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], sh: -0.3 },
+      { n: [0, 0, 1], p: [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], sh: -0.18 },
+      { n: [0, 0, -1], p: [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], sh: -0.18 },
+    ];
+    for (const f of F) {
+      if (rot(...f.n)[2] <= 0) continue;
+      const q = f.p.map((v) => P3(...v));
+      ctx.beginPath(); q.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y))); ctx.closePath();
+      ctx.fillStyle = col; ctx.fill();
+      if (f.sh) { ctx.fillStyle = f.sh > 0 ? `rgba(255,255,255,${f.sh})` : `rgba(0,0,0,${-f.sh})`; ctx.fill(); }
+      ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 1; ctx.stroke();
+    }
+    if (lab) { const c = P3(x0, (y0 + y1) / 2, (z0 + z1) / 2); text(ctx, lab, c.x, c.y + 1, labCol || "#ffffff", Math.max(14, s * 0.09), "center", 700, C.display); }
+  };
+  const nTop = L.north === "top";
+  const a = d.I[2]; // +1: techn. Strom läuft nach +Z (rechts)
+  const xr = Math.sin(L.th), yr = 1 - Math.cos(L.th), half = 0.55;
+
+  // Stative und Querstange
+  for (const z of [-0.78, 0.78]) line3([0, -0.62, z], [0, 1.02, z], C.metal, 5);
+  line3([0, 1.02, -0.85], [0, 1.02, 0.85], C.metal, 6);
+  // Magnet: Bogen hinten (+X), dann Pole
+  box(0.35, 0.58, -0.47, 0.47, -0.3, 0.3, C.metal);
+  box(-0.35, 0.35, -0.47, -0.25, -0.3, 0.3, nTop ? C.south : C.north, nTop ? "S" : "N");
+  // Feldlinien zwischen den Polen
+  for (const fx of [-0.22, 0, 0.22]) for (const fz of [-0.2, 0, 0.2]) {
+    const top = [fx, 0.24, fz], bot = [fx, -0.24, fz];
+    line3(top, bot, withAlpha(C.B, 0.5), 1.4);
+    const m1 = P3(fx, nTop ? 0.05 : -0.05, fz), m2 = P3(fx, nTop ? -0.07 : 0.07, fz);
+    arrow(ctx, m1.x, m1.y, m2.x, m2.y, withAlpha(C.B, 0.9), 1.4, 7);
+  }
+  box(-0.35, 0.35, 0.25, 0.47, -0.3, 0.3, nTop ? C.north : C.south, nTop ? "N" : "S");
+  const bl = P3(-0.35, -0.1, 0.33);
+  text(ctx, "B", bl.x + 10, bl.y, C.B, 16, "left", 700, C.mono);
+
+  // Netzgerät mit Anschlüssen
+  box(-0.1, 0.12, 1.12, 1.44, -0.3, 0.3, C.metal, "", C.ink);
+  // Anzeige auf der Frontplatte
+  const quad = (pts, col) => { const q = pts.map((v) => P3(...v)); ctx.beginPath(); q.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y))); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); };
+  quad([[-0.1, 1.29, -0.2], [-0.1, 1.39, -0.2], [-0.1, 1.39, 0.06], [-0.1, 1.29, 0.06]], "#14202b");
+  const disp = P3(-0.1, 1.34, -0.07);
+  text(ctx, (L.on ? fmt(L.I, 1) : "0,0") + " A", disp.x, disp.y + 1, "#7dffb0", Math.max(11, s * 0.05), "center", 500, C.mono);
+  const knob = P3(-0.1, 1.34, 0.18);
+  ctx.fillStyle = "#2a2f38"; ctx.beginPath(); ctx.arc(knob.x, knob.y, Math.max(5, s * 0.03), 0, TAU); ctx.fill();
+  const ngl = P3(-0.1, 1.5, 0);
+  text(ctx, "Netzgerät (Gleichstrom)", ngl.x, ngl.y, C.ink, 12, "center", 600);
+  const plusZ = -a * 0.2, minusZ = a * 0.2;
+  const tP = [-0.1, 1.19, plusZ], tM = [-0.1, 1.19, minusZ];
+  const lp = P3(...tP), lm = P3(...tM);
+  for (const [pt, isPlus] of [[lp, true], [lm, false]]) {
+    ctx.fillStyle = isPlus ? "#d23a3a" : "#1b1f26"; ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, TAU); ctx.fill();
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+    text(ctx, isPlus ? "+" : "−", pt.x + (pt.x < ngl.x ? -14 : 14), pt.y, isPlus ? C.north : C.ink, 17, "center", 700);
+  }
+
+  // Stromkreis (technische Richtung): + → Aufhängung → Leiter → Aufhängung → −
+  const path = [tP, [0, 1.02, -a * half], [xr, yr, -a * half], [xr, yr, a * half], [0, 1.02, a * half], tM];
+  ctx.lineJoin = "round";
+  for (let i = 1; i < path.length - 1; i++) {
+    const isRod = i === 2;
+    line3(path[i], path[i + 1], isRod ? C.ink : withAlpha(C.ink, 0.7), isRod ? 1 : 2);
+  }
+  // Zuleitung vom Pluspol mit Schalter
+  {
+    const A0 = P3(...path[0]), A1 = P3(...path[1]);
+    const ca = { x: A0.x + (A1.x - A0.x) * 0.48, y: A0.y + (A1.y - A0.y) * 0.48 };
+    const cb = { x: A0.x + (A1.x - A0.x) * 0.84, y: A0.y + (A1.y - A0.y) * 0.84 };
+    drawSwitch(ctx, A0, A1, ca, cb, L.on, true);
+  }
+  // Leiterstab
+  const r0 = P3(xr, yr, -half), r1 = P3(xr, yr, half);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 13; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(r1.x, r1.y); ctx.stroke();
+  ctx.strokeStyle = C.metal; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(r1.x, r1.y); ctx.stroke();
+
+  // Laufende Strommarken entlang des Kreises
+  if (L.on) {
+    const pts = path.map((v) => P3(...v));
+    const segs = []; let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y); segs.push({ a: pts[i], b: pts[i + 1], l, s0: total }); total += l; }
+    const gapPx = 42, speed = 14 * L.I;
+    const elec = L.conv === "elec";
+    let ph = (L.t * speed) % gapPx; if (elec) ph = gapPx - ph;
+    for (let u = ph; u < total; u += gapPx) {
+      const sg = segs.find((g) => u >= g.s0 && u < g.s0 + g.l); if (!sg || sg.l < 1) continue;
+      const f = (u - sg.s0) / sg.l, ux = (sg.b.x - sg.a.x) / sg.l, uy = (sg.b.y - sg.a.y) / sg.l;
+      const x = sg.a.x + (sg.b.x - sg.a.x) * f, y = sg.a.y + (sg.b.y - sg.a.y) * f;
+      if (elec) { ctx.fillStyle = C.particle; ctx.beginPath(); ctx.arc(x, y, 3.6, 0, TAU); ctx.fill(); }
+      else arrow(ctx, x - ux * 7, y - uy * 7, x + ux * 7, y + uy * 7, C.v, 2.6, 8);
+    }
+    // großer Richtungspfeil unter dem Leiter
+    const q0 = P3(xr, yr - 0.1, -a * 0.32), q1 = P3(xr, yr - 0.1, a * 0.32);
+    if (elec) {
+      arrow(ctx, q1.x, q1.y, q0.x, q0.y, C.particle, 2.6, 11);
+      text(ctx, "Elektronen", (q0.x + q1.x) / 2, (q0.y + q1.y) / 2 + 14, C.particle, 13, "center", 700, C.mono);
+    } else {
+      arrow(ctx, q0.x, q0.y, q1.x, q1.y, C.v, 2.6, 11);
+      text(ctx, "I", (q0.x + q1.x) / 2, (q0.y + q1.y) / 2 + 14, C.v, 15, "center", 700, C.mono);
+    }
+    // Kraftpfeil
+    const fl = 0.15 + 0.55 * lForce() / 0.1;
+    const f0 = P3(xr, yr, 0), f1 = P3(xr + d.F[0] * fl, yr, 0), fL = P3(xr + d.F[0] * (fl + 0.09), yr, 0);
+    arrow(ctx, f0.x, f0.y, f1.x, f1.y, C.F, 3.6, 13);
+    text(ctx, "F", fL.x, fL.y, C.F, 16, "center", 700, C.mono);
+  }
+  pill(ctx, `Ansicht von vorne · I = ${L.on ? fmt(L.I, 1) + " A" : "0 A (Schalter offen)"}`, 12, 22, C.ink);
+  drawSchematic(ctx, w, h);
+  const kd = keyOf(lView(d.F));
+  pill(ctx, !L.on ? "Stromkreis offen: kein Strom, keine Kraft" : d.F[0] > 0 ? "Leiter wird in den Magneten hineingezogen" : "Leiter wird aus dem Magneten herausgedrückt", 12, h - 22, L.on ? C.F : C.muted);
+}
+// Schalter im Schrägbild: Leitung A0→A1 mit Kontakten ca/cb
+function drawSwitch(ctx, A0, A1, ca, cb, closed, big) {
+  ctx.strokeStyle = withAlpha(C.ink, 0.7); ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(A0.x, A0.y); ctx.lineTo(ca.x, ca.y); ctx.moveTo(cb.x, cb.y); ctx.lineTo(A1.x, A1.y); ctx.stroke();
+  const mx = (ca.x + cb.x) / 2, my = (ca.y + cb.y) / 2;
+  const len = Math.hypot(cb.x - ca.x, cb.y - ca.y);
+  const ang = Math.atan2(cb.y - ca.y, cb.x - ca.x);
+  // Sockel
+  ctx.save(); ctx.translate(mx, my); ctx.rotate(ang);
+  ctx.fillStyle = withAlpha(C.metal, 0.9); ctx.strokeStyle = withAlpha(C.ink, 0.35); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-len / 2 - 12, -9, len + 24, 18, 5) : ctx.rect(-len / 2 - 12, -9, len + 24, 18); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  // Hebel: geschlossen auf der Leitung, offen um 40° nach oben geklappt
+  const up = (Math.cos(ang) >= 0 ? -1 : 1) * 0.7;
+  const la = closed ? ang : ang + up;
+  const ex = ca.x + Math.cos(la) * (len + 4), ey = ca.y + Math.sin(la) * (len + 4);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(ca.x, ca.y); ctx.lineTo(ex, ey); ctx.stroke();
+  const hx = ca.x + Math.cos(la) * (len * 0.75), hy = ca.y + Math.sin(la) * (len * 0.75);
+  ctx.fillStyle = "#d23a3a"; ctx.beginPath(); ctx.arc(hx, hy, 6.5, 0, TAU); ctx.fill();
+  for (const c of [ca, cb]) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(c.x, c.y, 3.6, 0, TAU); ctx.fill(); }
+  L.switchHit = { x: mx, y: my, r: Math.max(34, len) };
+  if (big) {
+    const side = A1.x >= A0.x ? 1 : -1, al = side > 0 ? "left" : "right";
+    const lx = cb.x + side * 26, ly = cb.y + 4;
+    text(ctx, closed ? "Schalter geschlossen" : "Schalter offen", lx, ly, closed ? C.good : C.bad, 12.5, al, 700);
+    text(ctx, "zum Umschalten antippen", lx, ly + 15, C.muted, 11, al, 500);
+  }
+}
+// Schaltskizze (Ecke rechts oben, beide Ansichten)
+function drawSchematic(ctx, w, h) {
+  const bw = 196, bh = 128, bx = w - bw - 12, by = 12;
+  L.schemHit = { x: bx, y: by, w: bw, h: bh };
+  ctx.save();
+  ctx.fillStyle = withAlpha(C.surface, 0.94); ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 8) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
+  text(ctx, "Schaltskizze", bx + 10, by + 14, C.muted, 11, "left", 700);
+  const a = lDirs().I[2]; // Vorderansicht: +1 = Strom im Leiter nach rechts
+  const x0 = bx + 26, x1 = bx + bw - 22, y0 = by + 40, y1 = by + bh - 24;
+  const ym = (y0 + y1) / 2;
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+  // Quelle links (Strom im Leiter nach links) bzw. rechts (nach rechts); + immer oben, Schalter oben, Leiter unten
+  const xb = a === -1 ? x0 : x1, xo = a === -1 ? x1 : x0, sgn = a === -1 ? -1 : 1;
+  ctx.beginPath(); ctx.moveTo(xb, y0); ctx.lineTo(xb, ym - 5); ctx.moveTo(xb, ym + 5); ctx.lineTo(xb, y1); ctx.moveTo(xo, y0); ctx.lineTo(xo, y1); ctx.stroke();
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(xb - 11, ym - 5); ctx.lineTo(xb + 11, ym - 5); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(xb - 5, ym + 5); ctx.lineTo(xb + 5, ym + 5); ctx.stroke();
+  text(ctx, "+", xb + sgn * 18, ym - 8, C.north, 13, "center", 700);
+  text(ctx, "−", xb + sgn * 18, ym + 8, C.ink, 13, "center", 700);
+  // oben: Schalter
+  const sa = (x0 + x1) / 2 - 14, sb = (x0 + x1) / 2 + 14, ys = y0, yo = y1;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(x0, ys); ctx.lineTo(sa, ys); ctx.moveTo(sb, ys); ctx.lineTo(x1, ys); ctx.stroke();
+  ctx.fillStyle = C.ink;
+  for (const xx of [sa, sb]) { ctx.beginPath(); ctx.arc(xx, ys, 2.4, 0, TAU); ctx.fill(); }
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sa, ys);
+  if (L.on) ctx.lineTo(sb, ys); else ctx.lineTo(sa + 25 * Math.cos(-0.6), ys + 25 * Math.sin(-0.6));
+  ctx.stroke();
+  text(ctx, L.on ? "S geschlossen" : "S offen", (sa + sb) / 2 + 40, ys - 9, L.on ? C.good : C.bad, 10.5, "center", 700);
+  // unten: Leiter im Magnetfeld
+  const la = x0 + 30, lb = x1 - 30;
+  ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x0, yo); ctx.lineTo(la, yo); ctx.moveTo(lb, yo); ctx.lineTo(x1, yo); ctx.stroke();
+  ctx.strokeStyle = C.metal; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(la, yo); ctx.lineTo(lb, yo); ctx.stroke();
+  text(ctx, "Leiter im B-Feld", (la + lb) / 2, yo + 13, C.muted, 10.5, "center", 600);
+  // Stromrichtung: oben weg von der Quelle (−a), unten im Leiter (a)
+  if (L.on) {
+    const elec = L.conv === "elec";
+    const col = elec ? C.particle : C.v, k = elec ? -1 : 1;
+    const cxm = (la + lb) / 2;
+    arrow(ctx, cxm - a * k * 16, yo - 8, cxm + a * k * 16, yo - 8, col, 2, 7);
+    const xt = (x0 + sa) / 2;
+    arrow(ctx, xt + a * k * 8, ys + 8, xt - a * k * 8, ys + 8, col, 2, 7);
+    text(ctx, elec ? "e⁻" : "I", cxm + 26, yo - 9, col, 11, "left", 700, C.mono);
+  }
+  ctx.restore();
+}
+function lToggle() {
+  L.on = !L.on;
+  $("#l-on").textContent = L.on ? "Schalter öffnen (Strom aus)" : "Schalter schließen (Strom an)";
+}
+// Richtungen in Koordinaten der aktuellen Ansicht (für Hand und Texte)
+function lView(v) { return L.view === "front" ? [v[2], v[1], -v[0]] : v; }
+function lHand() {
+  const d0 = lDirs();
+  const d = { I: lView(d0.I), B: lView(d0.B), F: lView(d0.F) };
+  if (L.conv === "tech") return { q: 1, thumb: d.I, index: d.B, middle: L.on ? d.F : d.F, names: ["I (technisch)", "B", "F"] };
+  return { q: -1, thumb: scale(d.I, -1), index: d.B, middle: d.F, names: ["Elektronenfluss", "B", "F"] };
+}
+function lReadouts() {
+  const F = L.on ? lForce() : 0;
+  $("#ro-l-f").textContent = fmt(F * 1000, 1) + " mN";
+  $("#ro-l-g").textContent = fmt(L_MASS * G * 1000, 1) + " mN";
+  $("#ro-l-theta").textContent = fmt(Math.abs(L.th) * 180 / Math.PI, 1) + "°";
+  $("#stage-bar").innerHTML = `<span>F = I·l·B = <b>${fmt(L.I, 1)} A · ${fmt(L.len / 100, 3)} m · ${fmt(L.B / 1000, 3)} T = ${fmt(lForce() * 1000, 1)} mN</b></span><span>${L.on ? "Kraft " + DIRTXT[keyOf(lView(lDirs().F))] : "Schalter offen: I = 0, also F = 0"}</span>`;
+}
+
+/* ================= Modus 3: Wien-Filter ================= */
+const Wf = { E: 50, B: 100, q: 1, bdir: "in", parts: [], acc: 0, emitted: 0, passed: 0, sumV: 0, flashes: [] };
+const VMIN = 2e5, VMAX = 8e5;
+function wGeom(w, h) {
+  return { src: w * 0.05, p0: w * 0.16, p1: w * 0.8, slit: w * 0.88, det: w * 0.95, mid: h / 2, gap: h * 0.24, slitHalf: Math.max(7, h * 0.018) };
+}
+function vColor(v) {
+  const t = clamp((v - VMIN) / (VMAX - VMIN), 0, 1);
+  const hue = 200 - 170 * t; // blau-türkis (langsam) bis rot-orange (schnell)
+  return `hsl(${hue}, 75%, 50%)`;
+}
+function wUpdate(dt, w, h) {
+  const g = wGeom(w, h);
+  Wf.acc += dt * 7;
+  while (Wf.acc >= 1) {
+    Wf.acc -= 1;
+    const v = VMIN + Math.random() * (VMAX - VMIN);
+    Wf.parts.push({ x: g.src, y: g.mid, vy: 0, v, col: vColor(v), state: 0 });
+    Wf.emitted++;
+  }
+  const bz = Wf.bdir === "out" ? 1 : -1;
+  const E = Wf.E * 1e3, B = Wf.B * 1e-3;
+  const Gk = 160 * (w / 900);
+  for (const p of Wf.parts) {
+    const pxv = (p.v / 1e6) * w * 0.55;
+    if (p.x > g.p0 && p.x < g.p1) {
+      // Kraft pro Ladung in y (oben +): E zeigt nach unten (obere Platte +), (v×B)_y = −v·Bz
+      const fy = -E + (-p.v * bz * B);
+      p.vy += Gk * Wf.q * (fy / 5e4) * dt;
+    }
+    p.x += pxv * dt; p.y -= p.vy * dt; // Bildschirm: y nach unten
+    if (p.x > g.p0 && p.x < g.p1 && Math.abs(p.y - g.mid) > g.gap - 4) { p.state = -1; Wf.flashes.push({ x: p.x, y: p.y, t: 0.6, col: p.col }); }
+    if (p.state === 0 && p.x >= g.slit) {
+      if (Math.abs(p.y - g.mid) <= g.slitHalf) { p.state = 1; } else { p.state = -1; Wf.flashes.push({ x: g.slit, y: p.y, t: 0.6, col: p.col }); }
+    }
+    if (p.state === 1 && p.x >= g.det) { p.state = -2; Wf.passed++; Wf.sumV += p.v; }
+    if (p.y < -10 || p.y > h + 10) p.state = -1;
+  }
+  Wf.parts = Wf.parts.filter((p) => p.state >= 0);
+  for (const f of Wf.flashes) f.t -= dt;
+  Wf.flashes = Wf.flashes.filter((f) => f.t > 0);
+}
+function wDraw(ctx, w, h) {
+  const g = wGeom(w, h);
+  const top = g.mid - g.gap, bot = g.mid + g.gap;
+  // B-Bereich
+  ctx.fillStyle = withAlpha(C.B, 0.06); ctx.fillRect(g.p0, top, g.p1 - g.p0, bot - top);
+  symbolGrid(ctx, g.p0, top + 4, g.p1, bot - 4, Wf.bdir, withAlpha(C.B, 0.5), 44);
+  // E-Feldpfeile
+  const nE = 9;
+  for (let i = 0; i < nE; i++) {
+    const x = g.p0 + ((g.p1 - g.p0) / nE) * (i + 0.5) + 14;
+    arrow(ctx, x, top + 10, x, bot - 10, withAlpha(C.E, 0.55), 1.5, 8);
+  }
+  // Platten
+  ctx.fillStyle = C.metal;
+  ctx.fillRect(g.p0, top - 10, g.p1 - g.p0, 10); ctx.fillRect(g.p0, bot, g.p1 - g.p0, 10);
+  text(ctx, "+", g.p0 - 14, top - 5, C.north, 20, "center", 700);
+  text(ctx, "−", g.p0 - 14, bot + 5, C.v, 20, "center", 700);
+  text(ctx, "E", g.p1 + 10, g.mid - 40, C.E, 15, "left", 700, C.mono);
+  text(ctx, "B " + (Wf.bdir === "in" ? "⊗" : "⊙"), g.p1 + 10, g.mid + 40, C.B, 15, "left", 700, C.mono);
+  // Quelle
+  ctx.fillStyle = C.metal; ctx.fillRect(g.src - 34, g.mid - 14, 30, 28);
+  text(ctx, "Quelle", g.src - 19, g.mid + 30, C.muted, 12, "center");
+  // Spaltblende
+  ctx.fillStyle = C.ink;
+  ctx.fillRect(g.slit, 0, 6, g.mid - g.slitHalf); ctx.fillRect(g.slit, g.mid + g.slitHalf, 6, h - g.mid - g.slitHalf);
+  ctx.fillStyle = withAlpha(C.ink, 0.15); ctx.fillRect(g.det, g.mid - 30, 10, 60);
+  text(ctx, "Detektor", g.det + 5, g.mid + 44, C.muted, 12, "center");
+  // Teilchen
+  for (const p of Wf.parts) { ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, 3.6, 0, TAU); ctx.fill(); }
+  for (const f of Wf.flashes) { ctx.strokeStyle = f.col; ctx.globalAlpha = f.t / 0.6; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(f.x, f.y, 4 + (0.6 - f.t) * 14, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1; }
+  // Farbskala
+  const lx = 14, ly = h - 28, lw = Math.min(220, w * 0.4);
+  for (let i = 0; i < lw; i++) { ctx.fillStyle = vColor(VMIN + (VMAX - VMIN) * (i / lw)); ctx.fillRect(lx + i, ly, 1, 8); }
+  text(ctx, "2·10⁵", lx, ly - 9, C.muted, 11, "left", 500, C.mono);
+  text(ctx, "8·10⁵ m/s", lx + lw, ly - 9, C.muted, 11, "right", 500, C.mono);
+  const vp = (Wf.E * 1e3) / (Wf.B * 1e-3);
+  if (vp >= VMIN && vp <= VMAX) {
+    const mx = lx + lw * (vp - VMIN) / (VMAX - VMIN);
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.moveTo(mx, ly + 9); ctx.lineTo(mx - 5, ly + 17); ctx.lineTo(mx + 5, ly + 17); ctx.closePath(); ctx.fill();
+  }
+  // Kraftpfeile an einem Referenzteilchen mit v = E/B ... bzw. Mittelwert
+  const rx = g.p0 + 40, ry = top - 34;
+  const bz = Wf.bdir === "out" ? 1 : -1;
+  const fe = -Wf.q, fm = Wf.q * bz * -1; // Vorzeichen in y (oben +) für v>0
+  pill(ctx, "Kräfte auf ein Teilchen:", rx - 40, 20, C.ink, 11);
+  const ax = rx + 175;
+  ctx.fillStyle = C.particle; ctx.beginPath(); ctx.arc(ax, 20, 5, 0, TAU); ctx.fill();
+  arrow(ctx, ax - 8, 20 - fe * 2, ax - 8, 20 - fe * 16, C.E, 2.4, 8);
+  text(ctx, "F_el", ax - 14, 20 - fe * 12, C.E, 11, "right", 600, C.mono);
+  arrow(ctx, ax + 8, 20 - fm * 2, ax + 8, 20 - fm * 16, C.F, 2.4, 8);
+  text(ctx, "F_L", ax + 14, 20 - fm * 12, C.F, 11, "left", 600, C.mono);
+}
+function wHand() {
+  const bz = Wf.bdir === "out" ? 1 : -1;
+  return { q: Wf.q, thumb: [1, 0, 0], index: [0, 0, bz], middle: norm(scale(cross([1, 0, 0], [0, 0, bz]), Wf.q)), names: [Wf.q > 0 ? "v des Protons" : "v des Elektrons", "B", "F_L"] };
+}
+function wReadouts() {
+  const vp = (Wf.E * 1e3) / (Wf.B * 1e-3);
+  $("#ro-w-vp").textContent = sci(vp, 2) + " m/s";
+  $("#ro-w-pass").textContent = `${Wf.passed} von ${Wf.emitted}`;
+  $("#ro-w-mean").textContent = Wf.passed ? sci(Wf.sumV / Wf.passed, 2) + " m/s" : "–";
+  const same = (Wf.bdir === "in");
+  $("#stage-bar").innerHTML = `<span>v_durch = E/B = <b>${sci(vp, 2)} m/s</b></span><span>${same ? "Elektrische und magnetische Kraft wirken entgegengesetzt." : "B umgedreht: beide Kräfte zeigen in dieselbe Richtung, nichts kommt durch."}</span>`;
+}
+
+/* ================= Modus 4: Übung ================= */
+const Q = { level: 1, s: null, answered: false, chosen: null, right: 0, total: 0, streak: 0, n: 0 };
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function qNew() {
+  const keys = Object.keys(DIRS);
+  const kind = Math.random() < 0.55 ? "teilchen" : "leiter";
+  const q = Math.random() < 0.5 ? 1 : -1;
+  let v, b;
+  if (Q.level === 1) { v = pick(["left", "right", "up", "down"]); b = pick(["in", "out"]); }
+  else {
+    v = pick(keys);
+    if (Math.random() < 0.1) b = Math.random() < 0.5 ? v : OPP[v];
+    else { do { b = pick(keys); } while (b === v || b === OPP[v]); }
+  }
+  const f = keyOf(norm(scale(cross(DIRS[v], DIRS[b]), q)));
+  Q.s = { kind, q, v, b, f };
+  Q.answered = false; Q.chosen = null; Q.n++;
+  $("#q-num").textContent = Q.n;
+  let who;
+  if (kind === "teilchen") who = `${q > 0 ? "Ein Proton (positiv)" : "Ein Elektron (negativ)"} fliegt ${DIRTXT[v]}.`;
+  else who = q > 0 ? `In einem Leiter fließt der Strom (technische Stromrichtung) ${DIRTXT[v]}.` : `In einem Leiter fließen die Elektronen ${DIRTXT[v]}.`;
+  $("#q-task").textContent = `${who} Das Magnetfeld zeigt ${DIRTXT[b]}. In welche Richtung wirkt die Lorentzkraft?`;
+  $("#q-feedback").textContent = ""; $("#q-feedback").className = "feedback";
+  $$("#q-answers button").forEach((bt) => { bt.disabled = false; bt.classList.remove("right", "wrong"); });
+}
+function qAnswer(dir) {
+  if (Q.answered) return;
+  const s = Q.s;
+  Q.answered = true; Q.chosen = dir; Q.total++;
+  const ok = dir === s.f;
+  if (ok) { Q.right++; Q.streak++; } else Q.streak = 0;
+  $$("#q-answers button").forEach((bt) => {
+    bt.disabled = true;
+    if (bt.dataset.dir === s.f) bt.classList.add("right");
+    else if (bt.dataset.dir === dir) bt.classList.add("wrong");
+  });
+  const hand = s.q > 0 ? "Rechte" : "Linke";
+  const thumb = s.kind === "teilchen" ? "Bewegungsrichtung" : (s.q > 0 ? "techn. Strom" : "Elektronenfluss");
+  const fb = $("#q-feedback");
+  fb.className = "feedback " + (ok ? "ok" : "no");
+  let why;
+  if (s.f === "none") why = `v und B sind parallel, deshalb wirkt keine Kraft.`;
+  else why = `${hand} Hand: Daumen ${DIRTXT[s.v]} (${thumb}), Zeigefinger ${DIRTXT[s.b]} (B), Mittelfinger zeigt ${DIRTXT[s.f]}.`;
+  fb.innerHTML = `<strong>${ok ? "Richtig." : "Nicht ganz."}</strong> ${why}`;
+  $("#ro-q-score").textContent = `${Q.right} / ${Q.total}`;
+  $("#ro-q-streak").textContent = Q.streak;
+}
+function qDraw(ctx, w, h) {
+  const s = Q.s; if (!s) return;
+  const cx = w / 2, cy = h / 2;
+  const B = DIRS[s.b];
+  // Magnetfeld
+  if (B[2] !== 0) {
+    symbolGrid(ctx, 0, 0, w, h, s.b, withAlpha(C.B, 0.5), 46);
+  } else {
+    const bx = B[0], by = -B[1]; // Bildschirm
+    const px = -by, py = bx;
+    const span = Math.hypot(w, h);
+    for (let k = -12; k <= 12; k++) {
+      const ox = cx + px * k * 46, oy = cy + py * k * 46;
+      ctx.strokeStyle = withAlpha(C.B, 0.4); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(ox - bx * span, oy - by * span); ctx.lineTo(ox + bx * span, oy + by * span); ctx.stroke();
+      if (Math.abs(k) % 2 === 1) arrow(ctx, ox - bx * 8 + bx * 110, oy - by * 8 + by * 110, ox + bx * 8 + bx * 110, oy + by * 8 + by * 110, withAlpha(C.B, 0.8), 1.5, 9);
+    }
+    // Pole an den Rändern
+    const t = 46;
+    const pole = (side, isN) => {
+      ctx.fillStyle = isN ? C.north : C.south;
+      let x, y, ww, hh;
+      if (side === "left") { x = 0; y = 0; ww = t; hh = h; } else if (side === "right") { x = w - t; y = 0; ww = t; hh = h; }
+      else if (side === "top") { x = 0; y = 0; ww = w; hh = t; } else { x = 0; y = h - t; ww = w; hh = t; }
+      ctx.fillRect(x, y, ww, hh);
+      text(ctx, isN ? "N" : "S", x + ww / 2, y + hh / 2, "#ffffff", 22, "center", 700, C.display);
+    };
+    const from = { right: "left", left: "right", up: "bottom", down: "top" }[s.b];
+    const to = { left: "right", right: "left", top: "bottom", bottom: "top" }[from];
+    pole(from, true); pole(to, false);
+  }
+  const V = DIRS[s.v];
+  // Objekt
+  if (s.kind === "leiter") {
+    if (V[2] === 0) {
+      const dx = V[0], dy = -V[1];
+      ctx.strokeStyle = C.metal; ctx.lineWidth = 12; ctx.lineCap = "butt";
+      ctx.beginPath(); ctx.moveTo(cx - dx * w, cy - dy * w); ctx.lineTo(cx + dx * w, cy + dy * w); ctx.stroke();
+      for (const o of [-150, 60]) arrow(ctx, cx + dx * o, cy + dy * o, cx + dx * (o + 70), cy + dy * (o + 70), s.q > 0 ? C.v : C.particle, 3.4, 12);
+      text(ctx, s.q > 0 ? "I" : "e⁻", cx + dx * 100 + (dy ? 22 : 0), cy + dy * 100 + (dx ? -22 : 0), s.q > 0 ? C.v : C.particle, 16, "center", 700, C.mono);
+    } else {
+      dirSym(ctx, cx, cy, 20, s.v, s.q > 0 ? C.v : C.particle, 2.4, C.metal);
+      text(ctx, s.q > 0 ? "I" : "e⁻-Fluss", cx + 28, cy + 26, s.q > 0 ? C.v : C.particle, 14, "left", 700, C.mono);
+    }
+  } else {
+    if (V[2] === 0) {
+      arrow(ctx, cx, cy, cx + V[0] * 90, cy - V[1] * 90, C.v, 3.4, 12);
+      text(ctx, "v", cx + V[0] * 106, cy - V[1] * 106, C.v, 16, "center", 700, C.mono);
+    } else {
+      dirSym(ctx, cx + 36, cy - 36, 11, s.v, C.v, 2);
+      text(ctx, "v", cx + 54, cy - 36, C.v, 16, "left", 700, C.mono);
+    }
+    ctx.fillStyle = C.particle; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, TAU); ctx.fill();
+    text(ctx, s.q > 0 ? "+" : "−", cx, cy + 1, C.particleInk, 18, "center", 700);
+  }
+  // Lösung
+  if (Q.answered) {
+    if (s.f === "none") pill(ctx, "F = 0", cx + 24, cy + 46, C.F, 13);
+    else {
+      const Fv = DIRS[s.f];
+      if (Fv[2] === 0) {
+        arrow(ctx, cx + Fv[0] * 22, cy - Fv[1] * 22, cx + Fv[0] * 110, cy - Fv[1] * 110, C.F, 4, 14);
+        text(ctx, "F", cx + Fv[0] * 128, cy - Fv[1] * 128, C.F, 17, "center", 700, C.mono);
+      } else {
+        dirSym(ctx, cx - 40, cy + 40, 13, s.f, C.F, 2.4, C.surface);
+        text(ctx, "F", cx - 60, cy + 40, C.F, 17, "right", 700, C.mono);
+      }
+    }
+  }
+}
+function qHand() {
+  const s = Q.s;
+  const thumbName = s.kind === "teilchen" ? "v" : (s.q > 0 ? "I (technisch)" : "Elektronenfluss");
+  const m = s.f === "none" ? null : DIRS[s.f];
+  return { q: s.q, thumb: DIRS[s.v], index: DIRS[s.b], middle: m, hideMiddle: !Q.answered, names: [thumbName, "B", "F"] };
+}
+function qReadouts() {
+  const s = Q.s; if (!s) return;
+  $("#stage-bar").innerHTML = `<span>Ebene = Bildschirm · ⊙ zeigt auf dich zu · ⊗ zeigt von dir weg</span>`;
+}
+
+/* ================= 3D-Hand ================= */
+const HV = { yaw: -0.55, pitch: 0.38, drag: null };
+const handCv = $("#hand");
+function proj(p, cx, cy, s) {
+  const cY = Math.cos(HV.yaw), sY = Math.sin(HV.yaw), cP = Math.cos(HV.pitch), sP = Math.sin(HV.pitch);
+  const x1 = p[0] * cY + p[2] * sY, z1 = -p[0] * sY + p[2] * cY;
+  const y2 = p[1] * cP - z1 * sP, z2 = p[1] * sP + z1 * cP;
+  const k = 1 / (1 - z2 * 0.16);
+  return { x: cx + x1 * s * k, y: cy - y2 * s * k, z: z2, k };
+}
+let lastHandKey = "";
+function drawHand(hs) {
+  const { ctx, w, h } = fit(handCv);
+  ctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2 + 6, s = Math.min(w, h) * 0.36;
+  // Bildebene
+  const corners = [[-1.25, -1.0, 0], [1.25, -1.0, 0], [1.25, 1.0, 0], [-1.25, 1.0, 0]].map((p) => proj(p, cx, cy, s));
+  ctx.fillStyle = withAlpha(C.muted, 0.1); ctx.strokeStyle = withAlpha(C.muted, 0.35); ctx.lineWidth = 1;
+  ctx.beginPath(); corners.forEach((c, i) => (i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y))); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Achsen-Hinweis: zum Betrachter
+  const z0 = proj([0, 0, -1.25], cx, cy, s), z1 = proj([0, 0, 1.25], cx, cy, s);
+  ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = withAlpha(C.muted, 0.45);
+  ctx.beginPath(); ctx.moveTo(z0.x, z0.y); ctx.lineTo(z1.x, z1.y); ctx.stroke(); ctx.restore();
+  text(ctx, "⊙ zu dir", z1.x, z1.y + 10, C.muted, 10.5, "center", 500);
+  const fingers = [
+    { dir: hs.thumb, col: C.v, name: "Daumen", lab: hs.names[0], thick: 15 },
+    { dir: hs.index, col: C.B, name: "Zeigefinger", lab: hs.names[1], thick: 12 },
+  ];
+  if (hs.middle && !hs.hideMiddle) fingers.push({ dir: hs.middle, col: C.F, name: "Mittelfinger", lab: hs.names[2], thick: 12 });
+  const items = fingers.map((f) => ({ f, z: proj(scale(f.dir, 0.6), cx, cy, s).z }));
+  items.push({ palm: true, z: 0.0 });
+  items.sort((a, b) => a.z - b.z);
+  for (const it of items) {
+    if (it.palm) {
+      const p = proj([0, 0, 0], cx, cy, s);
+      ctx.fillStyle = C.skin; ctx.strokeStyle = C.skinEdge; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 17 * p.k, 0, TAU); ctx.fill(); ctx.stroke();
+      continue;
+    }
+    const f = it.f;
+    const a = proj(scale(f.dir, 0.1), cx, cy, s), b = proj(scale(f.dir, 0.82), cx, cy, s);
+    const tip = proj(scale(f.dir, 1.12), cx, cy, s), lab = proj(scale(f.dir, 1.36), cx, cy, s);
+    const t = f.thick * (a.k + b.k) / 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = C.skinEdge; ctx.lineWidth = t + 3;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.strokeStyle = C.skin; ctx.lineWidth = t;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    arrow(ctx, b.x, b.y, tip.x, tip.y, f.col, 3, 10);
+    text(ctx, f.lab, lab.x, lab.y, f.col, 12.5, "center", 700, C.mono);
+  }
+  if (hs.middle === null && !hs.hideMiddle) text(ctx, "F = 0 (v ∥ B)", cx, h - 14, C.F, 12, "center", 600, C.mono);
+  if (hs.hideMiddle) text(ctx, "Mittelfinger = ?", cx, h - 14, C.F, 12, "center", 600, C.mono);
+  // Legende (nur bei Änderung neu schreiben)
+  const right = hs.q > 0;
+  const key = [right, hs.names.join("|"), hs.hideMiddle, hs.middle ? keyOf(hs.middle.map(Math.round)) : "0", keyOf(hs.thumb.map(Math.round)), keyOf(hs.index.map(Math.round))].join("/");
+  if (key !== lastHandKey) {
+    lastHandKey = key;
+    $("#hand-name").textContent = right ? "Rechte Hand" : "Linke Hand";
+    const dirName = (v) => { if (!v) return "–"; const k = keyOf(v.map((x) => Math.round(x))); return k === "none" ? "in der Ebene" : DIRTXT[k]; };
+    const midTxt = hs.hideMiddle ? "?" : (hs.middle ? dirName(hs.middle) : "keine Kraft");
+    $("#hand-fingers").innerHTML =
+      `<li><i style="background:var(--c-v)"></i><span>Daumen</span><span>${hs.names[0]}: ${dirName(hs.thumb)}</span></li>` +
+      `<li><i style="background:var(--c-b)"></i><span>Zeigefinger</span><span>${hs.names[1]}: ${dirName(hs.index)}</span></li>` +
+      `<li><i style="background:var(--c-f)"></i><span>Mittelfinger</span><span>${hs.names[2]}: ${midTxt}</span></li>`;
+  }
+}
+handCv.addEventListener("pointerdown", (e) => { HV.drag = { x: e.clientX, y: e.clientY, yaw: HV.yaw, pitch: HV.pitch }; handCv.setPointerCapture(e.pointerId); });
+handCv.addEventListener("pointermove", (e) => {
+  if (!HV.drag) return;
+  HV.yaw = HV.drag.yaw + (e.clientX - HV.drag.x) * 0.01;
+  HV.pitch = clamp(HV.drag.pitch + (e.clientY - HV.drag.y) * 0.01, -1.45, 1.45);
+});
+const endDrag = () => { HV.drag = null; };
+handCv.addEventListener("pointerup", endDrag); handCv.addEventListener("pointercancel", endDrag);
+$("#hand-reset").addEventListener("click", () => { HV.yaw = -0.55; HV.pitch = 0.38; });
+
+/* ================= UI-Verdrahtung ================= */
+let mode = "teilchen";
+function setMode(m) {
+  if (!["teilchen", "leiter", "wien", "uebung"].includes(m)) m = "teilchen";
+  mode = m;
+  $$(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.mode === m)));
+  $$(".mode-panel").forEach((p) => (p.hidden = p.dataset.mode !== m));
+  if (m === "uebung" && !Q.s) qNew();
+  if (m === "teilchen") { P.alive = false; P.wait = 0.1; }
+  lastHandKey = "";
+}
+const MODES = ["teilchen", "leiter", "wien", "uebung"];
+$$(".tab").forEach((t) => t.addEventListener("click", (e) => { e.preventDefault(); setMode(t.dataset.mode); }));
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (MODES.includes(h) && h !== mode) setMode(h); });
+
+function bindRange(id, obj, key, out, f) {
+  const el = $("#" + id);
+  const upd = () => { obj[key] = parseFloat(el.value); $("#" + out).textContent = f(obj[key]); };
+  el.addEventListener("input", upd); upd();
+}
+function bindRadio(name, obj, key, num, cb) {
+  $$(`input[name="${name}"]`).forEach((r) => {
+    r.addEventListener("change", () => { if (r.checked) { obj[key] = num ? parseFloat(r.value) : r.value; cb && cb(); } });
+    if (r.checked) obj[key] = num ? parseFloat(r.value) : r.value;
+  });
+}
+bindRange("p-v", P, "v", "o-p-v", (x) => fmt(x, 1) + "·10⁶ m/s");
+bindRange("p-b", P, "B", "o-p-b", (x) => fmt(x, 2) + " mT");
+bindRadio("p-q", P, "q", true, () => { P.alive = false; P.wait = 0.1; });
+bindRadio("p-bdir", P, "bdir", false);
+$("#p-full").addEventListener("change", (e) => { P.full = e.target.checked; P.alive = false; P.wait = 0.1; });
+$("#p-reset").addEventListener("click", () => { P.alive = false; P.wait = 0; P.paused = false; $("#p-pause").textContent = "Pause"; });
+$("#p-pause").addEventListener("click", (e) => { P.paused = !P.paused; e.target.textContent = P.paused ? "Weiter" : "Pause"; });
+
+bindRange("l-i", L, "I", "o-l-i", (x) => fmt(x, 1) + " A");
+bindRange("l-b", L, "B", "o-l-b", (x) => fmt(x, 0) + " mT");
+bindRange("l-len", L, "len", "o-l-len", (x) => fmt(x, 1) + " cm");
+bindRadio("l-idir", L, "idir", false);
+bindRadio("l-north", L, "north", false);
+bindRadio("l-conv", L, "conv", false);
+function lViewLabels() {
+  const fr = L.view === "front";
+  $("#lab-l-idir-in").textContent = fr ? "← nach links" : "⊗ hinein";
+  $("#lab-l-idir-out").textContent = fr ? "→ nach rechts" : "⊙ heraus";
+  $("#l-lines-wrap").hidden = fr;
+}
+bindRadio("l-view", L, "view", false, lViewLabels);
+lViewLabels();
+$("#l-lines").addEventListener("change", (e) => { L.lines = e.target.checked; });
+$("#l-on").addEventListener("click", lToggle);
+
+bindRange("w-e", Wf, "E", "o-w-e", (x) => fmt(x, 0) + " kV/m");
+bindRange("w-b", Wf, "B", "o-w-b", (x) => fmt(x, 0) + " mT");
+const wClear = () => { Wf.emitted = 0; Wf.passed = 0; Wf.sumV = 0; };
+bindRadio("w-q", Wf, "q", true, () => { Wf.parts = []; wClear(); });
+bindRadio("w-bdir", Wf, "bdir", false, wClear);
+$("#w-e").addEventListener("input", wClear); $("#w-b").addEventListener("input", wClear);
+$("#w-reset").addEventListener("click", wClear);
+
+$$("#q-answers button").forEach((b) => b.addEventListener("click", () => qAnswer(b.dataset.dir)));
+$("#q-next").addEventListener("click", qNew);
+bindRadio("q-level", Q, "level", true, () => {
+  $("#q-level-hint").textContent = Q.level === 1 ? "Magnetfeld zeigt immer in die Ebene hinein oder heraus." : "Alle Richtungen sind möglich, auch v oder I aus der Ebene heraus.";
+  qNew();
+});
+
+/* ================= Arbeitsaufträge ================= */
+const fields = $$(".tasks textarea, .tasks input[type=text], .tasks select");
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+fields.forEach((f) => {
+  const v = store.get("lk-" + f.id); if (v !== null) f.value = v;
+  f.addEventListener("input", () => store.set("lk-" + f.id, f.value));
+  f.addEventListener("change", () => store.set("lk-" + f.id, f.value));
+});
+let clearArmed = false;
+$("#clear-answers").addEventListener("click", (e) => {
+  if (!clearArmed) { clearArmed = true; e.target.textContent = "Wirklich löschen?"; setTimeout(() => { clearArmed = false; e.target.textContent = "Alle Antworten löschen"; }, 3000); return; }
+  fields.forEach((f) => { f.value = ""; store.del("lk-" + f.id); });
+  clearArmed = false; e.target.textContent = "Gelöscht";
+  setTimeout(() => { e.target.textContent = "Alle Antworten löschen"; }, 1500);
+});
+$("#show-sol").addEventListener("change", (e) => document.body.classList.toggle("sol-on", e.target.checked));
+
+/* ================= Hauptschleife ================= */
+const sim = $("#sim");
+function lHitAt(e) {
+  if (mode !== "leiter") return false;
+  const r = sim.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const sh = L.switchHit, sc = L.schemHit;
+  if (sh && Math.hypot(x - sh.x, y - sh.y) < sh.r) return true;
+  return !!(sc && x >= sc.x && x <= sc.x + sc.w && y >= sc.y && y <= sc.y + sc.h);
+}
+sim.addEventListener("click", (e) => { if (lHitAt(e)) lToggle(); });
+sim.addEventListener("pointermove", (e) => { sim.style.cursor = lHitAt(e) ? "pointer" : ""; });
+let lastT = performance.now(), roT = 0;
+function frame(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  const { ctx, w, h } = fit(sim);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.stage; ctx.fillRect(0, 0, w, h);
+  let hs;
+  if (mode === "teilchen") { pUpdate(dt, w, h); pDraw(ctx, w, h); hs = pHand(); }
+  else if (mode === "leiter") { lUpdate(dt); lDraw(ctx, w, h); hs = lHand(); }
+  else if (mode === "wien") { wUpdate(dt, w, h); wDraw(ctx, w, h); hs = wHand(); }
+  else { qDraw(ctx, w, h); hs = qHand(); }
+  drawHand(hs);
+  roT -= dt;
+  if (roT <= 0) {
+    roT = 0.12;
+    if (mode === "teilchen") pReadouts(); else if (mode === "leiter") lReadouts(); else if (mode === "wien") wReadouts(); else qReadouts();
+  }
+  requestAnimationFrame(frame);
+}
+setMode(MODES.includes(location.hash.slice(1)) ? location.hash.slice(1) : "teilchen");
+requestAnimationFrame(frame);
+})();
+</script>
