@@ -1,0 +1,268 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{unicode-math}
+\setmainfont{Latin Modern Roman}
+\setmathfont{Latin Modern Math}
+\usepackage{polyglossia}
+\setdefaultlanguage[spelling=new]{german}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{booktabs,enumitem}
+\usepackage[most]{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+
+% --- Notation ---
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\up}{{\uparrow}}
+\newcommand{\dn}{{\downarrow}}
+\newcommand{\Hbar}{\bar H}
+
+% --- Kästen ---
+\newtcolorbox{merk}[1][]{colback=green!4,colframe=green!45!black,fonttitle=\bfseries,title=Merke,#1}
+\newtcolorbox{rechnung}[1][]{colback=gray!5,colframe=gray!55,fonttitle=\bfseries,title=Zwischenrechnung,#1}
+\newtcolorbox{falle}[1][]{colback=red!4,colframe=red!60!black,fonttitle=\bfseries,title=Achtung,#1}
+\newtcolorbox{warum}[1][]{colback=blue!4,colframe=blue!50!black,fonttitle=\bfseries,title=Warum?,#1}
+
+\title{Lernskript: Das Heisenberg-Modell und die Hamilton-Matrix\\[2pt]\large Begleitend zu Übungsblatt 4 und Skript Bulla, Kap.~2}
+\author{}
+\date{Stand: 13.\,11.\,2026}
+
+\begin{document}
+\maketitle
+\vspace{-1.5em}
+
+\noindent\textbf{Quelle:} Vorlesungsskript „Computational Many-Body Physics“, apl.~Prof.~Dr.~R.~Bulla, SS~2022, Kapitel~2 (im Lesepaket S.~3–12). Seitenangaben „Skript S.~$k$“ meinen die Seitennummer innerhalb von Kapitel~2.
+
+\noindent\textbf{Konventionen (wie im Skript):}\\ $\hbar=1$, Spin-$\tfrac12$, $J>0$ ferromagnetisch, $J<0$ antiferromagnetisch,
+\[
+H = -\sum_{i<j}\sum_{\alpha=x,y,z} J^\alpha_{ij}\,S^\alpha_i S^\alpha_j .
+\]
+
+\tableofcontents
+
+%======================================================================
+\section{Aufwärmen: ein einzelner Spin-\texorpdfstring{$\tfrac12$}{1/2}}
+
+Ein Spin-$\tfrac12$ hat zwei Zustände, $\ket{\up}$ und $\ket{\dn}$. Sie sind Eigenzustände von $S^z$ (Skript S.~2):
+\[
+S^z\ket{\up} = +\tfrac12\ket{\up},\qquad S^z\ket{\dn} = -\tfrac12\ket{\dn}.
+\]
+
+Die \emph{Leiteroperatoren} (\emph{ladder operators}) sind
+\[
+S^\pm = S^x \pm i\,S^y .
+\]
+Sie klappen einen Spin um oder geben null:
+\[
+S^+\ket{\dn} = \ket{\up},\quad S^+\ket{\up} = 0,\qquad S^-\ket{\up} = \ket{\dn},\quad S^-\ket{\dn} = 0 .
+\]
+
+\begin{merk}
+Anschaulich: $S^+$ hebt an, $S^-$ senkt ab. Was schon oben ist, kann nicht höher; was unten ist, nicht tiefer.
+\end{merk}
+
+%======================================================================
+\section{Aufgabe 1a: \texorpdfstring{$H$}{H} mit \texorpdfstring{$S^\pm$}{S+-} umschreiben}
+
+\textbf{Aufgabe} (Blatt~4, 1a): Schreibe $H = -\sum_{i<j,\alpha} J^\alpha_{ij}S^\alpha_iS^\alpha_j$ mit $S^\pm_i$ und $S^z_i$ um.
+
+\subsection{Schritt 1: \texorpdfstring{$S^x$}{Sx} und \texorpdfstring{$S^y$}{Sy} durch \texorpdfstring{$S^\pm$}{S+-} ausdrücken}
+
+Ausgangspunkt sind die beiden Definitionen
+\[
+\text{(I)}\quad S^+_i = S^x_i + i\,S^y_i,\qquad \text{(II)}\quad S^-_i = S^x_i - i\,S^y_i .
+\]
+
+\begin{rechnung}
+(I) + (II):\quad $S^+_i + S^-_i = 2S^x_i$ \quad$\Rightarrow$\quad $S^x_i = \tfrac12\big(S^+_i + S^-_i\big)$
+
+(I) $-$ (II):\quad $S^+_i - S^-_i = 2i\,S^y_i$ \quad$\Rightarrow$\quad $S^y_i = \dfrac{1}{2i}\big(S^+_i - S^-_i\big) = -\dfrac{i}{2}\big(S^+_i - S^-_i\big)$
+\end{rechnung}
+
+\begin{falle}
+$\dfrac1i = -i$, \emph{nicht} $+i$. (Erweitern mit $i$: $\tfrac1i = \tfrac{i}{i^2} = \tfrac{i}{-1}$.) \\
+Typischer Fehler: $S^y_i = +\tfrac{i}{2}(S^+_i - S^-_i)$. Im Produkt $S^y_iS^y_j$ fällt der Fehler zufällig nicht auf, weil $(\pm\tfrac i2)^2 = -\tfrac14$; die Formel für $S^y$ allein bleibt aber falsch.
+\end{falle}
+
+\subsection{Schritt 2: Produkte ausmultiplizieren}
+
+\textbf{x-Link:}
+\begin{rechnung}
+\[
+S^x_iS^x_j = \tfrac12\big(S^+_i + S^-_i\big)\cdot\tfrac12\big(S^+_j + S^-_j\big)
+= \tfrac14\big(S^+_iS^+_j + S^+_iS^-_j + S^-_iS^+_j + S^-_iS^-_j\big)
+\]
+\end{rechnung}
+
+\textbf{y-Link:} Zuerst die Vorfaktoren, dann die Klammern.
+\begin{rechnung}
+Vorfaktor:\quad $\dfrac{1}{2i}\cdot\dfrac{1}{2i} = \dfrac{1}{4\,i^2} = -\dfrac14$
+
+Klammern:\quad $(S^+_i - S^-_i)(S^+_j - S^-_j) = S^+_iS^+_j - S^+_iS^-_j - S^-_iS^+_j + S^-_iS^-_j$
+\[
+\Rightarrow\quad S^y_iS^y_j = -\tfrac14\big(S^+_iS^+_j - S^+_iS^-_j - S^-_iS^+_j + S^-_iS^-_j\big)
+\]
+\end{rechnung}
+
+\begin{falle}
+Bei Produkten multiplizieren sich auch die Vorfaktoren: $\tfrac{1}{2i}\cdot\tfrac{1}{2i}$ enthält $i\cdot i = i^2 = -1$. Ein Vorfaktor $\tfrac{1}{4i}$ ist falsch.
+\end{falle}
+
+\textbf{z-Link} bleibt, wie er ist: $S^z_iS^z_j$ (immer ein \emph{Produkt} zweier Spins, nie eine Summe $S^z_1 + S^z_2 + \dots$ -- das wäre ein Magnetfeldterm).
+
+\subsection{Schritt 3: Einsetzen, Klammerung beachten}
+
+\[
+H = -\sum_{i<j}\Big[\tfrac14 J^x_{ij}\big(S^+_iS^+_j + S^+_iS^-_j + S^-_iS^+_j + S^-_iS^-_j\big)
+- \tfrac14 J^y_{ij}\big(S^+_iS^+_j - S^+_iS^-_j - S^-_iS^+_j + S^-_iS^-_j\big)
++ J^z_{ij}S^z_iS^z_j\Big]
+\]
+
+\begin{falle}
+Das Minus vor $\sum$ gilt für \emph{alle} Terme. Darum die große eckige Klammer. Zieht man das Minus hinein, wechseln \emph{alle} Vorzeichen, auch beim z-Term: $-J^z_{ij}S^z_iS^z_j$. Die Summe $\sum_{i<j}$ bleibt stehen.
+\end{falle}
+
+\subsection{Schritt 4: Nach Operatoren sortieren}
+
+Jedes Operatorprodukt kommt zweimal vor (aus dem x- und aus dem y-Link). Die Vorfaktoren werden zusammengefasst wie $3a + 5a = 8a$:
+
+\begin{center}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Operator & aus x-Link & aus y-Link & zusammen \\
+\midrule
+$S^+_iS^+_j$, $S^-_iS^-_j$ & $+\tfrac14J^x_{ij}$ & $-\tfrac14J^y_{ij}$ & $\tfrac14\big(J^x_{ij} - J^y_{ij}\big)$ \\[3pt]
+$S^+_iS^-_j$, $S^-_iS^+_j$ & $+\tfrac14J^x_{ij}$ & $(-\tfrac14)(-1)J^y_{ij} = +\tfrac14J^y_{ij}$ & $\tfrac14\big(J^x_{ij} + J^y_{ij}\big)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tcolorbox}[colback=yellow!6,colframe=orange!70!black,fonttitle=\bfseries,title=Ergebnis 1a]
+\[
+H = -\sum_{i<j}\Big[\tfrac14\big(J^x_{ij} - J^y_{ij}\big)\big(S^+_iS^+_j + S^-_iS^-_j\big)
++ \tfrac14\big(J^x_{ij} + J^y_{ij}\big)\big(S^+_iS^-_j + S^-_iS^+_j\big)
++ J^z_{ij}\,S^z_iS^z_j\Big]
+\]
+\end{tcolorbox}
+
+\begin{merk}
+Merkhilfe für die Vorzeichen: \textbf{gleiche} Operatoren ($++$, $--$) bekommen $J^x - J^y$, \textbf{gemischte} ($+-$, $-+$) bekommen $J^x + J^y$.
+\end{merk}
+
+\textbf{Kontrolle mit dem isotropen Heisenberg-Modell} ($J^x=J^y=J^z=J$):
+\[
+H = -J\sum_{i<j}\Big[\tfrac12\big(S^+_iS^-_j + S^-_iS^+_j\big) + S^z_iS^z_j\Big]
+\]
+Das stimmt mit Skript S.~3 überein.
+
+%======================================================================
+\section{Warum sortiert man nach Operatoren?}
+
+Mathematisch ist es nicht nötig: die unsortierte Form ist derselbe Operator. Man sortiert, weil man dann die Physik direkt sieht.
+
+\begin{warum}
+\begin{enumerate}[leftmargin=*,itemsep=3pt]
+\item \textbf{Welche Prozesse gibt es?}
+  \begin{itemize}
+  \item $S^+_iS^-_j$, $S^-_iS^+_j$: ein Spin hoch, der andere runter -- die beiden \emph{tauschen}. $S^z_\text{tot}$ bleibt gleich.
+  \item $S^+_iS^+_j$, $S^-_iS^-_j$: \emph{beide} kippen in dieselbe Richtung. $S^z_\text{tot}$ ändert sich um $\pm2$ (jeder Spin um $\pm1$).
+  \end{itemize}
+\item \textbf{Wann fällt ein Prozess weg?} Vor den Doppel-Flips steht $J^x - J^y$. Für $J^x = J^y$ (Heisenberg, XXZ) gibt es sie nicht mehr $\Rightarrow$ $S^z_\text{tot}$ ist erhalten $\Rightarrow$ Blockstruktur der Matrix (Skript Kap.~2.2, S.~11--12).
+\item \textbf{Matrixelemente direkt ablesen:} In der Basis $\ket n$ liefert jeder Term null oder genau einen Basiszustand:
+\begin{align*}
+\text{Paar antiparallel (tauschen):}&\quad -\tfrac14\big(J^x_{ij} + J^y_{ij}\big)\\
+\text{Paar parallel (beide kippen):}&\quad -\tfrac14\big(J^x_{ij} - J^y_{ij}\big)
+\end{align*}
+Das ist dieselbe Idee wie das Vorzeichen $s$ beim y-Link im Skript (S.~8): $s=+1$ für antiparallele, $s=-1$ für parallele Spins.
+\end{enumerate}
+\end{warum}
+
+Im Programm sortiert man \emph{nicht}: dort werden x- und y-Link getrennt behandelt und das Vorzeichen $s$ erledigt die Arbeit. Sortieren ist ein Werkzeug fürs Verstehen und Von-Hand-Rechnen.
+
+%======================================================================
+\section{Aufgabe 1b: Das Ising-Modell (Teil 1: der Hamiltonian)}
+
+\textbf{Aufgabe} (Blatt~4, 1b): Stelle von Hand die $8\times8$-Matrix $\Hbar$ für das Ising-Modell auf, $J^\alpha_{ij} = J\,\delta_{\alpha z}$.
+
+\subsection{Das Kronecker-Delta}
+
+Das Kronecker-Delta ist ein „Schalter“:
+\[
+\delta_{\alpha z} = \begin{cases} 1 & \alpha = z\\ 0 & \alpha = x \text{ oder } y\end{cases}
+\]
+Für die drei Richtungen heißt das
+\[
+J^x_{ij} = J\,\delta_{xz} = 0,\qquad J^y_{ij} = J\,\delta_{yz} = 0,\qquad J^z_{ij} = J\,\delta_{zz} = J .
+\]
+
+\begin{merk}
+Ising: nur die z-Kopplung ist eingeschaltet, für alle Paare gleich $J$. \\
+Zum Vergleich Heisenberg (1c): $J^\alpha_{ij} = J$ ohne Delta -- alle drei Richtungen an.
+\end{merk}
+
+\subsection{Einsetzen in das Ergebnis von 1a}
+
+Beide Vorfaktoren der $S^\pm$-Terme verschwinden: $J^x_{ij} - J^y_{ij} = 0$ und $J^x_{ij} + J^y_{ij} = 0$. Übrig bleibt nur der z-Term:
+
+\begin{tcolorbox}[colback=yellow!6,colframe=orange!70!black,fonttitle=\bfseries,title=Hamiltonian des Ising-Modells (Drei-Platz-Cluster)]
+\[
+H_\text{Ising} = -J\sum_{i<j} S^z_iS^z_j = -J\big(S^z_1S^z_2 + S^z_1S^z_3 + S^z_2S^z_3\big)
+\]
+\end{tcolorbox}
+
+\begin{falle}
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+\item Der Faktor $\tfrac14$ gehört \emph{nur} zu den $S^\pm$-Termen (er stammt aus $S^x=\tfrac12(\dots)$ und $S^y=\tfrac1{2i}(\dots)$). Der z-Term wurde nie umgeschrieben und hat den Vorfaktor $J^z_{ij}$ \emph{ohne} $\tfrac14$. Falsch: $-\tfrac J4\,S^z_iS^z_j$.
+\item Die Summe $\sum_{i<j}$ bleibt stehen: drei Paare $(12)$, $(13)$, $(23)$, nicht nur eines.
+\end{itemize}
+\end{falle}
+
+Das $\tfrac14$ taucht trotzdem auf -- aber erst beim Anwenden auf einen Zustand: $S^z_iS^z_j$ liefert $\big(\pm\tfrac12\big)\big(\pm\tfrac12\big) = \pm\tfrac14$.
+
+\subsection{Offen (nächster Schritt)}
+\begin{enumerate}[itemsep=1pt]
+\item Warum macht $S^z_iS^z_j$ keinen Spin-Flip, und was folgt daraus für die Form von $\Hbar$?
+\item Rechenaufgabe: $\bra 0 H\ket 0$ für $\ket 0 = \ket{\dn\dn\dn}$.
+\end{enumerate}
+
+%======================================================================
+\section{Methodenkarte}
+
+\begin{center}
+\begin{tabular}{@{}p{3.2cm}p{5.6cm}p{5.2cm}@{}}
+\toprule
+Gebiet & Werkzeug & wo benutzt \\
+\midrule
+Komplexe Zahlen & $\tfrac1i = -i$, $i^2=-1$ & $S^y$ durch $S^\pm$, Vorfaktor $-\tfrac14$ \\
+Lineare Algebra & Gleichungssystem (I)$\pm$(II) lösen & $S^x$, $S^y$ aus $S^\pm$ \\
+Operatoralgebra & Ausmultiplizieren, Reihenfolge $i$ vor $j$ beibehalten & $S^\alpha_iS^\alpha_j$ in $S^\pm$ \\
+Algebra & Ausklammern, nach Operatoren sortieren & Ergebnis 1a \\
+Quantenmechanik & $S^\pm$ als Leiteroperatoren & Deutung: Tausch vs.\ Doppel-Flip \\
+Notation & Kronecker-Delta $\delta_{\alpha z}$ als Schalter & Ising-Kopplungen in 1b \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%======================================================================
+\section{Stand und nächste Schritte}
+
+\textbf{Kann ich:}
+\begin{itemize}[itemsep=1pt]
+\item $S^x$, $S^y$ durch $S^\pm$ ausdrücken (mit $\tfrac1i=-i$)
+\item Operatorprodukte ausmultiplizieren, Vorfaktor $\tfrac{1}{2i}\cdot\tfrac{1}{2i} = -\tfrac14$
+\item nach Operatoren sortieren und Kopplungen zusammenfassen, Minus vor der Summe korrekt behandeln
+\item Kronecker-Delta lesen und einsetzen; $H_\text{Ising} = -J\sum_{i<j}S^z_iS^z_j$ aufstellen
+\end{itemize}
+
+\textbf{Noch üben:} Vorfaktoren nur dort ausklammern, wo sie hingehören ($\tfrac14$ nicht beim z-Term); Summe nicht verlieren.
+
+\textbf{Als Nächstes -- Aufgabe 1b, Teil 2:}
+\begin{enumerate}[itemsep=1pt]
+\item Warum ist die Ising-Matrix in der Basis $\ket n$ diagonal?
+\item $\bra 0 H\ket 0$ für $\ket 0 = \ket{\dn\dn\dn}$, danach alle 8 Diagonalelemente (Basis-Tabelle $N=3$).
+\end{enumerate}
+
+\end{document}
