@@ -157,11 +157,11 @@ window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg
   <h2>Material und Reihenfolge</h2>
   <div class="tw"><table>
     <tr><th>Nr.</th><th>Was</th><th>Wo</th><th>Stand</th></tr>
-    <tr><td class="mono">1</td><td>Basis, Binärlabel \(n\), \(S^\pm\), Umschreiben von \(H\)</td><td><span class="ref">2.1 S. 2</span></td><td><span class="pill ready">lesen</span></td></tr>
+    <tr><td class="mono">1</td><td>Basis, Binärlabel \(n\), \(S^\pm\), Umschreiben von \(H\)</td><td><span class="ref">2.1 S. 2</span></td><td><span class="pill done">erledigt</span></td></tr>
     <tr><td class="mono">2</td><td>Schrödinger-Gleichung als Matrix-Eigenwertproblem</td><td><span class="ref">2.2 S. 5</span></td><td><span class="pill ready">lesen</span></td></tr>
     <tr><td class="mono">3</td><td>x-, y-, z-Links und die Flip-Regel für \(l\)</td><td><span class="ref">2.2 S. 6–8</span></td><td><span class="pill ready">nachrechnen</span></td></tr>
     <tr><td class="mono">4</td><td>Codestruktur (Schleife über \(n\), Schleife über Links)</td><td><span class="ref">2.2 S. 9</span></td><td><span class="pill plan">programmieren</span></td></tr>
-    <tr><td class="mono">5</td><td>Drei-Platz-Cluster von Hand (Ising, Heisenberg, Modell d)</td><td><span class="ab">4 · A1</span></td><td><span class="pill plan">zuerst von Hand</span></td></tr>
+    <tr><td class="mono">5</td><td>Drei-Platz-Cluster von Hand (Ising, Heisenberg, Modell d)</td><td><span class="ab">4 · A1</span></td><td><span class="pill done">1a erledigt</span> <span class="pill plan">1b läuft</span></td></tr>
     <tr><td class="mono">6</td><td>Programm und Eigenenergien</td><td><span class="ab">4 · A2</span></td><td><span class="pill plan">dann programmieren</span></td></tr>
     <tr><td class="mono">7</td><td>Dünnbesetzte Matrix, Rechenzeit</td><td><span class="ref">2.2 S. 9–10</span></td><td><span class="pill open">Ausblick</span></td></tr>
   </table></div>
@@ -527,6 +527,11 @@ print(np.allclose(hamilton_matrix(4, L), H_kron(4, L)))   <span class="c"># True
   <h2>Was ich schon kann</h2>
   <p class="cut">Zum Abhaken, nur auf deinem Gerät gespeichert.</p>
   <ul class="tick">
+    <li><label><input type="checkbox" id="k1a" checked><span>1a: \(S^x, S^y\) durch \(S^\pm\) ausgedrückt, ausmultipliziert (Vorfaktor \(\tfrac{1}{2i}\cdot\tfrac{1}{2i} = -\tfrac14\)) und nach Operatoren sortiert.</span></label></li>
+    <li><label><input type="checkbox" id="k1b" checked><span>1b: Kronecker-Delta eingesetzt, \(H_\text{Ising} = -J\sum_{i<j}S^z_iS^z_j\) aufgestellt.</span></label></li>
+    <li><label><input type="checkbox" id="k1c"><span>1b: Warum ist die Ising-Matrix diagonal? \(\langle 0|H|0\rangle\) und alle 8 Diagonalelemente berechnet.</span></label></li>
+    <li><label><input type="checkbox" id="k1d"><span>1c: Heisenberg-Matrix von Hand (\(8\times8\)).</span></label></li>
+    <li><label><input type="checkbox" id="k1e"><span>1d: Modell d von Hand.</span></label></li>
     <li><label><input type="checkbox" id="k1"><span>Ich kann \((\bar H)_{mn} = \langle m|H|n\rangle\) aus der Schrödinger-Gleichung herleiten.</span></label></li>
     <li><label><input type="checkbox" id="k2"><span>Ich übersetze Ket \(\leftrightarrow n\) ohne die Lesefalle.</span></label></li>
     <li><label><input type="checkbox" id="k3"><span>Ich kann die Flip-Regel für \(l\) herleiten, nicht nur anwenden.</span></label></li>
