@@ -183,6 +183,41 @@ Das ist dieselbe Idee wie das Vorzeichen $s$ beim y-Link im Skript (S.~8): $s=+1
 Im Programm sortiert man \emph{nicht}: dort werden x- und y-Link getrennt behandelt und das Vorzeichen $s$ erledigt die Arbeit. Sortieren ist ein Werkzeug fürs Verstehen und Von-Hand-Rechnen.
 
 %======================================================================
+\section{Welche Basis wählt man -- und warum?}
+
+Um $H$ als Matrix zu schreiben, braucht man eine Basis: $(\Hbar)_{mn} = \bra m H\ket n$. Im Skript (S.~2) ist das die \emph{Produktbasis} aus $S^z$-Eigenzuständen, z.\,B.\ für $N=3$
+\[
+\ket n = \ket{z_1}\otimes\ket{z_2}\otimes\ket{z_3},\qquad z_i\in\{0,1\},\qquad n = \sum_i z_i\,2^{\,i-1}.
+\]
+
+\subsection{Was jede Basis erfüllen muss}
+\begin{itemize}[itemsep=2pt]
+\item \textbf{vollständig}: $\sum_n\ket n\bra n = \mathbf 1$, sonst ist die Matrix nicht derselbe Operator wie $H$;
+\item \textbf{orthonormiert}: $\langle m|n\rangle = \delta_{mn}$, sonst ist das Eigenwertproblem nicht einfach $\Hbar\vec\psi = E\vec\psi$.
+\end{itemize}
+Das gilt für \emph{jede} brauchbare Basis. Die Eigenwerte (Energien) hängen von der Wahl nicht ab, nur die Form der Matrix.
+
+\subsection{Nach welchen Kriterien wählt man?}
+\begin{warum}
+\begin{enumerate}[leftmargin=*,itemsep=3pt]
+\item \textbf{Einfach zu bauen:} Jeder Basiszustand ist eine Liste von Bits; $n$ ist eine Zahl. Das passt direkt in eine Schleife im Programm (Skript S.~9).
+\item \textbf{$H$ wirkt einfach:} $S^z$ gibt nur eine Zahl $\pm\tfrac12$, $S^\pm$ macht aus einem Basiszustand genau einen anderen oder null. Jeder Link liefert pro Spalte höchstens ein Element $\Rightarrow$ dünn besetzte Matrix.
+\item \textbf{Symmetrien sichtbar:} $S^z_\text{tot}$ ist in dieser Basis diagonal. Ist es erhalten (Heisenberg, XXZ), zerfällt $\Hbar$ in Blöcke (Skript S.~11--12).
+\item \textbf{Passend zur Physik:} Je mehr $H$ zur Basis „passt“, desto näher ist $\Hbar$ an diagonal. Im Extremfall sind die Basiszustände schon die Eigenzustände.
+\end{enumerate}
+\end{warum}
+
+\subsection{Alternativen \emph{(über das Skript hinaus)}}
+\begin{itemize}[itemsep=2pt]
+\item \textbf{$S^x$-Basis:} sinnvoll, wenn $H$ vor allem $S^xS^x$ oder ein Feld in $x$-Richtung enthält.
+\item \textbf{Gesamtspin-Basis} (Eigenzustände von $\vec S_\text{tot}^{\,2}$ und $S^z_\text{tot}$, z.\,B.\ Singulett/Triplett): Für das Heisenberg-Modell mit $N=2$ ist $\Hbar$ darin sofort diagonal. Für großes $N$ sind diese Zustände aber mühsam zu konstruieren -- darum nimmt man für die exakte Diagonalisierung die Produktbasis und lässt den Computer diagonalisieren.
+\end{itemize}
+
+\begin{merk}
+Die Basis ist ein Werkzeug, keine Physik: Energien hängen nicht von ihr ab. Man wählt die, in der $H$ am einfachsten wirkt und die man leicht programmieren kann -- für Spinmodelle die $S^z$-Produktbasis.
+\end{merk}
+
+%======================================================================
 \section{Aufgabe 1b: Das Ising-Modell (Teil 1: der Hamiltonian)}
 
 \textbf{Aufgabe} (Blatt~4, 1b): Stelle von Hand die $8\times8$-Matrix $\Hbar$ für das Ising-Modell auf, $J^\alpha_{ij} = J\,\delta_{\alpha z}$.
@@ -255,6 +290,7 @@ Notation & Kronecker-Delta $\delta_{\alpha z}$ als Schalter & Ising-Kopplungen i
 \item Operatorprodukte ausmultiplizieren, Vorfaktor $\tfrac{1}{2i}\cdot\tfrac{1}{2i} = -\tfrac14$
 \item nach Operatoren sortieren und Kopplungen zusammenfassen, Minus vor der Summe korrekt behandeln
 \item Kronecker-Delta lesen und einsetzen; $H_\text{Ising} = -J\sum_{i<j}S^z_iS^z_j$ aufstellen
+\item begründen, warum man die $S^z$-Produktbasis wählt
 \end{itemize}
 
 \textbf{Noch üben:} Vorfaktoren nur dort ausklammern, wo sie hingehören ($\tfrac14$ nicht beim z-Term); Summe nicht verlieren.
