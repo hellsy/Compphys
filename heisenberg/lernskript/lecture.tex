@@ -207,6 +207,33 @@ Das gilt für \emph{jede} brauchbare Basis. Die Eigenwerte (Energien) hängen vo
 \end{enumerate}
 \end{warum}
 
+\subsection{Die Basis für Blatt 4: \texorpdfstring{$2^N = 8$}{2\^N = 8} Zustände}
+
+$2^N$ ist nicht die Basis selbst, sondern ihre \emph{Größe}: jeder der $N$ Spins hat 2 Möglichkeiten, also $2^3 = 8$ Basiszustände und eine $8\times8$-Matrix. Die Basis sind die 8 Zustände selbst, sortiert nach ihrem Label $n$:
+
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$n$ & $[z_3z_2z_1]_2$ & Ket (Platz 1\,2\,3) & $S^z_\text{tot}$\\
+\midrule
+0 & 000 & $\ket{\dn\dn\dn}$ & $-\tfrac32$\\
+1 & 001 & $\ket{\up\dn\dn}$ & $-\tfrac12$\\
+2 & 010 & $\ket{\dn\up\dn}$ & $-\tfrac12$\\
+3 & 011 & $\ket{\up\up\dn}$ & $+\tfrac12$\\
+4 & 100 & $\ket{\dn\dn\up}$ & $-\tfrac12$\\
+5 & 101 & $\ket{\up\dn\up}$ & $+\tfrac12$\\
+6 & 110 & $\ket{\dn\up\up}$ & $+\tfrac12$\\
+7 & 111 & $\ket{\up\up\up}$ & $+\tfrac32$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{falle}
+Lesefalle: Im Ket steht Platz~1 \emph{links}, in der Binärzahl \emph{rechts}. $\ket{\up\dn\dn}$ ist $n=1$, nicht $n=4$.
+\end{falle}
+
+Das Matrixelement $(\Hbar)_{mn} = \bra m H\ket n$ steht in \textbf{Zeile $m$, Spalte $n$}. Man wendet $H$ auf den Spaltenzustand $\ket n$ an und liest ab, wie viel von $\ket m$ herauskommt.
+
 \subsection{Alternativen \emph{(über das Skript hinaus)}}
 \begin{itemize}[itemsep=2pt]
 \item \textbf{$S^x$-Basis:} sinnvoll, wenn $H$ vor allem $S^xS^x$ oder ein Feld in $x$-Richtung enthält.
