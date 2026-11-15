@@ -164,6 +164,9 @@ button:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); out
 body.sol-on .sol { display: block; }
 .card.task-foot { flex-direction: row; }
 .task-foot { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; }
+.sol-gate, .sol-code { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+.sol-code input { font: 14px var(--font-mono); color: var(--ink); background: var(--stage); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; max-width: 100%; }
+.sol-code input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
 kbd { font: 500 12px var(--font-mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--stage); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -409,7 +412,15 @@ kbd { font: 500 12px var(--font-mono); border: 1px solid var(--line); border-bot
   </div>
 
   <div class="card task-foot">
-    <label class="check"><input type="checkbox" id="show-sol">Lösungen einblenden (für Lehrkräfte)</label>
+    <div class="sol-gate">
+      <button class="btn" id="sol-toggle" type="button">Lösungen einblenden (für Lehrkräfte)</button>
+      <span class="sol-code" id="sol-code" hidden>
+        <label for="sol-input">Code</label>
+        <input type="password" id="sol-input" autocomplete="off" autocapitalize="characters" spellcheck="false" size="12">
+        <button class="btn primary" id="sol-ok" type="button">Öffnen</button>
+      </span>
+      <span class="hint" id="sol-msg" aria-live="polite"></span>
+    </div>
     <span class="hint">Antworten werden nur in diesem Browser gespeichert.</span>
     <button class="btn" id="clear-answers" type="button">Alle Antworten löschen</button>
   </div>
@@ -1021,7 +1032,24 @@ $("#clear-answers").addEventListener("click", (e) => {
   clearArmed = false; e.target.textContent = "Gelöscht";
   setTimeout(() => { e.target.textContent = "Alle Antworten löschen"; }, 1500);
 });
-$("#show-sol").addEventListener("change", (e) => document.body.classList.toggle("sol-on", e.target.checked));
+// Lösungen nur mit Lehrer-Code. Der Code steht nicht im Klartext hier, nur sein Prüfwert.
+{
+  const hc = (s) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
+  const tog = $("#sol-toggle"), box = $("#sol-code"), inp = $("#sol-input"), msg = $("#sol-msg");
+  const show = (on) => { document.body.classList.toggle("sol-on", on); tog.textContent = on ? "Lösungen ausblenden" : "Lösungen einblenden (für Lehrkräfte)"; };
+  tog.addEventListener("click", () => {
+    msg.textContent = "";
+    if (document.body.classList.contains("sol-on")) { show(false); return; }
+    box.hidden = !box.hidden; if (!box.hidden) inp.focus();
+  });
+  const check = () => {
+    const ok = hc(inp.value.replace(/\s+/g, "").toUpperCase()) === 2774384717;
+    inp.value = "";
+    if (ok) { box.hidden = true; show(true); msg.textContent = ""; } else { msg.textContent = "Der Code stimmt nicht."; inp.focus(); }
+  };
+  $("#sol-ok").addEventListener("click", check);
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); check(); } });
+}
 
 /* ================= Hauptschleife ================= */
 const sim = $("#sim");
