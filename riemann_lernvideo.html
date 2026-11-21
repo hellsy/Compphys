@@ -925,11 +925,11 @@ function drawPi(ctx, st) {
   if (a3b > 0) items.push({ c: COL.cyan, t: 'li(x) = ∫ dt / ln t' });
   legend(ctx, P.x + 40, P.y + 36, items);
   const Xi = Math.floor(X);
-  card(ctx, 1170, 210, 330, 150);
+  card(ctx, 1170, 210, 330, 190);
   txt(ctx, 'x = ' + de(Xi), 1195, 252, F.mono(22, 500), COL.text);
   txt(ctx, 'π(x) = ' + de(PI_[Xi]), 1195, 290, F.mono(22, 500), COL.coral);
   if (a3 > 0) { ctx.globalAlpha = a3; txt(ctx, 'x/ln x ≈ ' + de(Xi / Math.log(Xi)), 1195, 328, F.mono(20, 400), COL.violet); ctx.globalAlpha = 1; }
-  if (a3b > 0) { ctx.globalAlpha = a3b; txt(ctx, 'li ≈ ' + de(li(Xi)), 1365, 328, F.mono(20, 400), COL.cyan); ctx.globalAlpha = 1; }
+  if (a3b > 0) { ctx.globalAlpha = a3b; txt(ctx, 'li(x) ≈ ' + de(li(Xi)), 1195, 366, F.mono(20, 400), COL.cyan); ctx.globalAlpha = 1; }
   if (st.beat === 4 && !st.user) {
     ctx.globalAlpha = st.ap(4, 1); card(ctx, 520, 560, 640, 130);
     txt(ctx, 'Primzahlsatz (1896)', 550, 605, F.mono(18, 500), COL.gold);
