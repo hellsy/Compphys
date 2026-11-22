@@ -476,11 +476,71 @@ function setup() {
     if (st.beat === 3) { ctx.globalAlpha = st.ap(3, 1); card(ctx, 330, 120, 940, 120); T('All non-trivial zeros have real part ½', 800, 175, F.disp(40), N.gold, 'center'); T('the Riemann hypothesis (1859)', 800, 216, F.sans(22, 400), N.dim, 'center'); ctx.globalAlpha = 1; }
   }
 
+  // ---- (e) 3-D title: golden extruded letters with light sweep, gold dust and bloom
+  const GL2 = document.createElement('canvas'); GL2.width = cv.width; GL2.height = cv.height;
+  const R4 = new THREE.WebGLRenderer({ canvas: GL2, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  R4.setSize(GL2.width, GL2.height, false); R4.setClearColor(0x000000, 0);
+  const TIT = new THREE.Scene(), tcam = new THREE.PerspectiveCamera(36, 16 / 9, 0.1, 200);
+  TIT.add(new THREE.AmbientLight(0x404a70, 0.6));
+  const key = new THREE.DirectionalLight(0xfff1c8, 0.9); key.position.set(-4, 6, 10); TIT.add(key);
+  const sweep = new THREE.PointLight(0xffffff, 3.2, 14); TIT.add(sweep);
+  const rim = new THREE.PointLight(0x4cc9f0, 1.6, 30); rim.position.set(0, -3, -4); TIT.add(rim);
+  const font = new THREE.TitleFont(window.TITLE_FONT);
+  const goldMat = () => new THREE.MeshPhongMaterial({ color: 0xe8b84a, specular: 0xfff4d0, shininess: 90, emissive: 0x3a2400, transparent: true });
+  const letters = [];
+  function word(text, size, y) {
+    const glyphs = [...text]; let x = 0; const items = [];
+    for (const ch of glyphs) {
+      const g = font.data.glyphs[ch] || font.data.glyphs['?'], adv = g.ha * size / font.data.resolution;
+      if (ch !== ' ') {
+        const geo = new THREE.ExtrudeGeometry(font.generateShapes(ch, size), { depth: size * 0.28, bevelEnabled: true, bevelThickness: size * 0.05, bevelSize: size * 0.03, bevelSegments: 3, curveSegments: 6 });
+        geo.computeBoundingBox(); const bb = geo.boundingBox; geo.translate(-(bb.max.x + bb.min.x) / 2, 0, -size * 0.14);
+        const m = new THREE.Mesh(geo, goldMat()); items.push({ m, x: x + adv / 2 });
+      }
+      x += adv * 1.07;
+    }
+    items.forEach(it => { it.home = V3(it.x - x / 2, y, 0); TIT.add(it.m); letters.push(it); });
+  }
+  word('THE RIEMANN', 1.15, 0.75); word('HYPOTHESIS', 1.15, -0.85);
+  letters.forEach((it, i) => { it.i = i; it.from = V3(it.home.x * 2.2 + (i % 2 ? 3 : -3), it.home.y + (i % 3 - 1) * 4, 30 + i * 1.5); it.spin = (i % 2 ? 1 : -1) * (2.5 + (i % 4)); });
+  // gold dust
+  const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,240,200,1)'); r.addColorStop(0.3, 'rgba(255,209,102,0.6)'); r.addColorStop(1, 'rgba(255,209,102,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+  const NP = 900, dPos = new Float32Array(NP * 3), dSeed = [];
+  for (let i = 0; i < NP; i++) { const s = [rnd() * 24 - 12, rnd() * 10 - 5, rnd() * 10 - 6, rnd() * 6.28, 0.3 + rnd() * 0.7]; dSeed.push(s); }
+  const dGeo = new THREE.BufferGeometry(); dGeo.setAttribute('position', new THREE.BufferAttribute(dPos, 3));
+  const dMat = new THREE.PointsMaterial({ map: dotTex, size: 0.22, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9 });
+  TIT.add(new THREE.Points(dGeo, dMat));
+  function drawTitle(t, fadeOut) {
+    // t: seconds since the title starts
+    letters.forEach(it => {
+      const k = ease(clamp((t - it.i * 0.11) / 1.6, 0, 1));
+      it.m.position.copy(lerpV(it.from, it.home, k));
+      it.m.rotation.set((1 - k) * it.spin * 0.6, (1 - k) * it.spin, 0);
+      it.m.material.opacity = clamp((t - it.i * 0.11) * 3, 0, 1) * (1 - fadeOut);
+    });
+    const sw = ((t - 2.2) % 6.5) / 2.2;                       // light sweep every 6.5 s
+    sweep.position.set(lerp(-11, 11, clamp(sw, 0, 1)), 1.5, 3.2); sweep.intensity = sw >= 0 && sw <= 1 ? 3.2 : 0.4;
+    for (let i = 0; i < NP; i++) { const s = dSeed[i]; dPos[3 * i] = s[0] + Math.sin(t * 0.3 * s[4] + s[3]) * 0.6; dPos[3 * i + 1] = s[1] + ((t * 0.35 * s[4] + s[3]) % 10) - 5 + 5 * 0; dPos[3 * i + 2] = s[2]; }
+    dGeo.attributes.position.needsUpdate = true; dMat.opacity = 0.85 * clamp(t / 1.5, 0, 1) * (1 - fadeOut);
+    const drift = t * 0.05;
+    tcam.position.set(Math.sin(drift) * 1.6, 0.35 + Math.sin(t * 0.21) * 0.25, 13 - clamp(t / 12, 0, 1) * 1.2); tcam.lookAt(0, -0.05, 0);
+    R4.clear(); R4.render(TIT, tcam);
+    // bloom: blurred additive copy, then the sharp letters
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(16px)'; ctx.globalAlpha = 0.5; ctx.drawImage(GL2, 0, 0, SW, SH);
+    ctx.filter = 'blur(4px)'; ctx.globalAlpha = 0.28; ctx.drawImage(GL2, 0, 0, SW, SH); ctx.restore();
+    ctx.drawImage(GL2, 0, 0, SW, SH);
+  }
+
   // ---- hook the 3-D scenes into the storyboard
   const old9 = S[9].draw;
   S[0].draw = st => {
     drawSpiral(st, 'intro');
-    if (st.beat === 1) { ctx.globalAlpha = st.ap(1, 1.2); card(ctx, 470, 300, 660, 170); T('THE RIEMANN HYPOTHESIS', 800, 360, F.mono(22), N.gold, 'center'); T('$1,000,000', 800, 432, F.disp(64), N.white, 'center'); ctx.globalAlpha = 1; }
+    if (st.beat === 1) {
+      ctx.globalAlpha = 0.6 * st.ap(1, 1); ctx.fillStyle = '#03050c'; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1;
+      drawTitle(st.since, 0);
+      ctx.globalAlpha = clamp((st.since - 3) / 1, 0, 1); T('MILLENNIUM PRIZE PROBLEM  ·  $1,000,000', 800, 660, F.mono(24, 500), N.gold, 'center'); ctx.globalAlpha = 1;
+    }
+    if (st.beat === 2 && st.since < 1.3) { const d = st.bs[2] - st.bs[1]; ctx.globalAlpha = 0.6 * (1 - ease(st.since)); ctx.fillStyle = '#03050c'; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1; drawTitle(d + st.since, ease(st.since / 1.2)); }
     if (st.beat === 2) { ctx.globalAlpha = ease((st.since - 5) / 1.2); T('A visual journey', 110, 330, F.mono(22), N.gold); T('Primes, zeta', 104, 420, F.disp(72), N.white); T('and the critical line', 104, 500, F.disp(72), N.white); ctx.globalAlpha = 1; }
   };
   S[1].draw = st => {
@@ -534,6 +594,13 @@ function setup() {
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(([w, h]) => { window.removeEventListener('resize', resize); S.playing = false; cv.width = w; cv.height = h; window.requestAnimationFrame = () => 0; }, [BREITE, HOEHE]);
   await page.addScriptTag({ path: THREE_JS });
+  // 3-D font support: FontLoader from three/examples (ES module) turned into a classic script
+  const fs = require('fs');
+  const ex = path.join(__dirname, 'node_modules', 'three', 'examples');
+  let fl = fs.readFileSync(path.join(ex, 'jsm', 'loaders', 'FontLoader.js'), 'utf8');
+  fl = fl.replace(/^import\s*\{[^}]*\}\s*from\s*'three';/m, 'const { FileLoader, Loader, ShapePath } = THREE;').replace(/^export\s*\{[^}]*\};?/m, 'THREE.TitleFont = Font;');
+  await page.addScriptTag({ content: '(function(){' + fl + '})();' });
+  await page.addScriptTag({ content: 'window.TITLE_FONT = ' + fs.readFileSync(path.join(ex, 'fonts', 'optimer_bold.typeface.json'), 'utf8') + ';' });
   await page.evaluate('(' + setup.toString() + ')()');
   const total = await page.evaluate(() => EXPL.total);
   if (process.env.STILLS) {   // STILLS="12,40,…" writes single frames instead of a video
