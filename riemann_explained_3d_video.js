@@ -429,7 +429,8 @@ function setup() {
   MTN.add(mtn);
   const strip = new THREE.Mesh(new THREE.PlaneGeometry(1, t1 - t0), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false }));
   strip.rotation.x = -Math.PI / 2; strip.position.set(0.5, 0.02, 0); MTN.add(strip);
-  const critLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V3(0.5, 0.03, tz(t0)), V3(0.5, 0.03, tz(t1))]), new THREE.LineBasicMaterial({ color: 0xffd166 }));
+  const critPts = []; for (let t = t0; t <= t1; t += 0.05) { const v = M.zeta([0.5, t]); critPts.push(V3(0.5, Math.min(3, 0.9 * Math.log(1 + Math.hypot(v[0], v[1]))) + 0.04, tz(t))); }
+  const critLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(critPts), critPts.length, 0.035, 6, false), new THREE.MeshBasicMaterial({ color: 0xffd166 }));
   MTN.add(critLine);
   const mZeros = ZEROS.filter(g => g < t1).map(g => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff })); m.add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }))); m.position.set(0.5, 0.06, tz(g)); MTN.add(m); return m; });
   const trivial = [-2, -4].map(r => { const m = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: 0xf72585 })); m.rotation.x = Math.PI / 2; m.position.set(r, 0.08, tz(0)); MTN.add(m); return m; });
@@ -647,9 +648,9 @@ function setup() {
     wall.position.set(edge, 1.7, 0); wallLine.position.set(edge, 0.02, 0);
     wall.visible = wallLine.visible = edge > s0;
     poleRing.visible = st.beat === 2; poleRing.scale.setScalar(1 + 0.25 * Math.sin(st.since * 5));
-    const a = st.beat === 0 ? lerp(0.5, 0.2, ease(st.since / 10)) : st.beat === 1 ? lerp(0.2, -0.25, ease(st.since / 10)) : lerp(-0.25, -0.05, ease(st.since / 8));
-    const pos = V3(-0.5 + 9 * Math.sin(a), st.beat === 2 ? 4.6 : 5.2, tz(-2) + 9 * Math.cos(a)), tgt = V3(-0.6, 0.6, tz(4));
-    shot(MTN, pos, tgt, 46);
+    const a = st.beat === 0 ? lerp(0.35, 0.15, ease(st.since / 10)) : st.beat === 1 ? lerp(0.15, -0.15, ease(st.since / 10)) : lerp(-0.15, 0, ease(st.since / 8));
+    const pos = V3(-0.5 + 6 * Math.sin(a), st.beat === 2 ? 10 : 12, tz(-4) + 2 * Math.cos(a)), tgt = V3(-0.5, 0, tz(6));
+    shot(MTN, pos, tgt, 55);
     card(ctx, 60, 110, 560, 120);
     if (st.beat === 0) { T('∑ 1/nˢ only works here:', 90, 162, F.sans(26, 600), N.white); T('Re(s) > 1', 90, 204, F.disp(30), N.cyan); }
     else if (st.beat === 1) { T('analytic continuation', 90, 162, F.sans(26, 600), N.white); T('the only smooth way to fill the plane', 90, 204, F.sans(22, 400), N.dim); }
@@ -672,7 +673,7 @@ function setup() {
   const NW = 40, wavesMesh = [];
   for (let k = 0; k < NW; k++) {
     const g = ZEROS[k], pts = [];
-    for (let x = 1.05; x <= 40.5; x += 0.05) pts.push(V3(WX(x), 1.4 + 0.55 * psiWave(x, g) * g / (2 * Math.sqrt(x)), -1.2 - k * 0.42));
+    for (let x = 1.05; x <= 40.5; x += 0.05) pts.push(V3(WX(x), 1.4 + 0.38 * psiWave(x, g) * g / (2 * Math.sqrt(x)), -1.2 - k * 0.42));
     const c = new THREE.Color(`hsl(${190 + k * 4},80%,62%)`);
     const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length, 0.022, 5, false), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.7 }));
     WAV.add(m); wavesMesh.push({ m, c });
@@ -691,7 +692,7 @@ function setup() {
     const Nz = st.beat <= 1 ? 0 : st.beat === 2 ? seq[Math.min(6, Math.floor(st.since / 1.9))] : Math.round(lerp(40, ZEROS.length, ease(st.since / 6)));
     setSum(Nz, st.beat >= 1);
     sumGlowMat.opacity = st.beat === 1 ? 0.2 * st.ap(1, 1) : 0.2;
-    wavesMesh.forEach((w, k) => { w.m.visible = k < Nz; w.m.material.color.set(k === Nz - 1 && st.beat === 2 ? 0xffd166 : w.c); w.m.material.opacity = k === Nz - 1 ? 1 : 0.55; });
+    wavesMesh.forEach((w, k) => { w.m.visible = k < Nz; w.m.material.color.set(k === Nz - 1 && st.beat === 2 ? 0xffd166 : w.c); w.m.material.opacity = k === Nz - 1 ? 1 : 0.4; });
     let pos, tgt;
     const front = V3(0, 4.2, 15.5), side = V3(15, 9, 9);
     if (st.beat <= 1) { pos = front; tgt = V3(0, 3.6, 0); }
@@ -707,14 +708,14 @@ function setup() {
 
   // ================================================================ 3-D: flight along the critical line, and a zero that must not exist
   const finalDraw = S[9].draw;
-  const ghosts = [0.82, 0.18].map(sg => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf72585 })); m.add(new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf72585, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }))); m.position.set(sg, 0.12, tz(23.6)); m.visible = false; MTN.add(m); return m; });
+  const ghosts = [0.85, 0.15].map(sg => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf72585 })); m.add(new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf72585, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }))); const zv = M.zeta([sg, 23.6]); m.position.set(sg, Math.min(3, 0.9 * Math.log(1 + Math.hypot(zv[0], zv[1]))) + 0.25, tz(23.6)); m.visible = false; MTN.add(m); return m; });
   S[9].draw = st => {
     if (st.beat === 2) { ghosts.forEach(g => { g.visible = false; }); return finalDraw(st); }
     mtnExtras(9); clipPlane.constant = 99;
     if (st.beat === 0) {
       const tt = lerp(-2, 38, ease(st.since / 11));
       mZeros.forEach((m, i) => { const d = Math.abs(ZEROS[i] - tt); m.scale.setScalar(1 + 1.6 * Math.exp(-d * d * 0.8)); });
-      shot(MTN, V3(0.5 + 1.6, 1.9, tz(tt - 4)), V3(0.5, 0.1, tz(tt + 4)), 56);
+      shot(MTN, V3(0.5, 4.8, tz(tt - 7)), V3(0.5, 0, tz(tt + 4)), 50);
       const v = Math.pow(10, clamp(st.since * 1.25, 1, 13));
       card(ctx, 960, 130, 520, 150); T('zeros checked', 990, 180, F.sans(24, 500), N.dim); T(fmtBig(v), 990, 246, F.disp(56), N.gold); T('all on Re(s) = ½', 990, 316, F.sans(24, 600), N.green);
     } else {
@@ -722,8 +723,8 @@ function setup() {
       const fl = 0.55 + 0.45 * Math.sin(st.since * 8), a = st.ap(1, 1);
       ghosts.forEach(g => { g.visible = st.since > 1.2; g.scale.setScalar(0.8 + 0.4 * fl); });
       const ang = lerp(-0.4, 0.4, ease(st.since / 12));
-      shot(MTN, V3(0.5 + 6 * Math.sin(ang), 4.4, tz(23.6) + 6 * Math.cos(ang)), V3(0.5, 0, tz(25)), 48);
-      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z < 1) T(i ? 'mirror twin' : 'a zero off the line?', x + (i ? -24 : 24), y - 24, F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
+      shot(MTN, V3(0.5 + 2.5 * Math.sin(ang), 6.5, tz(19.5)), V3(0.5, 0, tz(24.5)), 46);
+      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z < 1) T(i ? 'mirror twin' : 'a zero off the line?', x + (i ? -60 : 60), y + (i ? 40 : -40), F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
       ctx.globalAlpha = a; card(ctx, 60, 120, 600, 120); T('one zero off the line', 90, 172, F.sans(28, 600), N.pink); T('(they would come in mirror pairs) would break it', 90, 212, F.sans(21, 400), N.dim); ctx.globalAlpha = 1;
     }
   };
