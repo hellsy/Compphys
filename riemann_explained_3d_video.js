@@ -631,32 +631,60 @@ function setup() {
   R3.localClippingEnabled = true;
   const clipPlane = new THREE.Plane(V3(1, 0, 0), 99);
   mtn.material.clippingPlanes = [clipPlane];
-  const wall = new THREE.Mesh(new THREE.PlaneGeometry(t1 - t0, 3.4), new THREE.MeshBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false }));
-  wall.rotation.y = Math.PI / 2; wall.position.y = 1.7; MTN.add(wall);
-  const wallLine = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, t1 - t0), new THREE.MeshBasicMaterial({ color: 0xbff1ff })); MTN.add(wallLine);
+  // the landscape "grows" out of the floor behind a glowing front (heights and colours per frame)
+  const mPos = mG.attributes.position, mCol = mG.attributes.color, NV = mPos.count;
+  const H0 = new Float32Array(NV), C0 = new Float32Array(NV * 3), XV = new Float32Array(NV);
+  for (let i = 0; i < NV; i++) { H0[i] = mPos.getY(i); XV[i] = mPos.getX(i); C0[3 * i] = mCol.getX(i); C0[3 * i + 1] = mCol.getY(i); C0[3 * i + 2] = mCol.getZ(i); }
+  const XMIN = -(s1 - s0) / 2;
+  let grownTo = null;
+  function growFrom(edge) {
+    if (grownTo === edge) return; grownTo = edge;
+    for (let i = 0; i < NV; i++) {
+      const d = XV[i] - edge, f = d >= 0.9 ? 1 : d <= 0 ? 0 : ease(d / 0.9), glowF = Math.exp(-d * d * 12) * (edge > XMIN ? 1 : 0);
+      mPos.setY(i, H0[i] * f + 0.004);
+      const k = 0.12 + 0.88 * f;
+      mCol.setXYZ(i, C0[3 * i] * k + 0.3 * glowF, C0[3 * i + 1] * k + 0.8 * glowF, C0[3 * i + 2] * k + 0.95 * glowF);
+    }
+    mPos.needsUpdate = true; mCol.needsUpdate = true;
+  }
+  const front = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, t1 - t0), new THREE.MeshBasicMaterial({ color: 0xbff1ff })); MTN.add(front);
+  const frontGlow = new THREE.Mesh(new THREE.PlaneGeometry(t1 - t0, 1.2), new THREE.MeshBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false }));
+  frontGlow.rotation.y = Math.PI / 2; MTN.add(frontGlow);
+  const floorGrid = new THREE.GridHelper(60, 60, 0x24306a, 0x161e44); floorGrid.position.set(0, -0.02, 0); MTN.add(floorGrid);
   const poleRing = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.05, 8, 40), new THREE.MeshBasicMaterial({ color: 0xffffff })); poleRing.rotation.x = Math.PI / 2; poleRing.position.set(1, 3.05, tz(0)); MTN.add(poleRing);
   function mtnExtras(scene) {   // which helpers are visible in which scene
     const z7 = scene === 7, z9 = scene === 9;
     strip.visible = critLine.visible = z7 || z9; mZeros.forEach(m => { m.visible = z7 || z9; }); trivial.forEach(m => { m.visible = z7; });
-    wall.visible = wallLine.visible = poleRing.visible = scene === 6;
-    if (scene !== 6) clipPlane.constant = 99;
+    front.visible = frontGlow.visible = poleRing.visible = floorGrid.visible = scene === 6;
+    clipPlane.constant = 99;
+    if (scene !== 6) growFrom(XMIN - 1);
   }
   function drawContinuation(st) {
     mtnExtras(6);
-    const edge = st.beat === 0 ? 1.06 : st.beat === 1 ? lerp(1.06, s0 - 0.2, ease((st.since - 1.5) / 7)) : s0 - 0.2;
-    clipPlane.constant = -edge;
-    wall.position.set(edge, 1.7, 0); wallLine.position.set(edge, 0.02, 0);
-    wall.visible = wallLine.visible = edge > s0;
+    const d1 = st.bs[1], since1 = st.lt - d1;
+    const edge = st.beat === 0 ? 1.0 : st.beat === 1 ? lerp(1.0, XMIN - 1, ease((since1 - 1.5) / 9)) : XMIN - 1;
+    growFrom(+edge.toFixed(3));
+    front.position.set(edge, 0.03, 0); frontGlow.position.set(edge, 0.6, 0);
+    front.visible = frontGlow.visible = edge > XMIN - 0.5;
     poleRing.visible = st.beat === 2; poleRing.scale.setScalar(1 + 0.25 * Math.sin(st.since * 5));
-    const a = st.beat === 0 ? lerp(0.35, 0.15, ease(st.since / 10)) : st.beat === 1 ? lerp(0.15, -0.15, ease(st.since / 10)) : lerp(-0.15, 0, ease(st.since / 8));
-    const pos = V3(-0.5 + 6 * Math.sin(a), st.beat === 2 ? 10 : 12, tz(-4) + 2 * Math.cos(a)), tgt = V3(-0.5, 0, tz(6));
-    shot(MTN, pos, tgt, 55);
+    let pos, tgt;
+    if (st.beat === 0) {                     // low flight along the boundary Re(s) = 1
+      const t = lerp(-2, 9, ease(st.since / 12));
+      pos = V3(-0.3, 2.3, tz(t - 6)); tgt = V3(1.3, 0.6, tz(t + 4));
+    } else if (st.beat === 1) {              // rise and watch the front sweep to the left
+      const e = ease(since1 / 6);
+      pos = lerpV(V3(-0.3, 2.3, tz(3)), V3(4.5, 7.5, tz(-7)), e); tgt = lerpV(V3(1.3, 0.6, tz(13)), V3(-1.2, 0.3, tz(6)), e);
+    } else {                                 // orbit the pole
+      const a = lerp(0.6, -0.9, ease(st.since / 10));
+      pos = V3(1 + 5.2 * Math.sin(a), 3.4, tz(0) + 5.2 * Math.cos(a)); tgt = V3(0.6, 1.2, tz(0.5));
+    }
+    shot(MTN, pos, tgt, 50);
     card(ctx, 60, 110, 560, 120);
     if (st.beat === 0) { T('∑ 1/nˢ only works here:', 90, 162, F.sans(26, 600), N.white); T('Re(s) > 1', 90, 204, F.disp(30), N.cyan); }
     else if (st.beat === 1) { T('analytic continuation', 90, 162, F.sans(26, 600), N.white); T('the only smooth way to fill the plane', 90, 204, F.sans(22, 400), N.dim); }
     else { T('pole at s = 1', 90, 162, F.sans(26, 600), N.white); T('ζ(s) → ∞', 90, 206, F.disp(32), N.pink); }
+    if (st.beat === 0) { const [x, y, z] = proj(V3(1, 0, tz(lerp(-2, 9, ease(st.since / 12)) + 2))); if (z < 1) { ctx.fillStyle = 'rgba(6,9,20,0.85)'; ctx.beginPath(); ctx.roundRect(x - 190, y - 44, 160, 44, 8); ctx.fill(); T('Re(s) = 1', x - 110, y - 14, F.mono(22), N.cyan, 'center'); } }
     if (st.beat === 2) { const [x, y, z] = proj(V3(1, 3.2, tz(0))); if (z < 1) { glow(N.white, 20); T('s = 1', x + 30, y - 10, F.sans(26, 600), N.white); noGlow(); } }
-    const [xe, ye, ze] = proj(V3(Math.max(edge, s0), 0, tz(-3))); if (ze < 1 && st.beat < 2) T('Re(s) = ' + Math.max(edge, s0).toFixed(2), xe, ye + 34, F.mono(20), N.cyan, 'center');
   }
   S[6].draw = drawContinuation;
   const oldMountains = drawMountains;
@@ -724,7 +752,7 @@ function setup() {
       ghosts.forEach(g => { g.visible = st.since > 1.2; g.scale.setScalar(0.8 + 0.4 * fl); });
       const ang = lerp(-0.4, 0.4, ease(st.since / 12));
       shot(MTN, V3(0.5 + 2.5 * Math.sin(ang), 6.5, tz(19.5)), V3(0.5, 0, tz(24.5)), 46);
-      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z < 1) T(i ? 'mirror twin' : 'a zero off the line?', x + (i ? -60 : 60), y + (i ? 40 : -40), F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
+      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z >= 1) return; const lab = i ? 'mirror twin' : 'a zero off the line?', lx = x + (i ? -110 : 110), ly = y + (i ? 70 : -70); ctx.font = F.sans(24, 600); const w = ctx.measureText(lab).width; ctx.strokeStyle = 'rgba(247,37,133,0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + (i ? -22 : 22), y + (i ? 14 : -14)); ctx.lineTo(lx, ly - 8); ctx.stroke(); ctx.fillStyle = 'rgba(6,9,20,0.85)'; ctx.beginPath(); ctx.roundRect(i ? lx - w - 14 : lx - 4, ly - 30, w + 18, 42, 8); ctx.fill(); T(lab, i ? lx - 5 : lx + 5, ly, F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
       ctx.globalAlpha = a; card(ctx, 60, 120, 600, 120); T('one zero off the line', 90, 172, F.sans(28, 600), N.pink); T('(they would come in mirror pairs) would break it', 90, 212, F.sans(21, 400), N.dim); ctx.globalAlpha = 1;
     }
   };
