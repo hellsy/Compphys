@@ -559,6 +559,175 @@ function setup() {
   // the narration of scene 7, beat 2 now describes a real landscape
   S[7].beats[2] = 'Lift the strip into a landscape. Each ridge traces the size of zeta along one vertical line in the strip. Watch the ground: only one ridge ever touches it.';
 
+  // ================================================================ formula typesetting (2-D)
+  // pieces: ['t', text] | ['f', num, den] | ['op', '∑' or '∏', top, bottom]; 'x^y' draws y as superscript
+  function pw(p, size) {
+    const tw = s => { const [b, e] = s.split('^'); ctx.font = F.disp(size); let w = ctx.measureText(b).width; if (e) { ctx.font = F.disp(size * 0.6); w += ctx.measureText(e).width + 2; } return w; };
+    if (p[0] === 't') return tw(p[1]);
+    if (p[0] === 'f') return Math.max(tw(p[1]), tw(p[2])) + size * 0.35;
+    return size * 1.35;
+  }
+  function tx(s, x, y, size, col, al = 'left') {
+    const [b, e] = s.split('^'); ctx.font = F.disp(size); const wb = ctx.measureText(b).width; let we = 0;
+    if (e) { ctx.font = F.disp(size * 0.6); we = ctx.measureText(e).width + 2; }
+    const x0 = al === 'center' ? x - (wb + we) / 2 : x;
+    T(b, x0, y, F.disp(size), col); if (e) T(e, x0 + wb + 2, y - size * 0.42, F.disp(size * 0.6), col);
+  }
+  function formula(pieces, cx, y, size, col, reveal = 99) {   // y = axis of fraction bars
+    const ws = pieces.map(p => pw(p, size)), gap = size * 0.22, W = ws.reduce((a, b) => a + b, 0) + gap * (pieces.length - 1);
+    let x = cx - W / 2;
+    pieces.forEach((p, i) => {
+      const a = clamp(reveal - i, 0, 1); if (a <= 0) { x += ws[i] + gap; return; }
+      ctx.globalAlpha *= a; const c = p[3] && p[0] !== 'op' ? p[3] : col;
+      if (p[0] === 't') tx(p[1], x, y + size * 0.36, size, c);
+      else if (p[0] === 'f') { tx(p[1], x + ws[i] / 2, y - size * 0.22, size, c, 'center'); ctx.fillStyle = c; ctx.fillRect(x + size * 0.08, y - size * 0.04, ws[i] - size * 0.16, Math.max(2, size * 0.05)); tx(p[2], x + ws[i] / 2, y + size * 0.86, size, c, 'center'); }
+      else { glow(N.gold, 14); T(p[1], x + ws[i] / 2, y + size * 0.62, F.disp(size * 1.9), N.gold, 'center'); noGlow(); if (p[2]) T(p[2], x + ws[i] / 2, y - size * 1.2, F.disp(size * 0.5), N.gold, 'center'); if (p[3]) T(p[3], x + ws[i] / 2, y + size * 1.42, F.disp(size * 0.5), N.gold, 'center'); }
+      ctx.globalAlpha /= a; x += ws[i] + gap;
+    });
+  }
+  const ZETA_SUM = [['t', 'ζ(s)  ='], ['op', '∑', '∞', 'n = 1'], ['f', '1', 'n^s']];
+  const ZETA_TERMS = [['t', '='], ['t', '1'], ['t', '+'], ['f', '1', '2^s'], ['t', '+'], ['f', '1', '3^s'], ['t', '+'], ['f', '1', '4^s'], ['t', '+  …']];
+  const ZETA_PROD = [['t', '='], ['op', '∏', '', 'p prime'], ['f', '1', '1 − 1/p^s']];
+
+  // scene 04 with real ∑ / ∏ notation
+  S[4].draw = st => {
+    if (st.beat === 0) {
+      formula(ZETA_SUM, 470, 170, 46, N.white, 1 + st.since * 1.5);
+      formula(ZETA_TERMS, 1060, 170, 40, N.cyan, (st.since - 2) * 2.2);
+      const P = plot(260, 300, 1080, 400, 0, 6, 0, 6);
+      axes(ctx, P, { xt: [0, 1, 2, 3, 4, 5, 6], yt: [0, 2, 4, 6], xl: 's' });
+      ctx.strokeStyle = 'rgba(247,37,133,0.6)'; ctx.setLineDash([8, 8]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(P.X(1), P.y); ctx.lineTo(P.X(1), P.y + P.h); ctx.stroke(); ctx.setLineDash([]);
+      clipTo(ctx, P); glow(N.cyan, 14); ctx.strokeStyle = N.cyan; ctx.lineWidth = 4; ctx.beginPath();
+      const end = lerp(1.17, 6, clamp((st.since - 4) / 6, 0, 1)); let f = true; for (let s = 1.17; s <= end; s += 0.02) { const y = M.zeta([s, 0])[0]; f ? ctx.moveTo(P.X(s), P.Y(y)) : ctx.lineTo(P.X(s), P.Y(y)); f = false; } ctx.stroke(); noGlow(); ctx.restore();
+      [[2, 'ζ(2) = π²/6'], [4, 'ζ(4) = π⁴/90']].forEach(([s, l]) => { if (end < s) return; const y = M.zeta([s, 0])[0]; dot(ctx, P.X(s), P.Y(y), 8, N.gold, true); T(l, P.X(s) + 14, P.Y(y) - 18, F.mono(22), N.gold); });
+      T('diverges for s ≤ 1', P.X(1) - 14, P.y + 40, F.sans(22, 600), N.pink, 'right');
+    } else if (st.beat === 1) {
+      formula([['t', 'ζ(s)']].concat(ZETA_PROD), 800, 165, 44, N.white, 1 + st.since * 2);
+      const ps = [2, 3, 5, 7, 97], stage = clamp((st.since - 1.5) / 2.2, 0, 5);
+      for (let n = 1; n <= 100; n++) {
+        const c = (n - 1) % 20, r = Math.floor((n - 1) / 20), x = 110 + c * 69, y = 290 + r * 80, f = factors(n);
+        const need = n === 1 ? 0 : ps.findIndex(p => p >= Math.max(...f)) + 1;
+        const on = clamp(stage - need + 1, 0, 1), col = n === 1 ? N.white : pcol(Math.max(...f));
+        ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.roundRect(x, y, 62, 68, 8); ctx.fill();
+        if (on > 0) { ctx.globalAlpha = on; glow(col, 14); ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, 62, 68, 8); ctx.fill(); noGlow(); ctx.globalAlpha = 1; }
+        T(String(n), x + 31, y + 44, F.mono(22, 600), on > 0.5 ? '#0b1020' : '#3a4470', 'center');
+      }
+      T(['× factor for 2', '× factor for 3', '× factor for 5', '× factor for 7', '× all other primes'][Math.min(4, Math.floor(stage))], 1490, 270, F.mono(22), N.gold, 'right');
+    } else {
+      const a = st.ap(2, 1); ctx.globalAlpha = a;
+      formula([['op', '∑', '∞', 'n = 1'], ['f', '1', 'n^s']], 520, 360, 64, N.cyan);
+      T('=', 800, 383, F.disp(72), N.white, 'center');
+      formula([['op', '∏', '', 'p prime'], ['f', '1', '1 − 1/p^s']], 1110, 360, 64, N.pink);
+      T('every whole number', 520, 560, F.sans(26, 500), N.cyan, 'center'); T('only the primes', 1110, 560, F.sans(26, 500), N.pink, 'center');
+      ctx.globalAlpha = 1;
+    }
+  };
+  // scene 05: show the sum behind the arrows
+  const old5 = S[5].draw;
+  S[5].draw = st => { old5(st); if (st.beat >= 2) { const conv = st.beat === 2; formula([['op', '∑', 'N', 'n = 1'], ['f', '1', conv ? 'n^2 + 3i' : 'n^0.3 + 7i']], 1290, 380, 34, conv ? N.cyan : N.pink); } };
+
+  // ================================================================ 3-D: analytic continuation on the zeta mountains
+  R3.localClippingEnabled = true;
+  const clipPlane = new THREE.Plane(V3(1, 0, 0), 99);
+  mtn.material.clippingPlanes = [clipPlane];
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(t1 - t0, 3.4), new THREE.MeshBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false }));
+  wall.rotation.y = Math.PI / 2; wall.position.y = 1.7; MTN.add(wall);
+  const wallLine = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, t1 - t0), new THREE.MeshBasicMaterial({ color: 0xbff1ff })); MTN.add(wallLine);
+  const poleRing = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.05, 8, 40), new THREE.MeshBasicMaterial({ color: 0xffffff })); poleRing.rotation.x = Math.PI / 2; poleRing.position.set(1, 3.05, tz(0)); MTN.add(poleRing);
+  function mtnExtras(scene) {   // which helpers are visible in which scene
+    const z7 = scene === 7, z9 = scene === 9;
+    strip.visible = critLine.visible = z7 || z9; mZeros.forEach(m => { m.visible = z7 || z9; }); trivial.forEach(m => { m.visible = z7; });
+    wall.visible = wallLine.visible = poleRing.visible = scene === 6;
+    if (scene !== 6) clipPlane.constant = 99;
+  }
+  function drawContinuation(st) {
+    mtnExtras(6);
+    const edge = st.beat === 0 ? 1.06 : st.beat === 1 ? lerp(1.06, s0 - 0.2, ease((st.since - 1.5) / 7)) : s0 - 0.2;
+    clipPlane.constant = -edge;
+    wall.position.set(edge, 1.7, 0); wallLine.position.set(edge, 0.02, 0);
+    wall.visible = wallLine.visible = edge > s0;
+    poleRing.visible = st.beat === 2; poleRing.scale.setScalar(1 + 0.25 * Math.sin(st.since * 5));
+    const a = st.beat === 0 ? lerp(0.5, 0.2, ease(st.since / 10)) : st.beat === 1 ? lerp(0.2, -0.25, ease(st.since / 10)) : lerp(-0.25, -0.05, ease(st.since / 8));
+    const pos = V3(-0.5 + 9 * Math.sin(a), st.beat === 2 ? 4.6 : 5.2, tz(-2) + 9 * Math.cos(a)), tgt = V3(-0.6, 0.6, tz(4));
+    shot(MTN, pos, tgt, 46);
+    card(ctx, 60, 110, 560, 120);
+    if (st.beat === 0) { T('∑ 1/nˢ only works here:', 90, 162, F.sans(26, 600), N.white); T('Re(s) > 1', 90, 204, F.disp(30), N.cyan); }
+    else if (st.beat === 1) { T('analytic continuation', 90, 162, F.sans(26, 600), N.white); T('the only smooth way to fill the plane', 90, 204, F.sans(22, 400), N.dim); }
+    else { T('pole at s = 1', 90, 162, F.sans(26, 600), N.white); T('ζ(s) → ∞', 90, 206, F.disp(32), N.pink); }
+    if (st.beat === 2) { const [x, y, z] = proj(V3(1, 3.2, tz(0))); if (z < 1) { glow(N.white, 20); T('s = 1', x + 30, y - 10, F.sans(26, 600), N.white); noGlow(); } }
+    const [xe, ye, ze] = proj(V3(Math.max(edge, s0), 0, tz(-3))); if (ze < 1 && st.beat < 2) T('Re(s) = ' + Math.max(edge, s0).toFixed(2), xe, ye + 34, F.mono(20), N.cyan, 'center');
+  }
+  S[6].draw = drawContinuation;
+  const oldMountains = drawMountains;
+  S[7].draw = st => { mtnExtras(7); if (st.beat <= 1) oldMountains(st); else drawRidges(st); };
+
+  // ================================================================ 3-D: the music of the primes as a waterfall of waves
+  const WAV = new THREE.Scene(); WAV.fog = new THREE.Fog(0x060914, 20, 48); addLights(WAV);
+  const WX = x => (x - 20.5) * 0.5, WY = v => v * 0.2;
+  const wGrid = new THREE.GridHelper(40, 40, 0x1c2550, 0x121935); wGrid.position.set(0, -0.01, -6); WAV.add(wGrid);
+  const stairPath = new THREE.CurvePath(); { let prev = V3(WX(1), 0, 0); for (let n = 2; n <= 40; n++) { const a = V3(WX(n), WY(PSI[n - 1]), 0), b = V3(WX(n), WY(PSI[n]), 0); stairPath.add(new THREE.LineCurve3(prev, a)); if (PSI[n] !== PSI[n - 1]) stairPath.add(new THREE.LineCurve3(a, b)); prev = b; } stairPath.add(new THREE.LineCurve3(prev, V3(WX(40.5), prev.y, 0))); }
+  const stairMat = new THREE.MeshBasicMaterial({ color: 0xf72585 });
+  WAV.add(new THREE.Mesh(new THREE.TubeGeometry(stairPath, 900, 0.05, 6, false), stairMat));
+  WAV.add(new THREE.Mesh(new THREE.TubeGeometry(stairPath, 900, 0.16, 6, false), new THREE.MeshBasicMaterial({ color: 0xf72585, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false })));
+  const NW = 40, wavesMesh = [];
+  for (let k = 0; k < NW; k++) {
+    const g = ZEROS[k], pts = [];
+    for (let x = 1.05; x <= 40.5; x += 0.05) pts.push(V3(WX(x), 1.4 + 0.55 * psiWave(x, g) * g / (2 * Math.sqrt(x)), -1.2 - k * 0.42));
+    const c = new THREE.Color(`hsl(${190 + k * 4},80%,62%)`);
+    const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length, 0.022, 5, false), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.7 }));
+    WAV.add(m); wavesMesh.push({ m, c });
+  }
+  let sumMesh = null, sumGlow = null; const sumMat = new THREE.MeshBasicMaterial({ color: 0x4cc9f0 }), sumGlowMat = new THREE.MeshBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false });
+  function setSum(Nz, show) {
+    if (sumMesh) { WAV.remove(sumMesh, sumGlow); sumMesh.geometry.dispose(); sumGlow.geometry.dispose(); sumMesh = null; }
+    if (!show) return;
+    const pts = []; for (let x = 1.06; x <= 40.5; x += 0.06) { let y = x - Math.log(2 * Math.PI) - 0.5 * Math.log(1 - 1 / (x * x)); for (let k = 0; k < Nz; k++) y += psiWave(x, ZEROS[k]); pts.push(V3(WX(x), WY(y), 0.02)); }
+    const cur = new THREE.CatmullRomCurve3(pts);
+    sumMesh = new THREE.Mesh(new THREE.TubeGeometry(cur, pts.length, 0.04, 6, false), sumMat); sumGlow = new THREE.Mesh(new THREE.TubeGeometry(cur, pts.length, 0.14, 6, false), sumGlowMat);
+    WAV.add(sumMesh, sumGlow);
+  }
+  S[8].draw = st => {
+    const seq = [1, 2, 3, 5, 10, 20, 40];
+    const Nz = st.beat <= 1 ? 0 : st.beat === 2 ? seq[Math.min(6, Math.floor(st.since / 1.9))] : Math.round(lerp(40, ZEROS.length, ease(st.since / 6)));
+    setSum(Nz, st.beat >= 1);
+    sumGlowMat.opacity = st.beat === 1 ? 0.2 * st.ap(1, 1) : 0.2;
+    wavesMesh.forEach((w, k) => { w.m.visible = k < Nz; w.m.material.color.set(k === Nz - 1 && st.beat === 2 ? 0xffd166 : w.c); w.m.material.opacity = k === Nz - 1 ? 1 : 0.55; });
+    let pos, tgt;
+    const front = V3(0, 4.2, 15.5), side = V3(15, 9, 9);
+    if (st.beat <= 1) { pos = front; tgt = V3(0, 3.6, 0); }
+    else if (st.beat === 2) { const e = ease(st.since / 5); pos = lerpV(front, side, e); tgt = lerpV(V3(0, 3.6, 0), V3(0, 1.6, -6), e); }
+    else { const e = ease(st.since / 6); pos = lerpV(side, front, e); tgt = lerpV(V3(0, 1.6, -6), V3(0, 3.6, 0), e); }
+    shot(WAV, pos, tgt, 44);
+    formula([['t', 'ψ(x)  =  x  −'], ['op', '∑', '', 'ρ'], ['f', 'x^ρ', 'ρ'], ['t', '−  ln 2π  −  ½ ln(1 − 1/x²)']], 800, 150, 34, N.white);
+    card(ctx, 60, 250, 300, 66); T(Nz + (Nz === 1 ? ' zero' : ' zeros'), 85, 295, F.mono(30), N.gold);
+    if (st.beat === 2 && Nz > 0) T('each zero adds one wave', 1500, 300, F.sans(24, 600), N.gold, 'right');
+    [10, 20, 30, 40].forEach(x => { const [px, py, pz] = proj(V3(WX(x), 0, 0.3)); if (pz < 1) T(String(x), px, py + 28, F.mono(18), N.dim, 'center'); });
+    if (Nz > NW) T('+ ' + (Nz - NW) + ' more waves', 1500, 300, F.sans(22, 500), N.dim, 'right');
+  };
+
+  // ================================================================ 3-D: flight along the critical line, and a zero that must not exist
+  const finalDraw = S[9].draw;
+  const ghosts = [0.82, 0.18].map(sg => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf72585 })); m.add(new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf72585, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }))); m.position.set(sg, 0.12, tz(23.6)); m.visible = false; MTN.add(m); return m; });
+  S[9].draw = st => {
+    if (st.beat === 2) { ghosts.forEach(g => { g.visible = false; }); return finalDraw(st); }
+    mtnExtras(9); clipPlane.constant = 99;
+    if (st.beat === 0) {
+      const tt = lerp(-2, 38, ease(st.since / 11));
+      mZeros.forEach((m, i) => { const d = Math.abs(ZEROS[i] - tt); m.scale.setScalar(1 + 1.6 * Math.exp(-d * d * 0.8)); });
+      shot(MTN, V3(0.5 + 1.6, 1.9, tz(tt - 4)), V3(0.5, 0.1, tz(tt + 4)), 56);
+      const v = Math.pow(10, clamp(st.since * 1.25, 1, 13));
+      card(ctx, 960, 130, 520, 150); T('zeros checked', 990, 180, F.sans(24, 500), N.dim); T(fmtBig(v), 990, 246, F.disp(56), N.gold); T('all on Re(s) = ½', 990, 316, F.sans(24, 600), N.green);
+    } else {
+      mZeros.forEach(m => m.scale.setScalar(1));
+      const fl = 0.55 + 0.45 * Math.sin(st.since * 8), a = st.ap(1, 1);
+      ghosts.forEach(g => { g.visible = st.since > 1.2; g.scale.setScalar(0.8 + 0.4 * fl); });
+      const ang = lerp(-0.4, 0.4, ease(st.since / 12));
+      shot(MTN, V3(0.5 + 6 * Math.sin(ang), 4.4, tz(23.6) + 6 * Math.cos(ang)), V3(0.5, 0, tz(25)), 48);
+      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z < 1) T(i ? 'mirror twin' : 'a zero off the line?', x + (i ? -24 : 24), y - 24, F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
+      ctx.globalAlpha = a; card(ctx, 60, 120, 600, 120); T('one zero off the line', 90, 172, F.sans(28, 600), N.pink); T('(they would come in mirror pairs) would break it', 90, 212, F.sans(21, 400), N.dim); ctx.globalAlpha = 1;
+    }
+  };
+
   let TT = 0; const B = [];
   S.forEach((s, si) => { s.start = TT; s.bs = []; s.beats.forEach((text, bi) => { const d = Math.max(6, text.length / 13.5 + 2); s.bs.push(TT - s.start); B.push({ si, bi, text, start: TT, dur: d }); TT += d; }); s.end = TT; });
   const TOTAL = TT + 4;
