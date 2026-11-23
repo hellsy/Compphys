@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
 const VORSCHAU = process.env.VORSCHAU === '1';
 const FPS = VORSCHAU ? 10 : 30;
 const BREITE = 1280, HOEHE = 720;
-const HTML = path.join(__dirname, 'riemann_lernvideo_en.html');
+const HTML = path.join(__dirname, '..', 'interaktiv', 'riemann_lernvideo_en.html');
 const AUS = path.join(__dirname, 'riemann_history.mp4');
 
 // ------------------------------------------------------------------ scenes (run in the browser)

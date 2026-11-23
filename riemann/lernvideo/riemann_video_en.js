@@ -1,4 +1,4 @@
-/* Lernvideo (Motion Graphic): Die Riemannsche Vermutung  ->  riemann.mp4
+/* Learning video (motion graphic): The Riemann Hypothesis  ->  riemann_en.mp4  (English version)
 
 Rendert das interaktive Lernvideo riemann_lernvideo.html Bild für Bild als MP4
 (1280×720, 30 fps, ohne Ton). Alle Grafiken werden dabei mit demselben Code berechnet
@@ -9,8 +9,8 @@ wie in der interaktiven Fassung:
 Die Untertitel werden ins Bild geschrieben, nach jedem Kapitel folgt die Quizfrage
 mit Auflösung.
 
-Aufruf:  node riemann_video.js            ->  riemann.mp4
-         VORSCHAU=1 node riemann_video.js ->  schneller Testlauf mit 10 fps
+Usage:   node riemann_video_en.js            ->  riemann_en.mp4
+         VORSCHAU=1 node riemann_video_en.js ->  quick test run at 10 fps
 Benötigt: Node.js, Playwright mit Chromium, ffmpeg
 */
 const path = require('path');
@@ -21,8 +21,8 @@ const VORSCHAU = process.env.VORSCHAU === '1';
 const FPS = VORSCHAU ? 10 : 30;
 const BREITE = 1280, HOEHE = 720;
 const QUIZ_FRAGE = 6, QUIZ_ANTWORT = 6, ENDE = 5;   // Sekunden
-const HTML = path.join(__dirname, 'riemann_lernvideo.html');
-const AUS = path.join(__dirname, 'riemann.mp4');
+const HTML = path.join(__dirname, '..', 'interaktiv', 'riemann_lernvideo_en.html');
+const AUS = path.join(__dirname, 'riemann_en.mp4');
 
 // Läuft im Browser: zeichnet ein Bild des Videos auf die Leinwand und gibt es als JPEG zurück.
 function frameImBrowser(seg) {
@@ -55,7 +55,7 @@ function frameImBrowser(seg) {
     const a = ease(Math.min(seg.zeit / 0.5, 1));
     ctx.globalAlpha = a;
     card(ctx, x, 150, w, 600);
-    txt(ctx, 'KURZE FRAGE ZU KAPITEL ' + seg.ci + ' · ' + CH[seg.ci].title.toUpperCase(), x + 44, 210, F.mono(20), COL.gold);
+    txt(ctx, 'QUICK QUESTION ON CHAPTER ' + seg.ci + ' · ' + CH[seg.ci].title.toUpperCase(), x + 44, 210, F.mono(20), COL.gold);
     const yq = wrapText(ctx, q.q, x + 44, 272, w - 88, 48, F.disp(38), COL.text);
     let y = yq + 40;
     q.opts.forEach((o, i) => {
@@ -68,10 +68,10 @@ function frameImBrowser(seg) {
     });
     if (!antwort) {
       const rest = Math.ceil(seg.frageDauer - seg.zeit);
-      txt(ctx, 'Überlege kurz … Auflösung in ' + rest + ' s', x + 44, y + 40, F.sans(24, 400), COL.dim);
+      txt(ctx, 'Think for a moment … answer in ' + rest + ' s', x + 44, y + 40, F.sans(24, 400), COL.dim);
     } else {
       ctx.globalAlpha = a * ease(Math.min((seg.zeit - seg.frageDauer) / 0.5, 1));
-      txt(ctx, 'Richtig ist ' + String.fromCharCode(65 + q.a) + '.', x + 44, y + 40, F.sans(26, 600), '#5fd39a');
+      txt(ctx, 'The answer is ' + String.fromCharCode(65 + q.a) + '.', x + 44, y + 40, F.sans(26, 600), '#5fd39a');
       wrapText(ctx, q.why, x + 44, y + 80, w - 88, 34, F.sans(23, 400), COL.dim);
     }
     ctx.globalAlpha = 1;
@@ -81,9 +81,9 @@ function frameImBrowser(seg) {
     ctx.setTransform(k, 0, 0, k, 0, 0);
     ctx.globalAlpha = ease(Math.min(seg.zeit / 1, 1));
     ctx.fillStyle = 'rgba(6,9,20,0.95)'; ctx.fillRect(0, 0, SW, SH);
-    txt(ctx, 'ENDE DES VIDEOS', SW / 2, 330, F.mono(22), COL.gold, 'center');
-    txt(ctx, 'Die Vermutung ist seit 1859 offen.', SW / 2, 430, F.disp(56), COL.text, 'center');
-    txt(ctx, 'Interaktive Fassung zum Selbstausprobieren: riemann_lernvideo.html', SW / 2, 520, F.sans(26, 400), COL.dim, 'center');
+    txt(ctx, 'END OF THE VIDEO', SW / 2, 330, F.mono(22), COL.gold, 'center');
+    txt(ctx, 'The hypothesis has been open since 1859.', SW / 2, 430, F.disp(56), COL.text, 'center');
+    txt(ctx, 'Interactive version to explore yourself: riemann_lernvideo_en.html', SW / 2, 520, F.sans(26, 400), COL.dim, 'center');
     ctx.globalAlpha = 1;
   }
   return cv.toDataURL('image/jpeg', 0.95);

@@ -23,7 +23,7 @@ const { chromium } = require('playwright');
 const VORSCHAU = process.env.VORSCHAU === '1';
 const FPS = VORSCHAU ? 10 : 30;
 const BREITE = 1280, HOEHE = 720;
-const HTML = path.join(__dirname, 'riemann_lernvideo_en.html');
+const HTML = path.join(__dirname, '..', 'interaktiv', 'riemann_lernvideo_en.html');
 const AUS = path.join(__dirname, 'riemann_explained_3d.mp4');
 const THREE_JS = path.join(__dirname, 'node_modules', 'three', 'build', 'three.min.js');
 
