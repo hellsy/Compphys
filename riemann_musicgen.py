@@ -66,8 +66,11 @@ def main():
     for key, a, e in segmente(zp):
         text = f"{STIL}, {PROMPTS[key]}"
         stuecke = []; laenge = 0.0
-        while laenge < e - a + 1.5:
-            neu = min(STUECK, e - a + 1.5 - laenge + 0.01)
+        cache = os.path.join(os.path.dirname(AUS), f"seg_{MODELL.split('/')[-1]}_{key}.npy")
+        if os.path.exists(cache):                             # schon erzeugt: wiederverwenden
+            stuecke = [np.load(cache)]; laenge = len(stuecke[0]) / sr
+        while laenge < e - a + 1.5 - 1.0:                      # Reste unter 1 s nicht neu erzeugen
+            neu = max(2.0, min(STUECK, e - a + 1.5 - laenge + 0.01))
             prompt_audio = None
             if stuecke:
                 prompt_audio = stuecke[-1][-int(UEBERLAPP * sr):]
@@ -86,7 +89,8 @@ def main():
             stuecke.append(x)
             laenge += len(x) / sr
             print(f"  {key}: {laenge:5.1f}/{e - a:5.1f} s   ({time.time() - t0:6.0f} s Rechenzeit)", flush=True)
-        seg = np.concatenate(stuecke)[: int((e - a + 1.5) * sr)]
+        seg = np.concatenate(stuecke); np.save(cache, seg)
+        seg = np.pad(seg, (0, max(0, int((e - a + 1.5) * sr) - len(seg))))[: int((e - a + 1.5) * sr)]
         seg /= (np.abs(seg).max() + 1e-9)
         # einblenden (weich, außer beim Sturzflug) und an die richtige Stelle legen
         ein = int((0.05 if key == "dive" else 1.2) * sr); seg[:ein] *= np.linspace(0, 1, ein)
