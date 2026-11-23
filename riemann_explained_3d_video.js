@@ -927,7 +927,8 @@ function setup() {
   };
 
   let TT = 0; const B = [];
-  S.forEach((s, si) => { s.start = TT; s.bs = []; s.beats.forEach((text, bi) => { const d = Math.max(6, text.length / 13.5 + 2); s.bs.push(TT - s.start); B.push({ si, bi, text, start: TT, dur: d }); TT += d; }); s.end = TT; });
+  const NARR = window.NARR || null; let gi = 0;   // NARR: spoken length of every beat in seconds (riemann_narration.json)
+  S.forEach((s, si) => { s.start = TT; s.bs = []; s.beats.forEach((text, bi) => { let d = Math.max(6, text.length / 13.5 + 2); if (NARR && NARR[gi] != null) d = Math.max(d, NARR[gi] + 1.4); gi++; s.bs.push(TT - s.start); B.push({ si, bi, text, start: TT, dur: d }); TT += d; }); s.end = TT; });
   const TOTAL = TT + 4;
   function subtitle(text) {
     ctx.font = F.sans(30, 500); const words = text.split(' '), lines = []; let z = '';
@@ -950,7 +951,7 @@ function setup() {
     if (edge < 0.5) { ctx.globalAlpha = 1 - ease(edge / 0.5); ctx.fillStyle = '#03050c'; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1; }
     return cv.toDataURL('image/jpeg', 0.95);
   }
-  window.EXPL = { frame, total: TOTAL, scenes: S.map(s => [s.tag, Math.round(s.start)]) };
+  window.EXPL = { frame, total: TOTAL, scenes: S.map(s => [s.tag, Math.round(s.start)]), beats: B.map(b => ({ si: b.si, bi: b.bi, start: b.start, dur: b.dur, text: b.text })) };
 }
 
 (async () => {
@@ -968,7 +969,12 @@ function setup() {
   fl = fl.replace(/^import\s*\{[^}]*\}\s*from\s*'three';/m, 'const { FileLoader, Loader, ShapePath } = THREE;').replace(/^export\s*\{[^}]*\};?/m, 'THREE.TitleFont = Font;');
   await page.addScriptTag({ content: '(function(){' + fl + '})();' });
   await page.addScriptTag({ content: 'window.TITLE_FONT = ' + fs.readFileSync(path.join(ex, 'fonts', 'optimer_bold.typeface.json'), 'utf8') + ';' });
+  const NARR_FILE = path.join(__dirname, 'riemann_narration.json');
+  if (fs.existsSync(NARR_FILE)) await page.evaluate(n => { window.NARR = n; }, JSON.parse(fs.readFileSync(NARR_FILE, 'utf8')).durations);
   await page.evaluate('(' + setup.toString() + ')()');
+  const beats = await page.evaluate(() => EXPL.beats);
+  if (process.env.DUMP_BEATS) { fs.writeFileSync(process.env.DUMP_BEATS, JSON.stringify(beats, null, 1)); console.log('beats written'); await browser.close(); return; }
+  fs.writeFileSync(path.join(__dirname, 'riemann_explained_3d_timeline.json'), JSON.stringify({ total: await page.evaluate(() => EXPL.total), beats }, null, 1));
   const total = await page.evaluate(() => EXPL.total);
   if (process.env.STILLS) {   // STILLS="12,40,…" writes single frames instead of a video
     const fs = require('fs');
