@@ -868,7 +868,7 @@ function setup() {
   S[5].draw = st => {
     if (st.beat === 1) return drawComplex(st);
     prev5(st);
-    if (st.beat >= 2) { const conv = st.beat === 2; ctx.fillStyle = 'rgba(6,9,20,0.75)'; ctx.beginPath(); ctx.roundRect(520, 92, 560, 150, 14); ctx.fill(); formula([['t', conv ? 'ζ(2 + 3i)  ≈' : 'partial sums'], ['op', '∑', 'N', 'n = 1'], ['f', '1', conv ? 'n^2 + 3i' : 'n^0.3 + 7i']], 800, 165, 44, conv ? N.cyan : N.pink); }
+    if (st.beat >= 2) { const conv = st.beat === 2; ctx.fillStyle = 'rgba(6,9,20,0.75)'; ctx.beginPath(); ctx.roundRect(520, 92, 560, 150, 14); ctx.fill(); formula([['t', conv ? 'ζ(2 + 3i)  ≈' : 'S_N ='], ['op', '∑', 'N', 'n = 1'], ['f', '1', conv ? 'n^2 + 3i' : 'n^0.3 + 7i']], 800, 165, 44, conv ? N.cyan : N.pink); }
   };
 
   // ================================================================ 3-D: dive into the pole – a wormhole
