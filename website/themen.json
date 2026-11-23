@@ -1,0 +1,86 @@
+{
+  "titel": "Compphys",
+  "untertitel": "Lernvideos und interaktive Lernumgebungen zu Physik und Mathematik",
+  "themen": [
+    {
+      "id": "riemann",
+      "titel": "Die Riemannsche Vermutung",
+      "kurz": "Primzahlen, die Zetafunktion und das berühmteste offene Problem der Mathematik.",
+      "text": "Von den Primzahlen über die Zetafunktion und ihre analytische Fortsetzung bis zu den Nullstellen auf der kritischen Geraden – als 3-D-Reise mit Sprecher und Musik, als Geschichte von Euklid bis heute und als interaktive Lernumgebung zum Ausprobieren.",
+      "videos": [
+        {"datei": "riemann/visual-journey/riemann_explained_3d.mp4", "titel": "The Riemann Hypothesis – a visual journey", "sprache": "en", "info": "3-D, Sprecher und Musik", "bild_zeit": 22},
+        {"datei": "riemann/geschichte/riemann_history.mp4", "titel": "The history of the Riemann Hypothesis", "sprache": "en", "info": "von Euklid bis zum Millennium-Preis"},
+        {"datei": "riemann/visual-journey/riemann_explained.mp4", "titel": "The Riemann Hypothesis – 2-D version", "sprache": "en"},
+        {"datei": "riemann/lernvideo/riemann.mp4", "titel": "Riemanns Vermutung – Lernvideo", "sprache": "de"},
+        {"datei": "riemann/lernvideo/riemann_en.mp4", "titel": "Riemann's Hypothesis – learning video", "sprache": "en"}
+      ],
+      "interaktiv": [
+        {"datei": "riemann/interaktiv/riemann_lernvideo.html", "titel": "Riemanns Vermutung zum Ausprobieren", "sprache": "de"},
+        {"datei": "riemann/interaktiv/riemann_lernvideo_en.html", "titel": "Riemann Hypothesis Explorer", "sprache": "en"}
+      ]
+    },
+    {
+      "id": "hopf",
+      "titel": "Das Hopf-Bündel",
+      "kurz": "Wie die 3-Sphäre in Kreise zerfällt, die über der 2-Sphäre liegen.",
+      "text": "Nach Naber, „Topology, Geometry and Gauge Fields“, Abschnitt 0.3: die Sphären S¹, S² und S³, S³ als Schichtung von Tori, die U(1)-Wirkung und die Hopf-Abbildung P : S³ → S².",
+      "videos": [
+        {"datei": "hopf-buendel/hopf.mp4", "titel": "Das Hopf-Bündel", "sprache": "de"},
+        {"datei": "hopf-buendel/hopf_en.mp4", "titel": "The Hopf bundle", "sprache": "en"}
+      ]
+    },
+    {
+      "id": "noether",
+      "titel": "Das Noether-Theorem",
+      "kurz": "Jede Symmetrie liefert eine Erhaltungsgröße – für Teilchen und für Felder.",
+      "text": "Eine Hommage an Emmy Noether (1918): Zeittranslation → Energie, Raumtranslation → Impuls, Drehung → Drehimpuls. Das zweite Video überträgt den Satz auf Felder: Noether-Strom, Ladung und Energie-Impuls.",
+      "videos": [
+        {"datei": "noether/noether.mp4", "titel": "Hommage an das Noether-Theorem", "sprache": "de"},
+        {"datei": "noether/noether_field.mp4", "titel": "Noether's theorem in field theory", "sprache": "en"}
+      ]
+    },
+    {
+      "id": "heisenberg",
+      "titel": "Das Heisenberg-Modell",
+      "kurz": "Spin-Operatoren, Hamilton-Matrix und das physikalische Bild dahinter.",
+      "text": "Begleitmaterial zur exakten Diagonalisierung von Quanten-Spinmodellen: was die Operatoren mit den Spins machen und welches physikalische Bild hinter dem Modell steckt.",
+      "videos": [
+        {"datei": "heisenberg/videos/heisenberg-spin-operators.mp4", "titel": "Was die Operatoren mit den Spins machen", "sprache": "de"},
+        {"datei": "heisenberg/videos/heisenberg-spin-operators-en.mp4", "titel": "What the operators do to the spins", "sprache": "en"},
+        {"datei": "heisenberg/videos/heisenberg-physical-picture-en.mp4", "titel": "The physical picture", "sprache": "en"}
+      ]
+    },
+    {
+      "id": "apfel",
+      "titel": "The Parable of the Apple",
+      "kurz": "Gravitation als Geometrie – nach Misner, Thorne und Wheeler.",
+      "text": "Nach „Gravitation“ von Misner, Thorne und Wheeler, Kapitel 1: Ameisen auf einem Apfel und warum sich Geodäten annähern.",
+      "videos": [
+        {"datei": "gleichnis-vom-apfel-en/Parable-of-the-Apple.mp4", "titel": "The Parable of the Apple", "sprache": "en"}
+      ]
+    },
+    {
+      "id": "oszillator",
+      "titel": "Der gedämpfte Oszillator",
+      "kurz": "Schwingfall, aperiodischer Grenzfall und Kriechfall im Vergleich.",
+      "text": "Die Gleichung x″ + 2γx′ + ω₀²x = 0, numerisch gelöst mit dem Runge-Kutta-Verfahren, für drei Dämpfungsfälle.",
+      "videos": [
+        {"datei": "oszillator/oszillator.mp4", "titel": "Der gedämpfte harmonische Oszillator", "sprache": "de"}
+      ]
+    },
+    {
+      "id": "kraftmesser",
+      "titel": "Kraft, Feder und Kraftmesser",
+      "kurz": "Hookesches Gesetz, Kraftmesser und Gewichtskraft auf Erde und Mond.",
+      "text": "Wägestücke an einer Feder, Messwerte und das Hookesche Gesetz; warum ein Kraftmesser eine Feder mit Newton-Skala ist; dieselbe Masse auf Erde und Mond.",
+      "videos": [
+        {"datei": "kraftmesser/kraftmesser.mp4", "titel": "Kraft, Feder und Kraftmesser", "sprache": "de"}
+      ]
+    }
+  ],
+  "labore": [
+    {"titel": "Elektromotor-Labor", "kurz": "Einen Elektromotor Schritt für Schritt verstehen.", "link": "https://hellsy.github.io/elektromotor-labor/"},
+    {"titel": "Lorentzkraft-Labor", "kurz": "Die Kraft auf bewegte Ladungen im Magnetfeld erforschen.", "link": "labore/lorentzkraft-labor/index.html"},
+    {"titel": "Binärwerkstatt", "kurz": "Einen Binärrechner aus Blöcken bauen (Mathematik, Klasse 9).", "link": "binaerwerkstatt/index.html"}
+  ]
+}
