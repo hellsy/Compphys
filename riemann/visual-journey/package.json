@@ -3,6 +3,7 @@
   "private": true,
   "description": "Hilfspakete für die Node-basierten Lernvideos (3D-Szenen mit three.js)",
   "devDependencies": {
+    "mathjax": "3.2.2",
     "three": "0.149.0"
   }
 }

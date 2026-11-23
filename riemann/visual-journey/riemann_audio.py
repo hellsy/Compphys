@@ -475,7 +475,7 @@ def schritt_mix():
     zeilen = ["Music: Kevin MacLeod (incompetech.com), licensed under CC BY 4.0",
               "Echoes of Time v2 · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age",
               "Voice: Piper TTS (en_US-ryan-high)"]
-    filt = ",".join(f"drawtext=fontfile={font}:text='{z.replace(':', chr(92) + ':')}':fontcolor=0xB8C0E0:fontsize={18 if i else 20}:x=(w-text_w)/2:y=h-{120 - 30 * i}:enable='gte(t,{t_end:.2f})':alpha='min(1,(t-{t_end:.2f})/0.8)'"
+    filt = ",".join(f"drawtext=fontfile={font}:text='{z.replace(':', chr(92) + ':')}':fontcolor=0xB8C0E0:fontsize={27 if i else 30}:x=(w-text_w)/2:y=h-{180 - 45 * i}:enable='gte(t,{t_end:.2f})':alpha='min(1,(t-{t_end:.2f})/0.8)'"
                     for i, z in enumerate(zeilen))
     tmp = VIDEO.replace(".mp4", "_tmp.mp4")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", master, "-i", wav, "-map", "0:v", "-map", "1:a", "-vf", filt,
