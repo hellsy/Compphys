@@ -986,7 +986,7 @@ function setup() {
     const i = s.indexOf('^'); if (i >= 0) return uni2tex(s.slice(0, i)) + '^{' + uni2tex(s.slice(i + 1)) + '}';
     const map = [['ln', '\\ln '], ['ζ', '\\zeta '], ['π', '\\pi '], ['ρ', '\\rho '], ['ψ', '\\psi '], ['σ', '\\sigma '], ['−', '-'], ['·', '\\cdot '],
       ['…', '\\dots '], ['∞', '\\infty '], ['≈', '\\approx '], ['→', '\\to '], ['½', '\\tfrac{1}{2}'], ['²', '^{2}'], ['⁴', '^{4}']];
-    s = s.replace(/[A-Za-z]{3,}/g, w => w === 'ln' ? w : '\\text{' + w + '}');
+    s = s.replace(/[A-Za-z]{3,}(?: [A-Za-z]{3,})*/g, w => w === 'ln' ? w : '\\text{' + w + '}');
     for (const [a, b] of map) s = s.split(a).join(b);
     return s.replace(/ {2,}/g, ' ');
   }
@@ -1103,16 +1103,18 @@ function setup() {
     for (const t of process.env.STILLS.split(',').map(Number)) { const u = await page.evaluate(t => EXPL.frame(t), t); fs.writeFileSync(path.join(process.env.STILLDIR || '.', `still_${t}.jpg`), Buffer.from(u.split(',')[1], 'base64')); }
     console.log(await page.evaluate(() => JSON.stringify(EXPL.scenes)), total); await browser.close(); return;
   }
-  const n = Math.round(total * FPS);
+  // RANGE="t0,t1" renders only this time span (e.g. to patch one scene into an existing video)
+  const [r0, r1] = process.env.RANGE ? process.env.RANGE.split(',').map(Number) : [0, total];
+  const f0 = Math.round(r0 * FPS), n = Math.round(r1 * FPS) - f0;
   console.log(`${n} frames (${(total / 60).toFixed(1)} min) at ${FPS} fps`);
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', String(FPS), '-i', '-',
-    '-c:v', 'libx264', '-crf', '24', '-preset', VORSCHAU ? 'veryfast' : 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', AUS],
+    '-c:v', 'libx264', '-crf', '24', '-preset', VORSCHAU ? 'veryfast' : 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', process.env.RANGE_OUT || AUS],
     { stdio: ['pipe', 'inherit', 'inherit'] });
   const done = new Promise((ok, err) => ff.on('close', c => c === 0 ? ok() : err(new Error('ffmpeg exit ' + c))));
   const write = buf => new Promise(ok => ff.stdin.write(buf) ? ok() : ff.stdin.once('drain', ok));
   const BATCH = 8;
   for (let i = 0; i < n; i += BATCH) {
-    const ts = []; for (let j = i; j < Math.min(n, i + BATCH); j++) ts.push(j / FPS);
+    const ts = []; for (let j = i; j < Math.min(n, i + BATCH); j++) ts.push((f0 + j) / FPS);
     const urls = await page.evaluate(ts => ts.map(t => EXPL.frame(t)), ts);
     for (const u of urls) await write(Buffer.from(u.slice(u.indexOf(',') + 1), 'base64'));
     if (i % (FPS * 30) < BATCH) process.stdout.write(`\r${Math.round(100 * i / n)} %`);
