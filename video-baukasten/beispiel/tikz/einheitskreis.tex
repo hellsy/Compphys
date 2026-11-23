@@ -1,0 +1,12 @@
+\documentclass[tikz]{standalone}
+\begin{document}
+\begin{tikzpicture}[scale=2.2, line width=0.9pt]
+  \draw[->] (-1.3,0) -- (1.4,0) node[right] {$\mathrm{Re}$};
+  \draw[->] (0,-1.3) -- (0,1.4) node[above] {$\mathrm{Im}$};
+  \draw[color={rgb,255:red,76;green,201;blue,240}] (0,0) circle (1);
+  \draw[color={rgb,255:red,255;green,209;blue,102}, line width=1.6pt, ->] (0,0) -- (40:1) node[above right] {$e^{i\varphi}$};
+  \draw[dashed] (40:1) -- ({cos(40)},0) node[below] {$\cos\varphi$};
+  \draw[dashed] (40:1) -- (0,{sin(40)}) node[left] {$\sin\varphi$};
+  \draw (0.35,0) arc (0:40:0.35) node[midway, right] {$\varphi$};
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,26 @@
+{
+ "total": 35.48148148148148,
+ "beats": [
+  {
+   "si": 0,
+   "bi": 0,
+   "start": 0,
+   "dur": 11.851851851851851,
+   "text": "This template shows the building blocks of every video in this style: three-dimensional scenes with real light, reflections and glow."
+  },
+  {
+   "si": 1,
+   "bi": 0,
+   "start": 11.851851851851851,
+   "dur": 9.407407407407408,
+   "text": "Exact diagrams come from TikZ and are drawn step by step, while every formula is typeset with LaTeX."
+  },
+  {
+   "si": 2,
+   "bi": 0,
+   "start": 21.25925925925926,
+   "dur": 10.222222222222221,
+   "text": "Plots, labels and subtitles share the same colours and fonts, so every new video looks like part of one series."
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>video-baukasten engine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>body { margin: 0; background: #060914; } canvas { display: block; }</style>
+</head>
+<body>
+<canvas id="cv" width="1920" height="1080"></canvas>
+<script>
+// Basis-Werkzeuge für alle Lernvideos im Stil „visual journey“.
+// Zeichenfläche: logische Koordinaten 1600 × 900, unabhängig von der Ausgabeauflösung.
+const SW = 1600, SH = 900;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const N = { gold: '#ffd166', cyan: '#4cc9f0', pink: '#f72585', violet: '#9d7bff', green: '#5fe3a1', white: '#eef1ff', dim: '#8d96bd', bg: '#060914' };
+const COL = { text: '#e9ecf8', dim: '#9aa3c7', grid: 'rgba(160,175,230,0.09)', axis: 'rgba(190,200,240,0.5)', panel: 'rgba(14,20,44,0.86)', line: '#2b3561' };
+const F = {
+  disp: (s, w = 600) => `${w} ${s}px Literata, Georgia, serif`,
+  dispI: (s) => `italic 500 ${s}px Literata, Georgia, serif`,
+  sans: (s, w = 500) => `${w} ${s}px "IBM Plex Sans", system-ui, sans-serif`,
+  mono: (s, w = 500) => `${w} ${s}px "IBM Plex Mono", ui-monospace, monospace`,
+};
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+const lerp = (a, b, t) => a + (b - a) * t;
+const loglerp = (a, b, t) => Math.exp(lerp(Math.log(a), Math.log(b), t));
+const de = (v, d = 0) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+function T(s, x, y, font, color, align = 'left') { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); }
+function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
+function noGlow() { ctx.shadowBlur = 0; }
+function card(x, y, w, h, alpha = 1) { ctx.save(); ctx.globalAlpha *= alpha; ctx.fillStyle = COL.panel; ctx.strokeStyle = COL.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x, y, w, h, 14); ctx.fill(); ctx.stroke(); ctx.restore(); }
+function dot(x, y, r, c, halo = true) { if (halo) { ctx.save(); ctx.globalAlpha *= 0.25; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r * 2.4, 0, 7); ctx.fill(); ctx.restore(); } ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+function wrapText(s, x, y, maxW, lh, font, color, align = 'left') {
+  ctx.font = font; const words = s.split(' '); let line = '', yy = y;
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { T(line, x, yy, font, color, align); line = w; yy += lh; } else line = t; }
+  if (line) T(line, x, yy, font, color, align); return yy;
+}
+function plot(x, y, w, h, xa, xb, ya, yb, logx) {
+  const lxa = Math.log(xa), lxb = Math.log(xb);
+  return { x, y, w, h, xa, xb, ya, yb, X: v => x + (logx ? (Math.log(v) - lxa) / (lxb - lxa) : (v - xa) / (xb - xa)) * w, Y: v => y + h - (v - ya) / (yb - ya) * h };
+}
+function ticks(a, b, n) { const raw = (b - a) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag, s = (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag, out = []; for (let v = Math.ceil(a / s) * s; v <= b + s * 1e-9; v += s) out.push(+v.toPrecision(12)); return out; }
+function axes(P, o = {}) {
+  const xt = o.xt || ticks(P.xa, P.xb, 8), yt = o.yt || ticks(P.ya, P.yb, 6);
+  ctx.lineWidth = 1; ctx.strokeStyle = COL.grid; ctx.beginPath();
+  for (const v of xt) { const X = Math.round(P.X(v)) + 0.5; ctx.moveTo(X, P.y); ctx.lineTo(X, P.y + P.h); }
+  for (const v of yt) { const Y = Math.round(P.Y(v)) + 0.5; ctx.moveTo(P.x, Y); ctx.lineTo(P.x + P.w, Y); }
+  ctx.stroke(); ctx.strokeStyle = COL.axis; ctx.beginPath();
+  const y0 = (P.ya <= 0 && P.yb >= 0) ? P.Y(0) : P.y + P.h; ctx.moveTo(P.x, y0); ctx.lineTo(P.x + P.w, y0); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x, P.y + P.h); ctx.stroke();
+  const xf = o.xf || (v => de(v)), yf = o.yf || (v => de(v));
+  for (const v of xt) T(xf(v), P.X(v), P.y + P.h + 28, F.mono(17, 400), COL.dim, 'center');
+  for (const v of yt) T(yf(v), P.x - 12, P.Y(v) + 6, F.mono(17, 400), COL.dim, 'right');
+  if (o.xl) T(o.xl, P.x + P.w, P.y + P.h + 58, F.sans(19, 500), COL.dim, 'right');
+  if (o.yl) T(o.yl, P.x, P.y - 16, F.sans(19, 500), COL.dim);
+}
+function clipTo(P) { ctx.save(); ctx.beginPath(); ctx.rect(P.x, P.y, P.w, P.h); ctx.clip(); }
+function legend(x, y, items) { items.forEach((it, i) => { const yy = y + i * 34; ctx.strokeStyle = it.c; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + 34, yy); ctx.stroke(); T(it.t, x + 46, yy + 7, F.sans(20, 500), COL.text); }); }
+</script>
+</body>
+</html>

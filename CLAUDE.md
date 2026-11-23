@@ -16,3 +16,16 @@
 - Everything shown is computed (state the integrator in the docstring); prefer visual, animated scenes
   over text cards.
 - Commit the script together with the rendered `.mp4`.
+
+---
+
+# Lernvideos im Stil „visual journey“ (Standard für neue Videos)
+
+- Neue Lernvideos mit dem **`video-baukasten/`** bauen (siehe `video-baukasten/README.md`): pro Video nur ein Drehbuch
+  (Szenen + Sprechtext), Ablauf `audio.py voice` → `baukasten.js` → `audio.py mix`.
+- Stil: dunkler Science-Fiction-Look, 1920×1080, 30 fps, 3-D mit echten Lichteffekten (Bloom, Tiefenunschärfe,
+  Spiegelungen, Schatten), Formeln in LaTeX (MathJax), Diagramme in TikZ, alles Gezeigte berechnet.
+- Sprecher: Piper-Stimme `en_US-ryan-high`, Musik leiser unter der Stimme. Musik: Stücke von Kevin MacLeod
+  (incompetech.com, CC BY 4.0), szenengenau geschnitten; Namensnennung im Abspann und in `CREDITS.md`.
+- Vor dem vollständigen Rendern Standbilder prüfen (`STILLS=…`); Video, Drehbuch, Zeitplan und Musikplan committen.
+- Zu jedem Video kann ein Handout entstehen: `video-baukasten/handout/vorlage.tex`.

@@ -35,6 +35,11 @@ Die öffentlichen Seiten laufen aus eigenen Repositories mit GitHub Pages. Die D
 Alle älteren Entwicklungsstände der Riemann-Videos liegen im Branch
 [`archiv/riemann-entwicklung`](../../tree/archiv/riemann-entwicklung).
 
+## Neue Videos erstellen
+
+Vorlage für neue Lernvideos im Stil der Riemann-„visual journey“: [`video-baukasten/`](video-baukasten/)
+(3-D mit Lichteffekten, LaTeX, TikZ, Sprecher, Filmmusik, Handout-Vorlage).
+
 ## Videos neu erzeugen
 
 - Hopf, Kraftmesser, Oszillator, Noether (Python, matplotlib, ffmpeg): im jeweiligen Ordner `python3 <name>_video.py`.
