@@ -642,7 +642,7 @@ function setup() {
     for (let i = 0; i < NV; i++) {
       const d = XV[i] - edge, f = d >= 0.9 ? 1 : d <= 0 ? 0 : ease(d / 0.9), glowF = Math.exp(-d * d * 12) * (edge > XMIN ? 1 : 0);
       mPos.setY(i, H0[i] * f + 0.004);
-      const k = 0.12 + 0.88 * f;
+      const after = d > 0 && edge > XMIN ? 0.35 * Math.exp(-d / 0.9) : 0, k = 0.03 + 0.97 * f + after;
       mCol.setXYZ(i, C0[3 * i] * k + 0.3 * glowF, C0[3 * i + 1] * k + 0.8 * glowF, C0[3 * i + 2] * k + 0.95 * glowF);
     }
     mPos.needsUpdate = true; mCol.needsUpdate = true;
@@ -673,7 +673,7 @@ function setup() {
       pos = V3(-0.3, 2.3, tz(t - 6)); tgt = V3(1.3, 0.6, tz(t + 4));
     } else if (st.beat === 1) {              // rise and watch the front sweep to the left
       const e = ease(since1 / 6);
-      pos = lerpV(V3(-0.3, 2.3, tz(3)), V3(4.5, 7.5, tz(-7)), e); tgt = lerpV(V3(1.3, 0.6, tz(13)), V3(-1.2, 0.3, tz(6)), e);
+      pos = lerpV(V3(-0.3, 2.3, tz(3)), V3(6.5, 11, tz(-11)), e); tgt = lerpV(V3(1.3, 0.6, tz(13)), V3(-1.2, 0.3, tz(5)), e);
     } else {                                 // orbit the pole
       const a = lerp(0.6, -0.9, ease(st.since / 10));
       pos = V3(1 + 5.2 * Math.sin(a), 3.4, tz(0) + 5.2 * Math.cos(a)); tgt = V3(0.6, 1.2, tz(0.5));
@@ -727,7 +727,7 @@ function setup() {
     else if (st.beat === 2) { const e = ease(st.since / 5); pos = lerpV(front, side, e); tgt = lerpV(V3(0, 3.6, 0), V3(0, 1.6, -6), e); }
     else { const e = ease(st.since / 6); pos = lerpV(side, front, e); tgt = lerpV(V3(0, 1.6, -6), V3(0, 3.6, 0), e); }
     shot(WAV, pos, tgt, 44);
-    formula([['t', 'ψ(x)  =  x  −'], ['op', '∑', '', 'ρ'], ['f', 'x^ρ', 'ρ'], ['t', '−  ln 2π  −  ½ ln(1 − 1/x²)']], 800, 150, 34, N.white);
+    formula([['t', 'ψ(x)  =  x  −'], ['op', '∑', '', 'ρ'], ['f', 'x^ρ', 'ρ'], ['t', '−  ln 2π  −  ½ ln(1 − 1/x²)']], 800, 150, 46, N.white);
     card(ctx, 60, 250, 300, 66); T(Nz + (Nz === 1 ? ' zero' : ' zeros'), 85, 295, F.mono(30), N.gold);
     if (st.beat === 2 && Nz > 0) T('each zero adds one wave', 1500, 300, F.sans(24, 600), N.gold, 'right');
     [10, 20, 30, 40].forEach(x => { const [px, py, pz] = proj(V3(WX(x), 0, 0.3)); if (pz < 1) T(String(x), px, py + 28, F.mono(18), N.dim, 'center'); });
@@ -754,6 +754,175 @@ function setup() {
       shot(MTN, V3(0.5 + 2.5 * Math.sin(ang), 6.5, tz(19.5)), V3(0.5, 0, tz(24.5)), 46);
       if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z >= 1) return; const lab = i ? 'mirror twin' : 'a zero off the line?', lx = x + (i ? -110 : 110), ly = y + (i ? 70 : -70); ctx.font = F.sans(24, 600); const w = ctx.measureText(lab).width; ctx.strokeStyle = 'rgba(247,37,133,0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + (i ? -22 : 22), y + (i ? 14 : -14)); ctx.lineTo(lx, ly - 8); ctx.stroke(); ctx.fillStyle = 'rgba(6,9,20,0.85)'; ctx.beginPath(); ctx.roundRect(i ? lx - w - 14 : lx - 4, ly - 30, w + 18, 42, 8); ctx.fill(); T(lab, i ? lx - 5 : lx + 5, ly, F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
       ctx.globalAlpha = a; card(ctx, 60, 120, 600, 120); T('one zero off the line', 90, 172, F.sans(28, 600), N.pink); T('(they would come in mirror pairs) would break it', 90, 212, F.sans(21, 400), N.dim); ctx.globalAlpha = 1;
+    }
+  };
+
+  // ================================================================ revision 3: sums as bars + gauge, bigger key formulas
+  S[3].beats[0] = 'To go further we need infinite sums. One, plus one half, plus one quarter, and so on: each new piece fills half of the remaining gap, and the total converges to exactly two.';
+  function gauge(x, y, h, vmax, value, target, tLabel, col) {   // vertical column that fills with the running sum
+    ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.beginPath(); ctx.roundRect(x, y, 90, h, 10); ctx.fill();
+    const v = Math.min(value, vmax), hh = h * v / vmax;
+    const g = ctx.createLinearGradient(0, y + h, 0, y); g.addColorStop(0, col); g.addColorStop(1, '#ffffff');
+    glow(col, 22); ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x, y + h - hh, 90, hh, 10); ctx.fill(); noGlow();
+    for (let k = 0; k <= vmax + 1e-9; k += vmax > 5 ? 2 : 0.5) { const yy = y + h - h * k / vmax; ctx.fillStyle = 'rgba(160,175,230,0.4)'; ctx.fillRect(x - 12, yy, 8, 2); T(de(k, vmax > 5 ? 0 : 1), x - 18, yy + 7, F.mono(18), N.dim, 'right'); }
+    if (target !== null) { const yy = y + h - h * target / vmax; glow(N.gold, 12); ctx.fillStyle = N.gold; ctx.fillRect(x - 6, yy - 1.5, 102, 3); noGlow(); T(tLabel, x + 106, yy + 8, F.mono(22), N.gold); }
+    T('sum = ' + de(value, value > 9.99 ? 2 : 4), x + 45, y + h + 44, F.mono(24, 600), N.white, 'center');
+    if (value > vmax) { T('▲ keeps growing', x + 45, y - 16, F.sans(22, 600), N.pink, 'center'); }
+  }
+  function termBars(x0, y0, W, H, terms, maxTerm, colorOf, squares) {
+    const n = terms.length, bw = Math.min(70, W / Math.max(n, 8));
+    let x = x0;
+    terms.forEach((v, i) => {
+      const c = colorOf(i);
+      if (squares) { const side = H * Math.sqrt(v / maxTerm); if (x + side > x0 + W) return; glow(c, 10); ctx.fillStyle = c; ctx.globalAlpha *= 0.9; ctx.fillRect(x, y0 + H - side, Math.max(side - 2, 0.6), side); ctx.globalAlpha /= 0.9; noGlow(); x += side; }
+      else { const h = H * v / maxTerm; glow(c, 10); ctx.fillStyle = c; ctx.fillRect(x + 1, y0 + H - h, Math.max(bw - 3, 0.6), h); noGlow(); if (bw > 40 && i < 8) T(i === 0 ? '1' : '1/' + (squares ? (i + 1) * (i + 1) : Math.round(1 / v)), x + bw / 2, y0 + H + 30, F.disp(22), N.dim, 'center'); x += bw; }
+    });
+    ctx.strokeStyle = 'rgba(160,175,230,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0 + H + 1); ctx.lineTo(x0 + W, y0 + H + 1); ctx.stroke();
+  }
+  S[3].draw = st => {
+    const BX = 120, BY = 300, BW = 1080, BH = 380, GX = 1340;
+    if (st.beat === 0) {
+      formula([['t', '1  +'], ['f', '1', '2'], ['t', '+'], ['f', '1', '4'], ['t', '+'], ['f', '1', '8'], ['t', '+  …  =  2']], 800, 170, 56, N.white);
+      const k = Math.min(14, Math.floor(st.since * 1.3) + 1), terms = []; let s = 0; for (let i = 0; i < k; i++) { terms.push(Math.pow(0.5, i)); s += Math.pow(0.5, i); }
+      termBars(BX, BY, BW, BH, terms, 1, i => i % 2 ? N.violet : N.cyan, false);
+      gauge(GX, BY, BH, 2.2, s, 2, 'limit 2', N.cyan);
+    } else if (st.beat === 1) {
+      formula([['t', '1  +'], ['f', '1', '2'], ['t', '+'], ['f', '1', '3'], ['t', '+'], ['f', '1', '4'], ['t', '+  …  =  ∞']], 800, 170, 56, N.white);
+      const n = Math.min(12367, Math.floor(Math.exp(st.since * 0.95))), terms = []; let H = 0;
+      for (let i = 1; i <= n; i++) { H += 1 / i; if (i <= 60) terms.push(1 / i); }
+      termBars(BX, BY, BW, BH, terms, 1, i => `hsl(${190 + i * 5},80%,62%)`, false);
+      if (n > 60) T('… and ' + de(n - 60) + ' more', BX + BW, BY - 14, F.mono(22), N.dim, 'right');
+      gauge(GX, BY, BH, 10, H, null, '', N.pink);
+      if (H >= 10) T('10 passed after 12,367 terms', GX + 45, BY + BH + 84, F.sans(22, 600), N.gold, 'center');
+    } else {
+      formula([['t', '1  +'], ['f', '1', '4'], ['t', '+'], ['f', '1', '9'], ['t', '+'], ['f', '1', '16'], ['t', '+  …  ='], ['f', 'π²', '6']], 800, 170, 56, N.white);
+      const k = Math.min(40, Math.floor(st.since * 4) + 1), terms = []; let s = 0; for (let i = 1; i <= k; i++) { terms.push(1 / (i * i)); s += 1 / (i * i); }
+      termBars(BX, BY, BW, BH, terms, 1, i => pcol(PRIMES[i % 10]), true);
+      T('each square: side 1/n, area 1/n²', BX, BY + BH + 40, F.sans(22, 500), N.dim);
+      gauge(GX, BY, BH, 1.8, s, Math.PI * Math.PI / 6, 'π²/6', N.gold);
+    }
+  };
+
+  // scene 04: one line, the sum right next to its terms; evaluated sums at the dots
+  const prev4 = S[4].draw;
+  S[4].draw = st => {
+    if (st.beat !== 0) return prev4(st);
+    formula([['t', 'ζ(s)  ='], ['op', '∑', '∞', 'n = 1'], ['f', '1', 'n^s'], ['t', '='], ['t', '1  +'], ['f', '1', '2^s'], ['t', '+'], ['f', '1', '3^s'], ['t', '+'], ['f', '1', '4^s'], ['t', '+  …']], 800, 170, 50, N.white, 1 + st.since * 3);
+    const P = plot(260, 300, 1080, 400, 0, 6, 0, 6);
+    axes(ctx, P, { xt: [0, 1, 2, 3, 4, 5, 6], yt: [0, 2, 4, 6], xl: 's' });
+    ctx.strokeStyle = 'rgba(247,37,133,0.6)'; ctx.setLineDash([8, 8]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(P.X(1), P.y); ctx.lineTo(P.X(1), P.y + P.h); ctx.stroke(); ctx.setLineDash([]);
+    clipTo(ctx, P); glow(N.cyan, 14); ctx.strokeStyle = N.cyan; ctx.lineWidth = 4; ctx.beginPath();
+    const end = lerp(1.17, 6, clamp((st.since - 3) / 6, 0, 1)); let f = true; for (let s = 1.17; s <= end; s += 0.02) { const y = M.zeta([s, 0])[0]; f ? ctx.moveTo(P.X(s), P.Y(y)) : ctx.lineTo(P.X(s), P.Y(y)); f = false; } ctx.stroke(); noGlow(); ctx.restore();
+    [[2, '2', 'π²/6'], [4, '4', 'π⁴/90']].forEach(([s, e, v]) => {
+      if (end < s) return; const y = M.zeta([s, 0])[0]; dot(ctx, P.X(s), P.Y(y), 8, N.gold, true);
+      const x0 = P.X(s) + 18, y0 = P.Y(y) - 70; ctx.fillStyle = 'rgba(6,9,20,0.85)'; ctx.beginPath(); ctx.roundRect(x0 - 8, y0 - 46, 330, 80, 10); ctx.fill();
+      formula([['t', 'ζ(' + e + ') ='], ['op', '∑', '', ''], ['f', '1', 'n^' + e], ['t', '=  ' + v]], x0 + 155, y0 - 8, 26, N.gold);
+    });
+    T('diverges for s ≤ 1', P.X(1) - 14, P.y + 40, F.sans(22, 600), N.pink, 'right');
+  };
+
+  // scene 08: bigger formula
+  // (the formula call inside S[8].draw is enlarged by the build step below)
+
+  // ================================================================ 3-D: multiplying by i is a quarter turn
+  const CPX = new THREE.Scene(); CPX.fog = new THREE.Fog(0x060914, 14, 30); addLights(CPX);
+  const U2 = 2.2;
+  const cGrid = new THREE.GridHelper(12, 24, 0x2a3670, 0x161e44); CPX.add(cGrid);
+  const mkBar = (w, d, col) => new THREE.Mesh(new THREE.BoxGeometry(w, 0.03, d), new THREE.MeshBasicMaterial({ color: col }));
+  const axR = mkBar(12, 0.03, 0x8d96bd), axI = mkBar(0.03, 12, 0x8d96bd); CPX.add(axR, axI);
+  const circ = new THREE.Mesh(new THREE.TorusGeometry(U2, 0.022, 8, 120), new THREE.MeshBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.6 })); circ.rotation.x = Math.PI / 2; CPX.add(circ);
+  const cpPt = (re, im) => V3(re * U2, 0.02, -im * U2);
+  const marks = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([a, b]) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff })); m.position.copy(cpPt(a, b)); CPX.add(m); return m; });
+  const arrowG = new THREE.Group(); CPX.add(arrowG);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, U2 - 0.35, 16), new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xb07800, emissiveIntensity: 0.8 }));
+  shaft.rotation.z = -Math.PI / 2; shaft.position.x = (U2 - 0.35) / 2; arrowG.add(shaft);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.4, 20), new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xb07800, emissiveIntensity: 0.9 }));
+  head.rotation.z = -Math.PI / 2; head.position.x = U2 - 0.2; arrowG.add(head);
+  const aGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, U2, 16), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
+  aGlow.rotation.z = -Math.PI / 2; aGlow.position.x = U2 / 2; arrowG.add(aGlow);
+  arrowG.position.y = 0.12;
+  let arcMesh = null; const arcMat = new THREE.MeshBasicMaterial({ color: 0xf72585, transparent: true, opacity: 0.85 });
+  function setArc(a0, a1) {
+    if (arcMesh) { CPX.remove(arcMesh); arcMesh.geometry.dispose(); arcMesh = null; }
+    if (a1 - a0 < 0.02) return;
+    const pts = []; for (let k = 0; k <= 40; k++) { const a = a0 + (a1 - a0) * k / 40; pts.push(V3(Math.cos(a) * U2 * 0.55, 0.14, -Math.sin(a) * U2 * 0.55)); }
+    arcMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.04, 6, false), arcMat); CPX.add(arcMesh);
+  }
+  function drawComplex(st) {
+    // 0–2 s: arrow at 1; 2–4.5: × i to i; 6–8.5: × i to −1; then a slow full turn
+    const t = st.since, q = x => ease(clamp(x, 0, 1));
+    const ang = Math.PI / 2 * (q((t - 2) / 2.5) + q((t - 6) / 2.5) + q((t - 11) / 2) + q((t - 13.5) / 2));
+    arrowG.rotation.y = ang;
+    const seg = t < 6 ? [0, Math.min(ang, Math.PI / 2)] : t < 11 ? [Math.PI / 2, ang] : [Math.PI, Math.max(Math.PI, ang)];
+    setArc(seg[0], seg[1]);
+    const a = 0.5 + t * 0.03; shot(CPX, V3(Math.sin(a) * 6.2, 6.4, Math.cos(a) * 6.2 + 1.2), V3(0, 0, -0.3), 44);
+    [['1', 1, 0], ['i', 0, 1], ['−1', -1, 0], ['−i', 0, -1]].forEach(([l, r, i]) => { const [x, y, z] = proj(cpPt(r * 1.22, i * 1.22)); if (z < 1) { glow(N.white, 10); T(l, x, y + 12, F.disp(40), N.white, 'center'); noGlow(); } });
+    const [rx, ry] = proj(V3(5.6, 0, 0)), [ix, iy] = proj(V3(0, 0, -5.6));
+    T('real', rx, ry + 30, F.mono(20), N.dim, 'center'); T('imaginary', ix + 14, iy, F.mono(20), N.dim);
+    // the key statement, large and on top
+    if (t < 6) { formula([['t', '1  ·  i  =  i']], 800, 140, 60, N.white, clamp((t - 2) / 1, 0, 1)); T('multiplying by i = turning by 90°', 800, 230, F.sans(28, 500), N.pink, 'center'); }
+    else if (t < 11) { formula([['t', 'i  ·  i  =  −1']], 800, 140, 64, N.gold); T('two quarter turns = a half turn', 800, 232, F.sans(28, 500), N.pink, 'center'); }
+    else { formula([['t', 'i² = −1      i⁴ = 1']], 800, 140, 56, N.gold); T('four quarter turns bring you home', 800, 230, F.sans(28, 500), N.pink, 'center'); }
+  }
+  const prev5 = old5;
+  S[5].draw = st => {
+    if (st.beat === 1) return drawComplex(st);
+    prev5(st);
+    if (st.beat >= 2) { const conv = st.beat === 2; ctx.fillStyle = 'rgba(6,9,20,0.75)'; ctx.beginPath(); ctx.roundRect(520, 92, 560, 150, 14); ctx.fill(); formula([['t', conv ? 'ζ(2 + 3i)  ≈' : 'partial sums'], ['op', '∑', 'N', 'n = 1'], ['f', '1', conv ? 'n^2 + 3i' : 'n^0.3 + 7i']], 800, 165, 44, conv ? N.cyan : N.pink); }
+  };
+
+  // ================================================================ 3-D: dive into the pole – a wormhole
+  S[6].beats.push('Dive in, and the values grow beyond every bound: near s equal to one, zeta behaves like one over s minus one. The pole is not a place you can reach, only a road to infinity.');
+  const TUN = new THREE.Scene(); TUN.fog = new THREE.Fog(0x000000, 6, 60);
+  const tunCan = document.createElement('canvas'); const tx0 = Math.round(4.5 * DOM.PX); tunCan.width = DOM.W - tx0; tunCan.height = Math.round(44 * DOM.PX); tunCan.getContext('2d').drawImage(domCanvas, tx0, 0, tunCan.width, tunCan.height, 0, 0, tunCan.width, tunCan.height);
+  const tunTex = new THREE.CanvasTexture(tunCan); tunTex.wrapS = tunTex.wrapT = THREE.RepeatWrapping; tunTex.repeat.set(2, 6);
+  const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 140, 48, 1, true), new THREE.MeshBasicMaterial({ map: tunTex, side: THREE.BackSide }));
+  tunnel.rotation.x = Math.PI / 2; tunnel.position.z = -60; TUN.add(tunnel);
+  const NS2 = 700, sPos = new Float32Array(NS2 * 6), sSeed = [];
+  for (let i = 0; i < NS2; i++) sSeed.push([rnd() * 6.283, 0.4 + rnd() * 2.4, rnd() * 120, 0.5 + rnd()]);
+  const sGeo = new THREE.BufferGeometry(); sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  const streaks = new THREE.LineSegments(sGeo, new THREE.LineBasicMaterial({ color: 0xbff1ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })); TUN.add(streaks);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })); core.position.z = -110; TUN.add(core);
+  function drawTunnel(t) {
+    const speed = 18 + t * t * 6, travel = 8 * t + t * t * t;
+    tunTex.offset.set(t * 0.08, -travel * 0.02); tunTex.needsUpdate = true; tunnel.rotation.y = t * 0.5;
+    for (let i = 0; i < NS2; i++) {
+      const [a, r, z0, sp] = sSeed[i]; const z = -((z0 - travel * sp * 1.6) % 120 + 120) % 120; const len = 0.6 + speed * 0.06;
+      const aa = a + t * 0.5, x = Math.cos(aa) * r, y = Math.sin(aa) * r;
+      sPos.set([x, y, z, x, y, z - len], i * 6);
+    }
+    sGeo.attributes.position.needsUpdate = true;
+    cam.fov = 70 + t * 6; cam.updateProjectionMatrix(); cam.position.set(Math.sin(t * 0.7) * 0.3, Math.cos(t * 0.6) * 0.3, 0); cam.lookAt(0, 0, -50);
+    R3.render(TUN, cam); ctx.drawImage(GL, 0, 0, SW, SH);
+    const vg = ctx.createRadialGradient(SW / 2, SH / 2, 120, SW / 2, SH / 2, SW * 0.7); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.75)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, SW, SH);
+  }
+  const prev6 = S[6].draw;
+  S[6].draw = st => {
+    if (st.beat < 2) return prev6(st);
+    mtnExtras(6); growFrom(XMIN - 1); front.visible = frontGlow.visible = false;
+    const tip = V3(1, 3.0, tz(0));
+    if (st.beat === 2) {                    // fly past the peak, then climb above it
+      poleRing.visible = true; poleRing.scale.setScalar(1 + 0.25 * Math.sin(st.since * 5));
+      const e = ease(st.since / 7.5), a = lerp(0.9, -1.4, e);
+      const pos = V3(1 + lerp(6, 2.2, e) * Math.sin(a), lerp(2.4, 7.5, ease((st.since - 2) / 5.5)), tz(0) + lerp(6, 2.2, e) * Math.cos(a));
+      shot(MTN, pos, lerpV(V3(0.8, 1.4, tz(0.5)), tip, e), 50);
+      card(ctx, 60, 110, 560, 120); T('pole at s = 1', 90, 162, F.sans(26, 600), N.white); T('ζ(s) → ∞', 90, 206, F.disp(32), N.pink);
+      const [x, y, z] = proj(V3(1, 3.2, tz(0))); if (z < 1) { glow(N.white, 20); T('s = 1', x + 30, y - 10, F.sans(26, 600), N.white); noGlow(); }
+      return;
+    }
+    const t = st.since, DIVE = 2.6;
+    if (t < DIVE) {                          // nose-dive straight into the tip
+      poleRing.visible = true; const e = ease(t / DIVE) ;
+      const a = -1.4 + e * 1.2, r = 2.2 * (1 - e);
+      const pos = V3(1 + r * Math.sin(a), lerp(7.5, 3.05, e * e), tz(0) + r * Math.cos(a));
+      shot(MTN, pos, V3(1, lerp(3.0, -2, e), tz(0)), lerp(50, 95, e * e));
+      ctx.globalAlpha = clamp((t - DIVE + 0.5) / 0.5, 0, 1); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1;
+    } else {
+      const tt = t - DIVE; drawTunnel(tt);
+      ctx.globalAlpha = 1 - clamp(tt / 0.6, 0, 1); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1;
+      ctx.globalAlpha = clamp((tt - 1) / 1, 0, 1);
+      glow(N.white, 26); formula([['t', 'ζ(s)  ≈'], ['f', '1', 's − 1'], ['t', '→  ∞']], 800, 200, 66, N.white); noGlow();
+      ctx.globalAlpha = 1;
     }
   };
 
