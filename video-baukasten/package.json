@@ -1,9 +1,0 @@
-{
-  "name": "video-baukasten",
-  "private": true,
-  "description": "Vorlage für Lernvideos im Stil 'visual journey': three.js mit echten Lichteffekten, LaTeX (MathJax), TikZ",
-  "devDependencies": {
-    "mathjax": "3.2.2",
-    "three": "0.149.0"
-  }
-}
