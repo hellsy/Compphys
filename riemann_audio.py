@@ -330,16 +330,100 @@ def musik(zeitplan):
     return L / peak, R / peak
 
 
-def lade_score():
-    """KI-Filmmusik aus riemann_musicgen.py (falls vorhanden) auf 22050 Hz Stereo bringen"""
-    score = os.path.join(CACHE, "score.wav")
-    if not os.path.exists(score): return None
-    ziel = os.path.join(CACHE, "score_22k.wav")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", score, "-ar", str(SR), "-ac", "2",
-                    "-af", "aecho=0.8:0.5:13|19:0.25|0.2", ziel], check=True)   # leichte Raumbreite
-    with wave.open(ziel) as w:
-        x = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32).reshape(-1, 2) / 32768
-    return x[:, 0].copy(), x[:, 1].copy()
+# ------------------------------------------------------------------ Filmmusik aus echten Stücken (Kevin MacLeod, CC BY 4.0)
+TRACK_URL = "https://incompetech.com/music/royalty-free/mp3-royaltyfree/"
+TRACKS = os.path.join(CACHE, "tracks")
+CREDIT = ("Music: Kevin MacLeod (incompetech.com) – Echoes of Time v2, Floating Cities, Interloper, "
+          "Volatile Reaction, Lost Frontier, Long Note Two, Heroic Age – licensed under CC BY 4.0")
+
+
+def track(name):
+    os.makedirs(TRACKS, exist_ok=True)
+    mp3 = os.path.join(TRACKS, name + ".mp3")
+    if not os.path.exists(mp3):
+        urllib.request.urlretrieve(TRACK_URL + name.replace(" ", "%20") + ".mp3", mp3)
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", mp3, "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"],
+                         capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.float32).reshape(-1, 2).copy()
+
+
+def einsatz(x, ziel_s, um_s=0.6):
+    """starken Einsatz (Onset) in der Nähe von ziel_s finden, damit ein Schnitt auf dem Schlag liegt"""
+    m = np.abs(x[:, 0]) + np.abs(x[:, 1]); hop = 256
+    a = max(0, int((ziel_s - um_s) * SR)); b = min(len(m) - hop, int((ziel_s + um_s) * SR))
+    e = np.array([m[i:i + hop].sum() for i in range(a, b, hop)])
+    if len(e) < 3: return ziel_s
+    return (a + hop * (int(np.argmax(np.diff(e))) + 1)) / SR
+
+
+def db_rms(x):
+    return 20 * np.log10(np.sqrt(np.mean(x ** 2)) + 1e-9)
+
+
+def lade_score(zp=None):
+    """Szenen-genau geschnittene Filmmusik aus sieben Stücken, mit Überblendungen und Lautstärkedramaturgie"""
+    zp = zp or json.load(open(ZEITPLAN)); beats = zp["beats"]; total = zp["total"]
+    def start(si, bi=0):
+        for b in beats:
+            if b["si"] == si and b["bi"] == bi: return b["start"]
+    t_dive = start(6, 3); t_flash = t_dive + 2.6
+    # (Stück, Versatz im Stück [s], von, bis, Ziel-Lautstärke dB, Einblendung s, Ausblendung s)
+    plan = [
+        ("Echoes of Time v2", 0.0, 0.0, start(3), -21, 0.5, 2.0),
+        ("Floating Cities", 2.0, start(3) - 1.0, start(6) + 1.0, -22, 2.0, 2.0),
+        ("Interloper", 0.0, start(6) - 1.0, t_dive + 0.4, -20, 2.0, 0.4),
+        ("Volatile Reaction", None, t_dive, start(7) + 1.0, -14, 0.05, 1.8),
+        ("Lost Frontier", 0.0, start(7) - 0.5, start(8) + 1.0, -23, 2.5, 2.0),
+        ("Long Note Two", 95.0, start(8) - 1.0, start(9) + 1.0, -27, 2.0, 2.0),
+        ("Heroic Age", None, start(9) - 1.0, total, -18, 2.0, 2.5),
+    ]
+    n = int((total + 1) * SR); out = np.zeros((n, 2), np.float32)
+    for name, off, a, e, ziel, ein, aus in plan:
+        x = track(name)
+        if name == "Volatile Reaction":                  # ein starker Schlag des Stücks fällt genau auf den Blitz
+            off = einsatz(x, 40.0, 2.0) - (t_flash - t_dive)
+        if name == "Heroic Age":                         # das Ende des Stücks fällt auf das Ende des Videos
+            off = max(0.0, len(x) / SR - (e - a) - 0.3)
+        seg = x[int(off * SR): int(off * SR) + int((e - a) * SR)]
+        seg = seg * 10 ** ((ziel - db_rms(seg)) / 20)
+        k = len(seg); env = huelle(k, int(ein * SR), int(aus * SR))
+        if name == "Interloper":                         # Crescendo bis zum Sturzflug
+            env = env * np.linspace(0.55, 1.25, k, dtype=np.float32)
+        seg = seg * env[:, None]
+        i = int(a * SR); j = min(n, i + k); out[i:j] += seg[: j - i]
+    return out[:, 0].copy(), out[:, 1].copy()
+
+
+def nullstellen_toene(zp, n):
+    """Musik der Primzahlen: jede Nullstelle als Ton (Tonhöhe ~ t, Lautstärke ~ 1/t, wie ihr Gewicht in ψ(x));
+    die Töne setzen genau ein, wenn im Bild die entsprechende Welle hinzukommt"""
+    beats = zp["beats"]
+    b2 = next(b for b in beats if b["si"] == 8 and b["bi"] == 2); b3 = next(b for b in beats if b["si"] == 8 and b["bi"] == 3)
+    ende = b3["start"] + b3["dur"]
+    zeros = json.load(open(os.path.join(CACHE, "zeros138.json"))) if os.path.exists(os.path.join(CACHE, "zeros138.json")) else None
+    if zeros is None:
+        import mpmath
+        zeros = [float(mpmath.zetazero(k).imag) for k in range(1, 139)]
+    seq = [1, 2, 3, 5, 10, 20, 40]
+    einsatz_t = [None] * len(zeros)
+    for k in range(len(zeros)):
+        for q, cnt in enumerate(seq):                   # gleiche Abfolge wie im Bild (alle 1.9 s)
+            if k < cnt: einsatz_t[k] = b2["start"] + q * 1.9; break
+        if einsatz_t[k] is None:                         # danach bis 138 über 6 s, wie im Bild mit smoothstep
+            s_ = min(max((k + 1 - 40) / (len(zeros) - 40), 0.0), 1.0)
+            u = 0.5 - np.sin(np.arcsin(1 - 2 * s_) / 3)    # Umkehrung von u²(3 − 2u)
+            einsatz_t[k] = b3["start"] + 6 * float(u)
+    L = np.zeros(n, np.float32); R = np.zeros(n, np.float32)
+    for k, (g, t0) in enumerate(zip(zeros, einsatz_t)):
+        d = ende - t0 + 1.5
+        if d <= 0: continue
+        m = int(d * SR); t = np.arange(m) / SR; f = 110.0 * g / zeros[0]
+        ton = (np.sin(2 * np.pi * f * t) + 0.18 * np.sin(4 * np.pi * f * t)) * (zeros[0] / g)
+        ton = (ton * huelle(m, int(0.25 * SR), int(1.8 * SR))).astype(np.float32)
+        pan = 0.5 + 0.3 * np.sin(k * 2.399)
+        addiere(L, t0, ton * (1 - pan)); addiere(R, t0, ton * pan)
+    p = max(np.abs(L).max(), np.abs(R).max()) + 1e-9
+    return L / p, R / p
 
 
 def effekte(zp, n):
@@ -367,16 +451,11 @@ STIMME_PEGEL, MUSIK_PEGEL, DUCK = 0.55, 0.8, 0.4
 
 def schritt_mix():
     zp = json.load(open(ZEITPLAN)); beats = zp["beats"]
-    sc = lade_score()
-    if sc is not None:
-        print("Musik: KI-Filmmusik aus audio_cache/score.wav")
-        L, R = sc; n = int((zp["total"] + 1) * SR)
-        L = np.pad(L, (0, max(0, n - len(L))))[:n]; R = np.pad(R, (0, max(0, n - len(R))))[:n]
-        fl, fr = effekte(zp, n); L = L + 0.5 * fl; R = R + 0.5 * fr
-        p = max(np.abs(L).max(), np.abs(R).max()); L /= p; R /= p
-    else:
-        print("Musik: Synthese")
-        L, R = musik(zp); n = len(L)
+    print("Musik: Kevin MacLeod, szenengenau geschnitten, + Nullstellen-Töne + Effekte")
+    L, R = lade_score(zp); n = len(L)
+    fl, fr = effekte(zp, n); L = L + 0.25 * fl; R = R + 0.25 * fr
+    tl, tr = nullstellen_toene(zp, n); L = L + 0.09 * tl; R = R + 0.09 * tr
+    p = max(np.abs(L).max(), np.abs(R).max()); L /= p; R /= p
     stimme = np.zeros(n, np.float32)
     for i, b in enumerate(beats):
         v = lies_wav(os.path.join(CACHE, f"voice_{i:02d}.wav"))
@@ -386,9 +465,22 @@ def schritt_mix():
     links = stimme + L * duck * MUSIK_PEGEL; rechts = stimme + R * duck * MUSIK_PEGEL
     links = np.tanh(links * 1.1) / np.tanh(1.1); rechts = np.tanh(rechts * 1.1) / np.tanh(1.1)
     wav = os.path.join(CACHE, "mix.wav"); schreib_wav(wav, np.stack([links, rechts], 1))
+    # Bild-Master ohne Ton und ohne Einblendung sichern (nach jedem neuen Rendern löschen!)
+    master = os.path.join(CACHE, "video_master.mp4")
+    if not os.path.exists(master) or os.path.getmtime(master) < os.path.getmtime(ZEITPLAN):
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", VIDEO, "-map", "0:v", "-c:v", "copy", master], check=True)
+    # Namensnennung (CC BY 4.0) in den letzten Sekunden einblenden
+    t_end = zp["total"] - 4.2
+    font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    zeilen = ["Music: Kevin MacLeod (incompetech.com), licensed under CC BY 4.0",
+              "Echoes of Time v2 · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age",
+              "Voice: Piper TTS (en_US-ryan-high)"]
+    filt = ",".join(f"drawtext=fontfile={font}:text='{z.replace(':', chr(92) + ':')}':fontcolor=0xB8C0E0:fontsize={18 if i else 20}:x=(w-text_w)/2:y=h-{120 - 30 * i}:enable='gte(t,{t_end:.2f})':alpha='min(1,(t-{t_end:.2f})/0.8)'"
+                    for i, z in enumerate(zeilen))
     tmp = VIDEO.replace(".mp4", "_tmp.mp4")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", VIDEO, "-i", wav, "-map", "0:v", "-map", "1:a",
-                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest", "-movflags", "+faststart", tmp], check=True)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", master, "-i", wav, "-map", "0:v", "-map", "1:a", "-vf", filt,
+                    "-c:v", "libx264", "-crf", "24", "-preset", "medium", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest", "-movflags", "+faststart", tmp], check=True)
     os.replace(tmp, VIDEO)
     print("fertig:", VIDEO)
 
