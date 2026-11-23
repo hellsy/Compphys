@@ -27,3 +27,6 @@
   Regler und Parameter zum Ausprobieren, Kapitel passend zum Video, kurzes Quiz. Vorbild:
   `riemann/interaktiv/riemann_lernvideo_en.html` in `hellsy/Compphys`. Ablage im Themenordner unter `interaktiv/`,
   Sprache Englisch, ohne Nachfrage mit dem Video committen.
+- Jedes neue Video und jede Lernsimulation auf der Webseite eintragen: Eintrag in `website/themen.json`
+  (Thema, Videos, `interaktiv`), dann `python3 website/build.py` (schreibt `index.html` und `themen/*.html`) und mitcommitten.
+  Die Seite läuft über GitHub Pages aus `main`.

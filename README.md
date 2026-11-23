@@ -1,5 +1,7 @@
 # Compphys – Lernvideos
 
+Webseite mit allen Videos und Lernumgebungen: https://hellsy.github.io/Compphys/ (erzeugt mit `python3 website/build.py` aus `website/themen.json`).
+
 Jedes Thema hat einen eigenen Ordner mit dem fertigen Video und dem Skript, das es erzeugt.
 
 | Thema | Ordner | Videos |
