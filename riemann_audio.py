@@ -7,8 +7,8 @@ Schritt 1:  python3 riemann_audio.py voice
             jede Szene so weit, dass der gesprochene Satz hineinpasst.
 Schritt 2:  node riemann_explained_3d_video.js        (Video mit neuen Szenenlängen + Zeitplan)
 Schritt 3:  python3 riemann_audio.py mix
-            Erzeugt eine eigene Science-Fiction-Musik (FM-Glocken, Chorflächen, pulsierender Bass,
-            digitaler Regen, Einschläge zu jedem Kapitel, Beat, Shepard-Ton und Tunnel-Beat beim Sturzflug), legt die Sprecherstimme darüber, senkt die Musik unter der Stimme ab
+            Erzeugt eine eigene futuristische Drum-and-Bass-Musik (Breakbeat um 172 BPM, Reese-Bass,
+            Synth-Flächen, Laser-Sweeps, Einschläge zu jedem Kapitel, Shepard-Ton und voller DnB im Tunnel), legt die Sprecherstimme darüber, senkt die Musik unter der Stimme ab
             und schreibt die Tonspur in riemann_explained_3d.mp4.
 
 Benötigt: numpy, piper-tts, Node.js + Playwright (für Schritt 1), ffmpeg
@@ -167,30 +167,6 @@ AKK = {
     "Dadd9": [38, 50, 57, 62, 66, 69, 76],
 }
 FOLGEN = [["Dm", "Bb", "Gm", "A"], ["Dm", "F", "C", "Bb"], ["Dm", "Bb", "F", "A"]]
-PENTA = [62, 65, 67, 69, 72, 74, 77, 79, 81, 84, 86]          # d-Moll-Pentatonik für den „digitalen Regen“
-# je Szene: Folge, Bass-Puls (Noten pro Schlag), Glocken, Regen, Beat (0 aus, 1 halb, 2 voll), Helligkeit
-PLAN = {0: (0, 0, 1, 1, 0, 0.8), 1: (1, 1, 1, 0, 0, 0.9), 2: (0, 2, 1, 1, 0, 1.0), 3: (1, 2, 1, 0, 0, 1.0),
-        4: (2, 2, 1, 1, 1, 1.0), 5: (0, 2, 1, 1, 1, 1.0), 6: (2, 4, 1, 1, 2, 1.1), 7: (0, 2, 1, 1, 1, 1.15),
-        8: (1, 4, 1, 1, 2, 1.2), 9: (2, 4, 1, 1, 2, 1.0)}
-BPM = 100.0
-
-
-def glocke(m, dauer=2.5, index=3.0, ratio=3.5):
-    """FM-Glocke: magisch schimmernd"""
-    n = int(dauer * SR); t = np.arange(n) / SR; f = mtof(m)
-    I = index * np.exp(-t / 0.6)
-    sig = np.sin(2 * np.pi * f * t + I * np.sin(2 * np.pi * f * ratio * t)) * np.exp(-t / (dauer / 3.2)) * (1 - np.exp(-t / 0.003))
-    return sig.astype(np.float32)
-
-
-def synthbass(m, dauer, hell=1.0):
-    """sägezahnartiger Bass mit „Filter“-Hüllkurve: hohe Teiltöne klingen schneller ab"""
-    n = int(dauer * SR); t = np.arange(n) / SR; f = mtof(m); out = np.zeros(n, np.float32)
-    for k in range(1, 9):
-        out += (np.sin(2 * np.pi * f * k * t) / k * np.exp(-t * (3 + 9 * k / hell))).astype(np.float32)
-    return out * huelle(n, int(0.003 * SR), int(0.02 * SR)) * 0.7
-
-
 def chor(noten, dauer, hell=1.0):
     """chorartige Fläche: vier verstimmte Stimmen mit langsamem Vibrato"""
     n = int(dauer * SR); t = np.arange(n) / SR; out = np.zeros(n, np.float32)
@@ -237,11 +213,50 @@ def shepard(dauer, oktaven_pro_s=0.35):
     return out / 4
 
 
-def echo(sig, verz, rueck=0.45, mal=4):
-    out = np.zeros(len(sig) + int(verz * SR * mal), np.float32); out[:len(sig)] += sig
-    for k in range(1, mal + 1):
-        i = int(verz * SR * k); out[i:i + len(sig)] += sig * rueck ** k
-    return out
+def snare(staerke=1.0):
+    n = int(0.25 * SR); t = np.arange(n) / SR
+    rau = rauschen_band(n, 1200, 9000) * np.exp(-t / 0.07)
+    ton = np.sin(2 * np.pi * 185 * t) * np.exp(-t / 0.05) * 0.6
+    return ((rau + ton) * staerke).astype(np.float32)
+
+
+def reese(m, dauer, verzerrt=0.0):
+    """Reese-Bass: zwei gegeneinander verstimmte Sägezahn-Wellen, die sich langsam verschieben"""
+    n = int(dauer * SR); t = np.arange(n) / SR; f = mtof(m); out = np.zeros(n, np.float32)
+    for verst, ph0 in ((-0.6, 0.0), (0.6, 1.3)):
+        ff = f * (1 + verst / 100 * (1 + 0.5 * np.sin(2 * np.pi * 0.25 * t)))
+        ph = 2 * np.pi * np.cumsum(ff) / SR + ph0
+        for k in range(1, 11):
+            out += (np.sin(k * ph) / k * (0.75 ** (k - 1)) ** (1 - 0.5 * verzerrt)).astype(np.float32)
+    out /= 3.0
+    if verzerrt: out = np.tanh(out * (1 + 3 * verzerrt)) / np.tanh(1 + 3 * verzerrt)
+    return out * huelle(n, int(0.01 * SR), int(0.05 * SR))
+
+
+def laser(m):
+    n = int(0.35 * SR); t = np.arange(n) / SR
+    f = mtof(m) * np.exp(-t / 0.08) + 80
+    return (np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.09)).astype(np.float32)
+
+
+# Szenenplan: (Akkordfolge, Drums 0 aus / 1 Halftime / 2 voller DnB, Reese-Lautstärke, Laser, Helligkeit der Fläche)
+PLAN = {0: (0, 0, 0.5, 0, 0.8), 1: (1, 1, 0.45, 0, 0.9), 2: (0, 1, 0.5, 1, 1.0), 3: (1, 1, 0.5, 0, 1.0),
+        4: (2, 2, 0.55, 1, 1.0), 5: (0, 1, 0.5, 1, 0.9), 6: (2, 2, 0.6, 1, 1.1), 7: (0, 2, 0.6, 1, 1.1),
+        8: (1, 2, 0.65, 1, 1.2), 9: (2, 2, 0.55, 1, 1.0)}
+BPM = 172.0
+
+
+def drums_takt(st, t, stufe, g=1.0):
+    """ein Takt Drum and Bass (4 Schläge); stufe 1 = Halftime, 2 = voller Breakbeat"""
+    b = 60 / BPM
+    if stufe == 1:
+        st(kick(), t, 0.5, 0.55 * g); st(snare(0.9), t + 2 * b, 0.5, 0.45 * g)
+        for q in range(8): st(hat(0.03), t + q * b / 2, 0.6, 0.12 * g)
+    else:
+        for x in (0, 2.5): st(kick(), t + x * b, 0.5, 0.65 * g)
+        for x in (1, 3): st(snare(1.0), t + x * b, 0.5, 0.5 * g)
+        st(snare(0.35), t + 3.75 * b, 0.45, 0.4 * g); st(snare(0.3), t + 1.75 * b, 0.55, 0.3 * g)
+        for q in range(16): st(hat(0.025 if q % 2 else 0.04), t + q * b / 4, 0.62 if q % 2 else 0.4, (0.09 if q % 2 else 0.14) * g)
 
 
 def musik(zeitplan):
@@ -258,70 +273,59 @@ def musik(zeitplan):
         for b in beats:
             if b["si"] == si and b["bi"] == bi: return b["start"], b["dur"]
         return None, None
-    t_dive, d_dive = zeit(6, 3); t_steig, d_steig = zeit(6, 2)
-    schlag = 60 / BPM; takt = 4 * schlag * 2          # ein Akkord dauert zwei Takte
+    t_titel, _ = zeit(0, 1); t_dive, d_dive = zeit(6, 3); t_steig, d_steig = zeit(6, 2); t_ende, _ = zeit(9, 2)
+    takt = 4 * 60 / BPM; akk_dauer = 2 * takt
     for si, a, e in szenen:
-        folge, puls, glk, regen, beat, hell = PLAN.get(si, (0, 1, 1, 0, 0, 1))
-        if si > 0:                                    # Szenenwechsel: Anschwellen + Einschlag
-            st(anschwellen(1.6), a - 1.7, 0.5, 0.7); st(einschlag(0.55 + 0.05 * si), a + 0.05, 0.5, 1.0)
+        folge, drums, rlaut, laser_an, hell = PLAN.get(si, (0, 1, 0.5, 0, 1))
+        if si > 0:
+            st(anschwellen(1.6), a - 1.7, 0.5, 0.7); st(einschlag(0.6), a + 0.05, 0.5, 1.0)
         t = a; k = 0
         while t < e - 0.3:
-            ende_akk = min(t + takt, e)
-            if si == 6 and t_dive and t >= t_dive - 0.01: break      # der Sturzflug hat eigene Musik
+            if si == 6 and t_dive and t >= t_dive - 0.01: break
+            ende_akk = min(t + akk_dauer, e)
             name = FOLGEN[folge][k % 4]
-            if si == 9 and t > e - 16: name = "Dadd9"
-            noten = AKK[name]; d = ende_akk - t + 2.5
-            st(chor(noten[1:5], d, hell) * huelle(int(d * SR), int(1.8 * SR), int(2.5 * SR)), t, 0.5, 0.9)
-            sub = (np.sin(2 * np.pi * mtof(noten[0] - 12) * np.arange(int(d * SR)) / SR) * 0.45).astype(np.float32) * huelle(int(d * SR), int(0.8 * SR), int(2 * SR))
+            ruhig = si == 9 and t_ende and t >= t_ende - 0.01
+            if ruhig: name = "Dadd9"
+            noten = AKK[name]; d = ende_akk - t + 2.0
+            st(chor(noten[1:5], d, hell) * huelle(int(d * SR), int(1.5 * SR), int(2.5 * SR)), t, 0.5, 0.55)
+            sub = (np.sin(2 * np.pi * mtof(noten[0] - 12) * np.arange(int(d * SR)) / SR) * 0.5).astype(np.float32) * huelle(int(d * SR), int(0.3 * SR), int(1.5 * SR))
             st(sub, t, 0.5, 0.8)
-            if puls:                                   # pulsierender Bass
-                schritt = schlag / puls; tt = t; j = 0
-                while tt < ende_akk - 0.05:
-                    m = noten[0] if j % 4 != 3 else noten[0] + 12
-                    st(synthbass(m, schritt * 0.95, hell), tt, 0.5, 0.42 if j % 2 else 0.5); tt += schritt; j += 1
-            if glk:                                   # Glocken-Arpeggio, jeden zweiten Schlag
-                tt = t + schlag * 0.5; j = 0
-                while tt < ende_akk - 0.2:
-                    m = noten[2 + (j * 2) % (len(noten) - 2)] + 12
-                    st(glocke(m, 2.4), tt, 0.25 + 0.5 * (j % 2), 0.16); tt += schlag * (2 if si < 6 else 1); j += 1
-            if regen:                                 # digitaler Regen: zufällige hohe Töne mit Echo
-                for _ in range(int((ende_akk - t) * (1.2 + 0.25 * si))):
-                    tt = t + rng.uniform(0, ende_akk - t); m = int(rng.choice(PENTA)) + 12
-                    st(echo(glocke(m, 0.5, 1.5, 2.0) * 0.5, schlag * 0.75, 0.4, 3), tt, rng.uniform(0.1, 0.9), 0.09)
-            if beat:                                  # Beat
-                tt = t; j = 0
-                while tt < ende_akk - 0.05:
-                    if beat == 2 or j % 2 == 0: st(kick(), tt, 0.5, 0.55)
-                    st(hat(), tt + schlag / 2, 0.6, 0.18)
-                    if beat == 2: st(hat(0.03), tt + schlag * 0.75, 0.4, 0.1)
-                    tt += schlag; j += 1
-            t += takt; k += 1
-    # Aufstieg über die Pol-Spitze: Steigton
+            if not ruhig:
+                rd = ende_akk - t
+                st(reese(noten[0], rd, 0.0) * huelle(int(rd * SR), int((1.2 if si == 0 else 0.05) * SR), int(0.3 * SR)), t, 0.5, rlaut)
+                if drums and not (si == 0):
+                    tt = t
+                    while tt < ende_akk - 0.05: drums_takt(st, tt, drums, 0.9 if drums == 2 else 0.8); tt += takt
+                if laser_an:
+                    for _ in range(2):
+                        st(laser(int(rng.choice([74, 79, 81, 86]))), t + rng.uniform(0, ende_akk - t), rng.uniform(0.15, 0.85), 0.12)
+            t += akk_dauer; k += 1
+    if t_titel:
+        st(anschwellen(2.4, 800, 9000), t_titel - 2.3, 0.5, 0.9); st(einschlag(1.0), t_titel + 0.15, 0.5, 1.0)
     if t_steig:
-        st(shepard(d_steig, 0.25) * np.linspace(0.2, 1, int(d_steig * SR)).astype(np.float32), t_steig, 0.5, 0.18)
-    # Sturzflug + Tunnel: schneller Beat, Shepard-Ton, Sub-Stöße, Glitches
-    if t_dive:
+        st(shepard(d_steig, 0.25) * np.linspace(0.2, 1, int(d_steig * SR)).astype(np.float32), t_steig, 0.5, 0.2)
+    if t_dive:                                        # Sturzflug + Tunnel: voller Drum and Bass mit verzerrtem Reese
         d = int(2.6 * SR); tt = np.arange(d) / SR
         whoosh = rauschen_band(d, 300, 7000) * (tt / 2.6) ** 2 * 0.8
         ton = np.sin(2 * np.pi * np.cumsum(np.linspace(110, 1300, d)) / SR) * (tt / 2.6) ** 2 * 0.25
         st((whoosh + ton).astype(np.float32), t_dive, 0.5, 1.0)
-        tf = t_dive + 2.6; st(einschlag(1.3), tf, 0.5, 1.0)
+        b = 60 / BPM; x = t_dive; j = 0
+        while x < t_dive + 2.5: st(snare(0.3 + 0.7 * j / 20), x, 0.5, 0.35); x += b / (2 if j < 8 else 4); j += 1   # Snare-Wirbel
+        tf = t_dive + 2.6; st(einschlag(1.4), tf, 0.5, 1.0)
         dauer = t_dive + d_dive - tf; m = int(dauer * SR); tm = np.arange(m) / SR
         env = huelle(m, int(0.2 * SR), int(1.8 * SR))
-        st(shepard(dauer, 0.6) * env, tf, 0.5, 0.32)
-        wind = rauschen_band(m, 900, 6000) * (0.25 + 0.15 * np.sin(2 * np.pi * 0.5 * tm)) * env
-        addiere(L, tf, wind * 0.5); addiere(R, tf, wind[::-1] * 0.5)
-        tb = 60 / 140.0; x = tf + 0.3; j = 0
-        while x < tf + dauer - 1.2:
-            st(kick(), x, 0.5, 0.75)
-            st(synthbass(26 + (0 if (j // 4) % 2 == 0 else 3), tb * 0.9, 1.4), x, 0.5, 0.5)
-            st(synthbass(38 + [0, 0, 7, 3][j % 4], tb / 2 * 0.9, 1.6), x + tb / 2, 0.5, 0.35)
-            st(hat(), x + tb / 2, 0.65, 0.22); st(hat(0.03), x + tb / 4, 0.35, 0.12); st(hat(0.03), x + 3 * tb / 4, 0.35, 0.12)
-            if j % 8 == 7:                            # Glitch: kurze Stotterer
-                g = glocke(int(rng.choice(PENTA)) + 12, 0.12, 6, 1.5)
-                for q in range(6): st(g, x + q * tb / 8, rng.uniform(0.1, 0.9), 0.15)
-            x += tb; j += 1
-    L = hall(L, 2.6, 0.32, seed=1); R = hall(R, 2.6, 0.32, seed=2)
+        st(shepard(dauer, 0.6) * env, tf, 0.5, 0.25)
+        wind = rauschen_band(m, 900, 6000) * (0.2 + 0.12 * np.sin(2 * np.pi * 0.5 * tm)) * env
+        addiere(L, tf, wind * 0.4); addiere(R, tf, wind[::-1] * 0.4)
+        x = tf; j = 0; riff = [26, 26, 29, 24]
+        while x < tf + dauer - 1.0:
+            drums_takt(st, x, 2, 1.15)
+            st(reese(riff[j % 4] + 12, takt, 0.8), x, 0.5, 0.7)
+            if j % 4 == 3:                            # Fill: Snare-Wirbel am Ende jeder Phrase
+                for q in range(8): st(snare(0.4 + 0.07 * q), x + 3 * b + q * b / 8, 0.5, 0.3)
+            st(laser(86), x + 1.5 * b, 0.3, 0.12); st(laser(81), x + 3.5 * b, 0.7, 0.12)
+            x += takt; j += 1
+    L = hall(L, 2.0, 0.22, seed=1); R = hall(R, 2.0, 0.22, seed=2)
     peak = max(np.abs(L).max(), np.abs(R).max())
     return L / peak, R / peak
 
