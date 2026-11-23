@@ -1,0 +1,8 @@
+{
+  "name": "compphys-lernvideos",
+  "private": true,
+  "description": "Hilfspakete für die Node-basierten Lernvideos (3D-Szenen mit three.js)",
+  "devDependencies": {
+    "three": "0.149.0"
+  }
+}
