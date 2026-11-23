@@ -7,8 +7,8 @@ Schritt 1:  python3 riemann_audio.py voice
             jede Szene so weit, dass der gesprochene Satz hineinpasst.
 Schritt 2:  node riemann_explained_3d_video.js        (Video mit neuen Szenenlängen + Zeitplan)
 Schritt 3:  python3 riemann_audio.py mix
-            Erzeugt eine eigene Ambient-Musik (Flächen, Arpeggios, Bass, Effekte zum Titel und zum
-            Sturzflug in den Pol), legt die Sprecherstimme darüber, senkt die Musik unter der Stimme ab
+            Erzeugt eine eigene Science-Fiction-Musik (FM-Glocken, Chorflächen, pulsierender Bass,
+            digitaler Regen, Einschläge zu jedem Kapitel, Beat, Shepard-Ton und Tunnel-Beat beim Sturzflug), legt die Sprecherstimme darüber, senkt die Musik unter der Stimme ab
             und schreibt die Tonspur in riemann_explained_3d.mp4.
 
 Benötigt: numpy, piper-tts, Node.js + Playwright (für Schritt 1), ffmpeg
@@ -160,75 +160,168 @@ def glaetten(x, sek):
     return np.concatenate([np.full(k - 1, y[0]), y]).astype(np.float32)
 
 
-# Akkorde (MIDI): d-Moll-Klangwelt, am Schluss Auflösung nach D-Dur
+# Klangwelt d-Moll mit A-Dur als Spannungsakkord, am Schluss Auflösung nach D-Dur
 AKK = {
-    "Dm9": [38, 45, 53, 60, 64], "Bbmaj7": [34, 41, 50, 57, 62], "Fmaj9": [41, 48, 57, 64, 67],
-    "Gm9": [43, 50, 58, 62, 69], "Am7": [45, 52, 60, 67, 72], "Cadd9": [36, 43, 52, 62, 67],
-    "Dadd9": [38, 45, 54, 62, 64],
+    "Dm": [38, 50, 57, 62, 65, 69], "Bb": [34, 46, 53, 58, 62, 65], "Gm": [43, 50, 55, 58, 62, 67],
+    "A": [45, 52, 57, 61, 64, 69], "F": [41, 48, 53, 57, 60, 65], "C": [36, 48, 55, 60, 64, 67],
+    "Dadd9": [38, 50, 57, 62, 66, 69, 76],
 }
-FOLGE = [["Dm9", "Bbmaj7", "Fmaj9", "Cadd9"], ["Dm9", "Gm9", "Bbmaj7", "Am7"]]
-# je Szene: (Folge, Arpeggio-Töne pro Sekunde, Helligkeit)
-SZENE = {0: (0, 0.0, 0.7), 1: (0, 1.5, 0.9), 2: (1, 2.5, 1.0), 3: (0, 3.0, 1.0), 4: (1, 2.0, 0.9),
-         5: (0, 2.0, 0.9), 6: (1, 3.0, 1.1), 7: (0, 2.5, 1.1), 8: (1, 4.0, 1.2), 9: (0, 1.0, 0.8)}
+FOLGEN = [["Dm", "Bb", "Gm", "A"], ["Dm", "F", "C", "Bb"], ["Dm", "Bb", "F", "A"]]
+PENTA = [62, 65, 67, 69, 72, 74, 77, 79, 81, 84, 86]          # d-Moll-Pentatonik für den „digitalen Regen“
+# je Szene: Folge, Bass-Puls (Noten pro Schlag), Glocken, Regen, Beat (0 aus, 1 halb, 2 voll), Helligkeit
+PLAN = {0: (0, 0, 1, 1, 0, 0.8), 1: (1, 1, 1, 0, 0, 0.9), 2: (0, 2, 1, 1, 0, 1.0), 3: (1, 2, 1, 0, 0, 1.0),
+        4: (2, 2, 1, 1, 1, 1.0), 5: (0, 2, 1, 1, 1, 1.0), 6: (2, 4, 1, 1, 2, 1.1), 7: (0, 2, 1, 1, 1, 1.15),
+        8: (1, 4, 1, 1, 2, 1.2), 9: (2, 4, 1, 1, 2, 1.0)}
+BPM = 100.0
+
+
+def glocke(m, dauer=2.5, index=3.0, ratio=3.5):
+    """FM-Glocke: magisch schimmernd"""
+    n = int(dauer * SR); t = np.arange(n) / SR; f = mtof(m)
+    I = index * np.exp(-t / 0.6)
+    sig = np.sin(2 * np.pi * f * t + I * np.sin(2 * np.pi * f * ratio * t)) * np.exp(-t / (dauer / 3.2)) * (1 - np.exp(-t / 0.003))
+    return sig.astype(np.float32)
+
+
+def synthbass(m, dauer, hell=1.0):
+    """sägezahnartiger Bass mit „Filter“-Hüllkurve: hohe Teiltöne klingen schneller ab"""
+    n = int(dauer * SR); t = np.arange(n) / SR; f = mtof(m); out = np.zeros(n, np.float32)
+    for k in range(1, 9):
+        out += (np.sin(2 * np.pi * f * k * t) / k * np.exp(-t * (3 + 9 * k / hell))).astype(np.float32)
+    return out * huelle(n, int(0.003 * SR), int(0.02 * SR)) * 0.7
+
+
+def chor(noten, dauer, hell=1.0):
+    """chorartige Fläche: vier verstimmte Stimmen mit langsamem Vibrato"""
+    n = int(dauer * SR); t = np.arange(n) / SR; out = np.zeros(n, np.float32)
+    for m in noten:
+        f = mtof(m)
+        for v in range(4):
+            vib = 1 + 0.004 * np.sin(2 * np.pi * (4.5 + 0.7 * v) * t + v)
+            ph = 2 * np.pi * f * (1 + (v - 1.5) * 0.0025) * np.cumsum(vib) / SR
+            out += (np.sin(ph) + 0.35 * hell * np.sin(2 * ph) + 0.15 * hell * np.sin(3 * ph)).astype(np.float32)
+    return out / (len(noten) * 6)
+
+
+def kick():
+    n = int(0.45 * SR); t = np.arange(n) / SR
+    f = 45 + 95 * np.exp(-t / 0.035)
+    return (np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.16)).astype(np.float32)
+
+
+def hat(lang=0.05):
+    n = int(lang * SR); x = rauschen_band(n, 7000, 11000)
+    return (x * np.exp(-np.arange(n) / (SR * lang / 4))).astype(np.float32) * 0.5
+
+
+def einschlag(staerke=1.0):
+    n = int(3.5 * SR); t = np.arange(n) / SR
+    sub = np.sin(2 * np.pi * (36 + 40 * np.exp(-t / 0.08)) * t) * np.exp(-t / 1.1)
+    rau = rauschen_band(n, 60, 2500) * np.exp(-t / 0.35) * 0.5
+    return ((sub + rau) * staerke).astype(np.float32)
+
+
+def anschwellen(dauer, lo=1500, hi=9000):
+    n = int(dauer * SR); x = rauschen_band(n, lo, hi)
+    return (x * np.linspace(0, 1, n) ** 2.2 * 0.45).astype(np.float32)
+
+
+def shepard(dauer, oktaven_pro_s=0.35):
+    """endlos steigender Ton"""
+    n = int(dauer * SR); t = np.arange(n) / SR; out = np.zeros(n, np.float32)
+    for k in range(7):
+        pos = (k + oktaven_pro_s * t) % 7
+        f = 40 * 2 ** pos
+        a = np.exp(-((pos - 3.5) ** 2) / 2.0)
+        out += (a * np.sin(2 * np.pi * np.cumsum(f) / SR)).astype(np.float32)
+    return out / 4
+
+
+def echo(sig, verz, rueck=0.45, mal=4):
+    out = np.zeros(len(sig) + int(verz * SR * mal), np.float32); out[:len(sig)] += sig
+    for k in range(1, mal + 1):
+        i = int(verz * SR * k); out[i:i + len(sig)] += sig * rueck ** k
+    return out
 
 
 def musik(zeitplan):
-    total = zeitplan["total"]; beats = zeitplan["beats"]; n = int(total * SR) + SR
+    total = zeitplan["total"]; beats = zeitplan["beats"]; n = int(total * SR) + 2 * SR
     L = np.zeros(n, np.float32); R = np.zeros(n, np.float32)
+    def st(sig, t, pan=0.5, g=1.0):
+        addiere(L, t, sig * g * (1 - pan) * 2 ** 0.5); addiere(R, t, sig * g * pan * 2 ** 0.5)
     szenen = []
     for b in beats:
         if not szenen or szenen[-1][0] != b["si"]: szenen.append([b["si"], b["start"], b["start"] + b["dur"]])
         else: szenen[-1][2] = b["start"] + b["dur"]
     szenen[-1][2] = total
-    takt = 8.0
-    for si, a, e in szenen:
-        folge, dichte, hell_ = SZENE.get(si, (0, 2, 1))
-        t = a; k = 0
-        while t < e - 0.5:
-            name = FOLGE[folge][k % 4]
-            if si == 9 and t > e - 14: name = "Dadd9"          # Auflösung am Ende
-            d = min(takt, e - t) + 3.0
-            p = flaeche(AKK[name], d, hell_) * huelle(int(d * SR), int(2.2 * SR), int(3.0 * SR))
-            addiere(L, t, p * 0.9); addiere(R, t, p * 0.9)
-            bass = (np.sin(2 * np.pi * mtof(AKK[name][0] - 12) * np.arange(int(d * SR)) / SR) * 0.5).astype(np.float32) * huelle(int(d * SR), int(1.5 * SR), int(3 * SR))
-            addiere(L, t, bass * 0.6); addiere(R, t, bass * 0.6)
-            if dichte > 0:
-                schritt = 1.0 / dichte; tt = t + 0.25; j = 0
-                toene = sorted(set(AKK[name][2:] + [m + 12 for m in AKK[name][2:]]))
-                while tt < t + min(takt, e - t) - 0.2:
-                    m = toene[(j * 3 + (j // len(toene))) % len(toene)]
-                    z = zupf(m, 1.8, 0.28 + 0.1 * (si == 8)) * (0.16 if j % 4 else 0.22)
-                    pan = 0.5 + 0.35 * np.sin(j * 1.3)
-                    addiere(L, tt, z * (1 - pan)); addiere(R, tt, z * pan)
-                    tt += schritt; j += 1
-            t += takt; k += 1
-    # Effekte
     def zeit(si, bi):
         for b in beats:
-            if b["si"] == si and b["bi"] == bi: return b["start"]
-    t_titel = zeit(0, 1)
-    if t_titel:
-        sw = int(2.6 * SR); s = rauschen_band(sw, 2000, 9000) * np.linspace(0, 1, sw) ** 2 * 0.35
-        addiere(L, t_titel - 2.3, s); addiere(R, t_titel - 2.3, s[::-1] * 0.8 + s * 0.2)
-        bo = int(3 * SR); tb = np.arange(bo) / SR; boom = (np.sin(2 * np.pi * 48 * tb) * np.exp(-tb / 0.9) * 0.9).astype(np.float32)
-        addiere(L, t_titel + 0.2, boom); addiere(R, t_titel + 0.2, boom)
-        for m in (74, 81, 86):          # Glitzern
-            g = zupf(m, 3.5, 1.2) * 0.12; addiere(L, t_titel + 0.4, g); addiere(R, t_titel + 0.55, g)
-    t_dive = zeit(6, 3)
+            if b["si"] == si and b["bi"] == bi: return b["start"], b["dur"]
+        return None, None
+    t_dive, d_dive = zeit(6, 3); t_steig, d_steig = zeit(6, 2)
+    schlag = 60 / BPM; takt = 4 * schlag * 2          # ein Akkord dauert zwei Takte
+    for si, a, e in szenen:
+        folge, puls, glk, regen, beat, hell = PLAN.get(si, (0, 1, 1, 0, 0, 1))
+        if si > 0:                                    # Szenenwechsel: Anschwellen + Einschlag
+            st(anschwellen(1.6), a - 1.7, 0.5, 0.7); st(einschlag(0.55 + 0.05 * si), a + 0.05, 0.5, 1.0)
+        t = a; k = 0
+        while t < e - 0.3:
+            ende_akk = min(t + takt, e)
+            if si == 6 and t_dive and t >= t_dive - 0.01: break      # der Sturzflug hat eigene Musik
+            name = FOLGEN[folge][k % 4]
+            if si == 9 and t > e - 16: name = "Dadd9"
+            noten = AKK[name]; d = ende_akk - t + 2.5
+            st(chor(noten[1:5], d, hell) * huelle(int(d * SR), int(1.8 * SR), int(2.5 * SR)), t, 0.5, 0.9)
+            sub = (np.sin(2 * np.pi * mtof(noten[0] - 12) * np.arange(int(d * SR)) / SR) * 0.45).astype(np.float32) * huelle(int(d * SR), int(0.8 * SR), int(2 * SR))
+            st(sub, t, 0.5, 0.8)
+            if puls:                                   # pulsierender Bass
+                schritt = schlag / puls; tt = t; j = 0
+                while tt < ende_akk - 0.05:
+                    m = noten[0] if j % 4 != 3 else noten[0] + 12
+                    st(synthbass(m, schritt * 0.95, hell), tt, 0.5, 0.42 if j % 2 else 0.5); tt += schritt; j += 1
+            if glk:                                   # Glocken-Arpeggio, jeden zweiten Schlag
+                tt = t + schlag * 0.5; j = 0
+                while tt < ende_akk - 0.2:
+                    m = noten[2 + (j * 2) % (len(noten) - 2)] + 12
+                    st(glocke(m, 2.4), tt, 0.25 + 0.5 * (j % 2), 0.16); tt += schlag * (2 if si < 6 else 1); j += 1
+            if regen:                                 # digitaler Regen: zufällige hohe Töne mit Echo
+                for _ in range(int((ende_akk - t) * (1.2 + 0.25 * si))):
+                    tt = t + rng.uniform(0, ende_akk - t); m = int(rng.choice(PENTA)) + 12
+                    st(echo(glocke(m, 0.5, 1.5, 2.0) * 0.5, schlag * 0.75, 0.4, 3), tt, rng.uniform(0.1, 0.9), 0.09)
+            if beat:                                  # Beat
+                tt = t; j = 0
+                while tt < ende_akk - 0.05:
+                    if beat == 2 or j % 2 == 0: st(kick(), tt, 0.5, 0.55)
+                    st(hat(), tt + schlag / 2, 0.6, 0.18)
+                    if beat == 2: st(hat(0.03), tt + schlag * 0.75, 0.4, 0.1)
+                    tt += schlag; j += 1
+            t += takt; k += 1
+    # Aufstieg über die Pol-Spitze: Steigton
+    if t_steig:
+        st(shepard(d_steig, 0.25) * np.linspace(0.2, 1, int(d_steig * SR)).astype(np.float32), t_steig, 0.5, 0.18)
+    # Sturzflug + Tunnel: schneller Beat, Shepard-Ton, Sub-Stöße, Glitches
     if t_dive:
         d = int(2.6 * SR); tt = np.arange(d) / SR
-        whoosh = rauschen_band(d, 300, 6000) * (tt / 2.6) ** 2 * 0.6
-        ton = np.sin(2 * np.pi * np.cumsum(np.linspace(120, 900, d)) / SR) * (tt / 2.6) ** 2 * 0.18
-        addiere(L, t_dive, (whoosh + ton).astype(np.float32)); addiere(R, t_dive, (whoosh * 0.9 + ton).astype(np.float32))
-        tf = t_dive + 2.6; bo = int(4 * SR); tb = np.arange(bo) / SR
-        boom = (np.sin(2 * np.pi * 38 * tb + 3 * np.exp(-tb / 0.1)) * np.exp(-tb / 1.4) * 1.0).astype(np.float32)
-        addiere(L, tf, boom); addiere(R, tf, boom)
-        rest = next(b for b in beats if b["si"] == 6 and b["bi"] == 3); dauer = rest["start"] + rest["dur"] - tf
-        m = int(dauer * SR); tm = np.arange(m) / SR
-        wind = rauschen_band(m, 800, 5000) * (0.18 + 0.1 * np.sin(2 * np.pi * 0.7 * tm)) * huelle(m, int(0.3 * SR), int(1.5 * SR))
-        drone = (np.sin(2 * np.pi * 55 * tm) * 0.25 + np.sin(2 * np.pi * 82.5 * tm) * 0.12) * (1 + 0.5 * np.sin(2 * np.pi * 2.2 * tm)) * huelle(m, int(0.2 * SR), int(1.5 * SR))
-        addiere(L, tf, (wind + drone).astype(np.float32)); addiere(R, tf, (wind[::-1] + drone).astype(np.float32))
-    L = hall(L, seed=1); R = hall(R, seed=2)
+        whoosh = rauschen_band(d, 300, 7000) * (tt / 2.6) ** 2 * 0.8
+        ton = np.sin(2 * np.pi * np.cumsum(np.linspace(110, 1300, d)) / SR) * (tt / 2.6) ** 2 * 0.25
+        st((whoosh + ton).astype(np.float32), t_dive, 0.5, 1.0)
+        tf = t_dive + 2.6; st(einschlag(1.3), tf, 0.5, 1.0)
+        dauer = t_dive + d_dive - tf; m = int(dauer * SR); tm = np.arange(m) / SR
+        env = huelle(m, int(0.2 * SR), int(1.8 * SR))
+        st(shepard(dauer, 0.6) * env, tf, 0.5, 0.32)
+        wind = rauschen_band(m, 900, 6000) * (0.25 + 0.15 * np.sin(2 * np.pi * 0.5 * tm)) * env
+        addiere(L, tf, wind * 0.5); addiere(R, tf, wind[::-1] * 0.5)
+        tb = 60 / 140.0; x = tf + 0.3; j = 0
+        while x < tf + dauer - 1.2:
+            st(kick(), x, 0.5, 0.75)
+            st(synthbass(26 + (0 if (j // 4) % 2 == 0 else 3), tb * 0.9, 1.4), x, 0.5, 0.5)
+            st(synthbass(38 + [0, 0, 7, 3][j % 4], tb / 2 * 0.9, 1.6), x + tb / 2, 0.5, 0.35)
+            st(hat(), x + tb / 2, 0.65, 0.22); st(hat(0.03), x + tb / 4, 0.35, 0.12); st(hat(0.03), x + 3 * tb / 4, 0.35, 0.12)
+            if j % 8 == 7:                            # Glitch: kurze Stotterer
+                g = glocke(int(rng.choice(PENTA)) + 12, 0.12, 6, 1.5)
+                for q in range(6): st(g, x + q * tb / 8, rng.uniform(0.1, 0.9), 0.15)
+            x += tb; j += 1
+    L = hall(L, 2.6, 0.32, seed=1); R = hall(R, 2.6, 0.32, seed=2)
     peak = max(np.abs(L).max(), np.abs(R).max())
     return L / peak, R / peak
 
