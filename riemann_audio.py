@@ -330,18 +330,60 @@ def musik(zeitplan):
     return L / peak, R / peak
 
 
+def lade_score():
+    """KI-Filmmusik aus riemann_musicgen.py (falls vorhanden) auf 22050 Hz Stereo bringen"""
+    score = os.path.join(CACHE, "score.wav")
+    if not os.path.exists(score): return None
+    ziel = os.path.join(CACHE, "score_22k.wav")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", score, "-ar", str(SR), "-ac", "2",
+                    "-af", "aecho=0.8:0.5:13|19:0.25|0.2", ziel], check=True)   # leichte Raumbreite
+    with wave.open(ziel) as w:
+        x = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float32).reshape(-1, 2) / 32768
+    return x[:, 0].copy(), x[:, 1].copy()
+
+
+def effekte(zp, n):
+    """Whoosh, Einschläge und Steigton aus der Synthese, passend auf Titel und Sturzflug gesetzt"""
+    L = np.zeros(n, np.float32); R = np.zeros(n, np.float32)
+    beats = zp["beats"]
+    def zeit(si, bi):
+        for b in beats:
+            if b["si"] == si and b["bi"] == bi: return b["start"], b["dur"]
+        return None, None
+    t_titel, _ = zeit(0, 1); t_dive, _ = zeit(6, 3)
+    if t_titel:
+        s = anschwellen(2.4, 800, 9000) * 0.9; addiere(L, t_titel - 2.3, s); addiere(R, t_titel - 2.3, s)
+        b = einschlag(1.0); addiere(L, t_titel + 0.15, b); addiere(R, t_titel + 0.15, b)
+    if t_dive:
+        d = int(2.6 * SR); tt = np.arange(d) / SR
+        w = (rauschen_band(d, 300, 7000) * (tt / 2.6) ** 2 * 0.8).astype(np.float32)
+        addiere(L, t_dive, w); addiere(R, t_dive, w)
+        b = einschlag(1.4); addiere(L, t_dive + 2.6, b); addiere(R, t_dive + 2.6, b)
+    return L, R
+
+
+STIMME_PEGEL, MUSIK_PEGEL, DUCK = 0.55, 0.8, 0.4
+
+
 def schritt_mix():
     zp = json.load(open(ZEITPLAN)); beats = zp["beats"]
-    print("Musik …")
-    L, R = musik(zp); n = len(L)
+    sc = lade_score()
+    if sc is not None:
+        print("Musik: KI-Filmmusik aus audio_cache/score.wav")
+        L, R = sc; n = int((zp["total"] + 1) * SR)
+        L = np.pad(L, (0, max(0, n - len(L))))[:n]; R = np.pad(R, (0, max(0, n - len(R))))[:n]
+        fl, fr = effekte(zp, n); L = L + 0.5 * fl; R = R + 0.5 * fr
+        p = max(np.abs(L).max(), np.abs(R).max()); L /= p; R /= p
+    else:
+        print("Musik: Synthese")
+        L, R = musik(zp); n = len(L)
     stimme = np.zeros(n, np.float32)
     for i, b in enumerate(beats):
         v = lies_wav(os.path.join(CACHE, f"voice_{i:02d}.wav"))
-        addiere(stimme, b["start"] + 0.35, v / (np.abs(v).max() + 1e-9) * 0.9)
+        addiere(stimme, b["start"] + 0.35, v / (np.abs(v).max() + 1e-9) * STIMME_PEGEL)
     huelle_stimme = glaetten(glaetten(np.abs(stimme), 0.25), 0.6)
-    duck = 1 - 0.62 * np.clip(huelle_stimme / 0.05, 0, 1)
-    musik_pegel = 0.34
-    links = stimme + L * duck * musik_pegel; rechts = stimme + R * duck * musik_pegel
+    duck = 1 - DUCK * np.clip(huelle_stimme / 0.04, 0, 1)
+    links = stimme + L * duck * MUSIK_PEGEL; rechts = stimme + R * duck * MUSIK_PEGEL
     links = np.tanh(links * 1.1) / np.tanh(1.1); rechts = np.tanh(rechts * 1.1) / np.tanh(1.1)
     wav = os.path.join(CACHE, "mix.wav"); schreib_wav(wav, np.stack([links, rechts], 1))
     tmp = VIDEO.replace(".mp4", "_tmp.mp4")
