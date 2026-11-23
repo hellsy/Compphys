@@ -12,6 +12,24 @@ const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(1.4, 0.42, 300, 40),
 KNOT.add(knot);
 setFX(KNOT, { bloom: [0.7, 0.5, 0.6] });
 
+// ---------- 3-D-Bausteine für Szene 3 (bausteine3d.js): Fläche + Kurve + Leuchtpunkte + freie Kamerafahrt.
+// Alles nur Ausgangspunkte: Funktion, Farben und Kamerabahn frei je nach Thema wählen.
+const WELLE = new THREE.Scene(); WELLE.environment = ENV; addLights(WELLE); addSun(WELLE, 8);
+const huegel = flaeche((x, y) => 1.2 * Math.exp(-(x * x + y * y) / 6) * Math.cos(1.4 * Math.hypot(x, y)) + 0.4,
+  { x: [-6, 6], y: [-6, 6], nx: 140, ny: 140, farbe: (x, y, h) => new THREE.Color().setHSL(0.64 - 0.1 * h, 0.7, 0.1 + 0.12 * h) });
+WELLE.add(huegel.mesh);
+const spur = kurve(Array.from({ length: 120 }, (_, i) => { const a = i / 119 * 4 * Math.PI, r = 0.6 + i / 119 * 4;
+  return V3(r * Math.cos(a), huegel.hoehe(r * Math.cos(a), -r * Math.sin(a)) + 0.08, r * Math.sin(a)); }),
+  { radius: 0.035, farbe: s => new THREE.Color().setHSL(0.12 - 0.1 * s, 1, 0.6) });
+WELLE.add(spur.gruppe);
+const punkte = [0.25, 0.5, 0.75, 1].map(u => { const p = leuchtpunkt(N.gold, 0.045); p.position.copy(spur.kurve.getPoint(u)); WELLE.add(p); return p; });
+setFX(WELLE, { bloom: [0.5, 0.45, 0.7], bokeh: 0.001 });
+const FAHRT = [
+  { pos: V3(0, 9, 11), ziel: V3(0, 0, 0), fov: 45 },
+  { pos: V3(8, 4, 5), ziel: V3(0, 0.5, 0), kurve: 'linear' },
+  { pos: V3(3, 1.6, -4), ziel: V3(-1, 0.6, 1), fov: 50, kurve: 'raus' },
+];
+
 window.DREHBUCH = {
   titel: 'video-baukasten',
   untertitel: 'template for learning videos in the visual journey style',
@@ -47,6 +65,18 @@ window.DREHBUCH = {
           ctx.stroke(); noGlow();
         }
         legend(P.x + 30, P.y + 30, [{ c: N.cyan, t: 'cos φ' }, { c: N.pink, t: 'sin φ' }]);
+      },
+    },
+    {
+      tag: '03 · 3-D building blocks',
+      beats: ['Surfaces, glowing curves and free camera paths are flexible building blocks.', 'Every scene can reshape them, or add its own three-dimensional ideas.'],
+      draw(st) {
+        const u = clamp(st.lt / 15, 0, 1);
+        huegel.wachsen(lerp(6.5, -7, clamp(u * 2.2, 0, 1)));
+        spur.zeigeBis(clamp(u * 1.6 - 0.2, 0, 1));
+        punkte.forEach((p, i) => p.visible = u * 1.6 - 0.2 > (i + 1) / 4);
+        kamera.zeige(WELLE, kamera.wackeln(kamera.bahn(FAHRT, u), st.lt, 0.02));
+        tex('z = f(x, y)', 800, 110, 54, N.white, st.ap(0, 1));
       },
     },
   ],

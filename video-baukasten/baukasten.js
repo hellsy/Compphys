@@ -71,6 +71,7 @@ function tikzSvgs() {
   await page.evaluate(t => { window.TIKZ = t; }, tikzSvgs());
   await page.evaluate(() => document.fonts.ready);
   await page.addScriptTag({ path: path.join(BK, 'lib.js') });
+  await page.addScriptTag({ path: path.join(BK, 'bausteine3d.js') });
   await page.addScriptTag({ path: DREHBUCH });
 
   const narrFile = NAME + '.narration.json';

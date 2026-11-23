@@ -28,4 +28,6 @@
 - Sprecher: Piper-Stimme `en_US-ryan-high`, Musik leiser unter der Stimme. Musik: Stücke von Kevin MacLeod
   (incompetech.com, CC BY 4.0), szenengenau geschnitten; Namensnennung im Abspann und in `CREDITS.md`.
 - Vor dem vollständigen Rendern Standbilder prüfen (`STILLS=…`); Video, Drehbuch, Zeitplan und Musikplan committen.
+- 3-D-Bausteine und Kamerafahrten (`bausteine3d.js`) sind nur Ausgangspunkte: Szenen und Kamerafahrten zum Thema
+  passend neu erfinden, Bausteine frei abwandeln oder eigenen three.js-Code schreiben.
 - Zu jedem Video kann ein Handout entstehen: `video-baukasten/handout/vorlage.tex`.

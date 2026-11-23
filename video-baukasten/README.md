@@ -26,7 +26,22 @@ Sprecher (Piper, Stimme Ryan) und Filmmusik von Kevin MacLeod (CC BY 4.0).
 | 2-D-Graphen | `plot`, `axes`, `legend`, `T`, `card`, `dot`, `glow` |
 | Farben / Schriften | `N.gold`, `N.cyan`, `N.pink`, `N.violet`, `N.green`, `N.white`, `N.dim` · `F.disp`, `F.sans`, `F.mono` |
 
-Koordinaten der Zeichenfläche: 1600 × 900, unabhängig von der Ausgabeauflösung.
+## 3-D-Bausteine und Kamerafahrten (`bausteine3d.js`)
+
+Ausgangspunkte, keine Schablonen: Optionen dürfen Zahlen oder Funktionen sein, alles ist kombinierbar
+und jederzeit durch eigenen three.js-Code ergänzbar. Beispiel: Szene 3 in `beispiel/beispiel.js`.
+
+| Baustein | Aufruf |
+|---|---|
+| freie Kamerafahrt | `kamera.zeige(S, kamera.bahn([{ pos, ziel, fov, kurve: 'weich'/'linear'/'rein'/'raus' }, …], u))` |
+| fertige Fahrten | `kamera.orbit(mitte, radius, hoehe, winkel)`, `kamera.sturzflug(punkt, u)`, `kamera.wackeln(k, t)` |
+| Fläche / Gebirge z = f(x, y) | `const F = flaeche((x, y) => …, { x, y, farbe: (x, y, h) => … })`, `F.wachsen(front)`, `F.hoehe(x, y)` |
+| leuchtende Kurve im Raum | `const K = kurve(punkte, { radius, farbe: s => … })`, `K.zeigeBis(u)` |
+| Leuchtpunkt | `leuchtpunkt(N.gold, 0.05)` |
+| Grate hintereinander | `grate([x => …, …], { x, abstand, hervor })` |
+| Wurmloch-Flug | `const W = tunnel(farbbild((re, im) => [u, v]))`, `W.zeige(t)` |
+
+: 1600 × 900, unabhängig von der Ausgabeauflösung.
 
 ## Handout
 
