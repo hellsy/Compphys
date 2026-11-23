@@ -1,0 +1,929 @@
+<title>Binärwerkstatt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Sora:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: Karopapier-Heft. Oben Stationsleiste, darunter eine Station als Arbeitsfläche; Bauen = Skript links, Bausteinkiste + Bühne rechts. */
+:root {
+  --paper: #f6f8fc; --grid: #e1e7f2; --card: #ffffff; --ink: #1b2747; --muted: #5a6585;
+  --line: #ccd5e6; --accent: #2f45c4; --accent-ink: #ffffff; --lamp: #ffbd1f; --lamp-glow: rgba(255, 189, 31, .45);
+  --ok: #1f8a4c; --ok-bg: #e3f5ea; --bad: #c2362b; --bad-bg: #fbe8e6; --note-bg: #fff6d9; --note-line: #e8c65a;
+  --b-event: #0f8778; --b-sense: #2a86cf; --b-look: #7657d0; --b-var: #db5f33; --b-ctrl: #e0a92a; --b-ctrl-ink: #2b2104; --b-op: #46934d;
+  --slot: rgba(47, 69, 196, .07); --slot-line: #8d9bd8;
+  --f-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #121829; --grid: #1c2439; --card: #1a2236; --ink: #e8edf9; --muted: #a2acc6; --line: #2e3a57;
+  --accent: #8ea0ff; --accent-ink: #0e1430; --lamp: #ffc93f; --lamp-glow: rgba(255, 201, 63, .35);
+  --ok: #5fd18e; --ok-bg: #173326; --bad: #ff8a7d; --bad-bg: #3a1d1b; --note-bg: #2e2915; --note-line: #7a6624;
+  --b-event: #13a090; --b-sense: #3a95dd; --b-look: #8a6fe0; --b-var: #e8714a; --b-ctrl: #e6b23a; --b-ctrl-ink: #2b2104; --b-op: #55a95d;
+  --slot: rgba(142, 160, 255, .08); --slot-line: #6576c8; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #121829; --grid: #1c2439; --card: #1a2236; --ink: #e8edf9; --muted: #a2acc6; --line: #2e3a57;
+  --accent: #8ea0ff; --accent-ink: #0e1430; --lamp: #ffc93f; --lamp-glow: rgba(255, 201, 63, .35);
+  --ok: #5fd18e; --ok-bg: #173326; --bad: #ff8a7d; --bad-bg: #3a1d1b; --note-bg: #2e2915; --note-line: #7a6624;
+  --b-event: #13a090; --b-sense: #3a95dd; --b-look: #8a6fe0; --b-var: #e8714a; --b-ctrl: #e6b23a; --b-ctrl-ink: #2b2104; --b-op: #55a95d;
+  --slot: rgba(142, 160, 255, .08); --slot-line: #6576c8; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 22px 22px; color: var(--ink); font: 17px/1.55 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h2 { font-size: 1.75rem; font-weight: 800; }
+h3 { font-size: 1.12rem; font-weight: 700; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Kopf */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 2px solid var(--line); padding-block: 12px 10px; margin-bottom: 22px; }
+.top-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-bits { display: flex; gap: 3px; }
+.brand-bits i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); display: block; }
+.brand-bits i.on { background: var(--lamp); box-shadow: 0 0 8px var(--lamp-glow); }
+.brand h1 { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
+.brand small { color: var(--muted); font-size: .85rem; display: block; line-height: 1.1; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; border: 2px solid var(--line); background: var(--card); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: .9rem; font-weight: 700; }
+.toggle[aria-pressed="true"] { border-color: var(--note-line); background: var(--note-bg); }
+nav.stations { display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-bottom: 2px; scrollbar-width: thin; }
+nav.stations a { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--muted); border: 2px solid transparent; padding: 6px 12px 6px 8px; border-radius: 10px; font-weight: 700; font-size: .92rem; }
+nav.stations a .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 2px solid var(--line); font-family: var(--f-mono); font-size: .8rem; color: var(--ink); }
+nav.stations a.done .n { background: var(--lamp); border-color: var(--lamp); color: #2b2104; }
+nav.stations a[aria-current="page"] { color: var(--ink); border-color: var(--accent); background: var(--card); }
+
+/* Station */
+.station-head { display: grid; gap: 8px; margin-bottom: 18px; max-width: 760px; }
+.eyebrow { font-family: var(--f-mono); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.lead { font-size: 1.08rem; color: var(--muted); }
+.panel { background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 880px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: grid; gap: 14px; min-width: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 700; padding: 8px 16px; border-radius: 10px; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
+.next-row { display: flex; justify-content: flex-end; margin-top: 18px; }
+.msg { border-radius: 10px; padding: 10px 14px; font-weight: 700; }
+.msg.ok { background: var(--ok-bg); color: var(--ok); }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.msg.info { background: var(--slot); color: var(--ink); font-weight: 400; }
+.insight { border-left: 5px solid var(--lamp); background: var(--card); padding: 12px 16px; border-radius: 0 12px 12px 0; }
+.insight b { font-family: var(--f-display); }
+details.q { border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--card); }
+details.q summary { cursor: pointer; font-weight: 700; }
+details.q p { margin-top: 8px; color: var(--muted); }
+
+/* Lehrkraft-Hinweise */
+.teacher { display: none; border: 2px dashed var(--note-line); background: var(--note-bg); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
+body.teacher-on .teacher { display: grid; gap: 8px; }
+.teacher h3 { font-size: 1rem; }
+.teacher ul { margin: 0; padding-left: 20px; }
+.teacher .meta { font-family: var(--f-mono); font-size: .82rem; color: var(--muted); }
+.plan { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.plan th, .plan td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--note-line); vertical-align: top; }
+.plan td:first-child { font-family: var(--f-mono); white-space: nowrap; }
+
+/* Station 1: Bits */
+.bits { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.bit { width: 112px; border: 3px solid var(--line); background: var(--card); border-radius: 16px; padding: 14px 8px 10px; cursor: pointer; display: grid; justify-items: center; gap: 8px; transition: border-color .15s; }
+.bit .lamp { width: 54px; height: 54px; border-radius: 50%; background: var(--grid); border: 3px solid var(--line); transition: background .15s, box-shadow .15s; }
+.bit[aria-pressed="true"] { border-color: var(--lamp); }
+.bit[aria-pressed="true"] .lamp { background: var(--lamp); border-color: var(--lamp); box-shadow: 0 0 22px var(--lamp-glow); }
+.bit .val { font-family: var(--f-display); font-weight: 800; font-size: 1.5rem; }
+.bit .dig { font-family: var(--f-mono); font-weight: 700; font-size: 1.3rem; color: var(--muted); }
+.bit[aria-pressed="true"] .dig { color: var(--ink); }
+.readout { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; align-items: baseline; font-family: var(--f-mono); }
+.readout .big { font-size: 2.1rem; font-weight: 700; letter-spacing: .08em; }
+.readout .lbl { font-family: var(--f-body); color: var(--muted); font-size: .9rem; display: block; letter-spacing: 0; }
+.challenge { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.target { font-family: var(--f-display); font-size: 1.25rem; font-weight: 800; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); display: block; }
+.dots i.on { background: var(--ok); }
+
+/* Station 2: Rezept-Tabelle */
+.rec { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.rec th, .rec td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.rec th { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.rec td.m { font-family: var(--f-mono); font-weight: 700; }
+.digits { display: flex; gap: 6px; font-family: var(--f-mono); font-size: 1.8rem; font-weight: 700; }
+.digits span { width: 44px; height: 54px; display: grid; place-items: center; border: 2px solid var(--line); border-radius: 10px; background: var(--card); }
+.digits span.cur { border-color: var(--lamp); box-shadow: 0 0 0 3px var(--lamp-glow); }
+.digits span.used { color: var(--muted); }
+input.field { font: 700 1.1rem var(--f-mono); padding: 7px 10px; border: 2px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); width: 9ch; }
+input.field.wide { width: 14ch; }
+.recipe { font-family: var(--f-mono); background: var(--slot); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+
+/* Blöcke */
+.script { display: grid; justify-items: start; gap: 0; padding: 6px 0; overflow-x: auto; }
+.blk { position: relative; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 42px; padding: 6px 12px; color: #fff; font-weight: 700; font-size: .98rem; border-radius: 6px; margin-top: 4px; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18); }
+.blk::before { content: ""; position: absolute; top: -1px; left: 16px; width: 22px; height: 6px; border-radius: 0 0 6px 6px; background: rgba(0, 0, 0, .18); }
+.blk.hat { border-radius: 18px 18px 6px 6px; padding-top: 12px; }
+.blk.hat::before { display: none; }
+.c-wrap { display: grid; justify-items: start; margin-top: 4px; }
+.c-wrap > .blk { margin-top: 0; border-radius: 6px 6px 6px 0; }
+.c-body { display: grid; justify-items: start; padding: 2px 0 6px 18px; border-left: 18px solid var(--b-ctrl); min-height: 30px; min-width: 120px; }
+.c-foot { width: 130px; height: 18px; background: var(--b-ctrl); border-radius: 0 0 6px 6px; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18); }
+.cat-event { background: var(--b-event); } .cat-sense { background: var(--b-sense); } .cat-look { background: var(--b-look); }
+.cat-var { background: var(--b-var); } .cat-op { background: var(--b-op); }
+.cat-ctrl { background: var(--b-ctrl); color: var(--b-ctrl-ink); }
+.rep { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: .92rem; color: #fff; border: 2px solid rgba(0, 0, 0, .18); }
+.lit { display: inline-block; min-width: 30px; text-align: center; padding: 2px 9px; border-radius: 999px; background: #fff; color: #1b2747; font-family: var(--f-mono); font-weight: 700; font-size: .9rem; }
+.lit.txt { border-radius: 5px; }
+.tray > .piece > .lit { border: 2px solid var(--b-op); padding: 6px 14px; font-size: 1rem; }
+.flag { color: #8ff0a4; font-size: 1.15rem; line-height: 1; }
+.slot { border: 2px dashed var(--slot-line); background: var(--slot); color: var(--muted); border-radius: 8px; cursor: pointer; font-weight: 700; font-size: .85rem; display: inline-flex; align-items: center; justify-content: center; }
+.slot.s-stmt { min-width: 230px; min-height: 42px; margin-top: 6px; padding: 4px 10px; }
+.slot.s-expr { min-width: 64px; min-height: 30px; border-radius: 999px; padding: 0 8px; background: rgba(255, 255, 255, .85); color: #4b5675; border-color: rgba(0, 0, 0, .3); }
+.slot.filled { border: none; background: transparent; padding: 0; min-width: 0; min-height: 0; margin-top: 0; }
+.slot.filled.s-stmt { margin-top: 0; }
+.slot.hot { border-color: var(--lamp); background: var(--lamp-glow); }
+.slot.ok > * { outline: 3px solid var(--ok); outline-offset: 2px; }
+.slot.bad > * { outline: 3px solid var(--bad); outline-offset: 2px; }
+.slot.bad:not(.filled) { border-color: var(--bad); }
+.piece { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.piece.sel > .blk, .piece.sel > .rep, .piece.sel > .c-wrap > .blk { outline: 3px solid var(--lamp); outline-offset: 3px; }
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; opacity: .9; transform: rotate(-2deg); filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .25)); }
+.run-hl { outline: 4px solid var(--lamp) !important; outline-offset: 2px; box-shadow: 0 0 18px var(--lamp-glow); }
+.tray { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-start; min-height: 70px; padding: 10px; border: 2px dashed var(--line); border-radius: 12px; }
+.tray.hot { border-color: var(--lamp); }
+.tray-empty { color: var(--muted); font-size: .9rem; }
+.pick { cursor: pointer; }
+.pick:hover { filter: brightness(1.1); }
+.found { outline: 4px solid var(--bad) !important; outline-offset: 2px; }
+
+/* Bühne */
+.stage { position: relative; border: 2px solid var(--line); border-radius: 12px; min-height: 230px; background: var(--paper); display: grid; place-items: end center; padding: 14px; overflow: hidden; }
+.robot { width: 120px; height: 130px; }
+.robot .lampx { fill: var(--line); transition: fill .2s; }
+.stage.running .robot .lampx { fill: var(--lamp); }
+.bubble { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 28px); background: var(--card); border: 2px solid var(--ink); border-radius: 16px; padding: 8px 14px; font-weight: 700; font-size: 1.05rem; text-align: center; }
+.bubble::after { content: ""; position: absolute; bottom: -10px; left: 50%; width: 16px; height: 16px; background: var(--card); border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+.bubble .num { font-family: var(--f-mono); }
+.askbar { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; gap: 8px; background: var(--card); border: 2px solid var(--b-sense); border-radius: 12px; padding: 6px; }
+.askbar input { flex: 1; min-width: 0; font: 700 1.1rem var(--f-mono); border: none; background: transparent; color: var(--ink); padding: 4px 8px; }
+.monitors { display: flex; gap: 8px; flex-wrap: wrap; }
+.mon { display: inline-flex; align-items: center; gap: 6px; border: 2px solid var(--line); background: var(--card); border-radius: 8px; padding: 3px 4px 3px 10px; font-size: .9rem; font-weight: 700; }
+.mon b { background: var(--b-var); color: #fff; font-family: var(--f-mono); border-radius: 6px; padding: 1px 9px; min-width: 34px; text-align: center; transition: transform .15s; }
+.mon b.flash { transform: scale(1.25); }
+.log { font-family: var(--f-mono); font-size: .86rem; max-height: 168px; overflow: auto; border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--card); display: grid; gap: 2px; }
+.log:empty::before { content: "Hier erscheint das Protokoll, sobald das Programm läuft."; color: var(--muted); font-family: var(--f-body); }
+select.field { font: 700 .95rem var(--f-body); padding: 7px 8px; border: 2px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+
+/* Etappen, Begriffe, Tests */
+.steps { display: flex; gap: 8px; flex-wrap: wrap; }
+.steps button { border: 2px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 14px; font-weight: 700; cursor: pointer; font-size: .9rem; }
+.steps button[aria-current="step"] { border-color: var(--accent); color: var(--accent); }
+.steps button.done::before { content: "✓ "; color: var(--ok); }
+.terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.term { display: grid; gap: 8px; align-content: start; }
+.term .where { font-size: .82rem; color: var(--muted); font-family: var(--f-mono); }
+.tests { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.test { border: 2px solid var(--line); border-radius: 10px; padding: 8px 12px; font-family: var(--f-mono); display: flex; justify-content: space-between; gap: 8px; }
+.test.pass { border-color: var(--ok); background: var(--ok-bg); }
+.test.fail { border-color: var(--bad); background: var(--bad-bg); }
+.cases { display: flex; gap: 8px; flex-wrap: wrap; }
+.find-table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.find-table td, .find-table th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tw { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="brand">
+        <div class="brand-bits" aria-hidden="true"><i class="on"></i><i></i><i class="on"></i><i class="on"></i></div>
+        <div><h1>Binärwerkstatt</h1><small>Wir bauen einen Binärrechner aus Blöcken · Mathe Klasse 9</small></div>
+      </div>
+      <button class="toggle" id="teacherToggle" aria-pressed="false" type="button">Lehrkraft-Hinweise</button>
+    </div>
+    <nav class="stations" id="nav" aria-label="Stationen"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+"use strict";
+/* ============================================================ Hilfen */
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+}
+const store = {
+  get() { try { return JSON.parse(localStorage.getItem("binaerwerkstatt") || "{}"); } catch { return {}; } },
+  set(p) { try { localStorage.setItem("binaerwerkstatt", JSON.stringify(Object.assign(store.get(), p))); } catch {} },
+};
+const state = Object.assign({ done: {}, teacher: false }, store.get());
+function markDone(id) { state.done[id] = true; store.set({ done: state.done }); renderNav(); }
+
+/* ============================================================ Block-Modell */
+const flag = () => ({ k: "flag" });
+const ask = q => ({ k: "ask", q });
+const say = v => ({ k: "say", v });
+const set = (name, v) => ({ k: "set", name, v });
+const change = (name, by) => ({ k: "change", name, by });
+const rep = (n, body) => ({ k: "repeat", n, body });
+const slot = id => ({ k: "slot", id });
+const num = v => ({ k: "num", v: String(v) });
+const str = v => ({ k: "str", v });
+const vr = name => ({ k: "var", name });
+const ans = () => ({ k: "answer" });
+const len = s => ({ k: "len", s });
+const letter = (i, s) => ({ k: "letter", i, s });
+const add = (a, b) => ({ k: "add", a, b });
+const mul = (a, b) => ({ k: "mul", a, b });
+const join = (a, b) => ({ k: "join", a, b });
+const eslot = id => ({ k: "eslot", id });
+const STMT = new Set(["flag", "ask", "say", "set", "change", "repeat", "slot"]);
+const isStmt = n => STMT.has(n.k);
+const bug = n => (n.bug = true, n);
+
+/* Darstellung. ctx: { map (WeakMap Knoten→Element), slotEl(node, kind) , pick(node) } */
+function rExpr(n, ctx) {
+  if (!n) return h("span", { class: "slot s-expr" }, " ");
+  let e;
+  switch (n.k) {
+    case "eslot": return ctx.slotEl(n, "expr");
+    case "num": e = h("span", { class: "lit" }, n.v); break;
+    case "str": e = h("span", { class: "lit txt" }, n.v); break;
+    case "var": e = h("span", { class: "rep cat-var" }, n.name); break;
+    case "answer": e = h("span", { class: "rep cat-sense" }, "Antwort"); break;
+    case "len": e = h("span", { class: "rep cat-op" }, "Länge von", rExpr(n.s, ctx)); break;
+    case "letter": e = h("span", { class: "rep cat-op" }, "Zeichen", rExpr(n.i, ctx), "von", rExpr(n.s, ctx)); break;
+    case "add": e = h("span", { class: "rep cat-op" }, rExpr(n.a, ctx), "+", rExpr(n.b, ctx)); break;
+    case "mul": e = h("span", { class: "rep cat-op" }, rExpr(n.a, ctx), "*", rExpr(n.b, ctx)); break;
+    case "join": e = h("span", { class: "rep cat-op" }, "verbinde", rExpr(n.a, ctx), "und", rExpr(n.b, ctx)); break;
+  }
+  hook(n, e, ctx);
+  return e;
+}
+function rStmt(n, ctx) {
+  let e;
+  switch (n.k) {
+    case "slot": return ctx.slotEl(n, "stmt");
+    case "flag": e = h("div", { class: "blk hat cat-event" }, "Wenn", h("span", { class: "flag", "aria-label": "Flagge" }, "⚑"), "angeklickt wird"); break;
+    case "ask": e = h("div", { class: "blk cat-sense" }, "frage", h("span", { class: "lit txt" }, n.q), "und warte"); break;
+    case "say": e = h("div", { class: "blk cat-look" }, "sage", rExpr(n.v, ctx)); break;
+    case "set": e = h("div", { class: "blk cat-var" }, "setze", h("span", { class: "lit txt" }, n.name + " ▾"), "auf", rExpr(n.v, ctx)); break;
+    case "change": e = h("div", { class: "blk cat-var" }, "ändere", h("span", { class: "lit txt" }, n.name + " ▾"), "um", rExpr(n.by, ctx)); break;
+    case "repeat": {
+      const head = h("div", { class: "blk cat-ctrl" }, "wiederhole", rExpr(n.n, ctx), "mal");
+      const body = h("div", { class: "c-body" }, n.body.map(c => rStmt(c, ctx)));
+      e = h("div", { class: "c-wrap" }, head, body, h("div", { class: "c-foot" }));
+      hook(n, head, ctx);
+      if (ctx.pick) { head.classList.add("pick"); head.addEventListener("click", ev => { ev.stopPropagation(); ctx.pick(n, head); }); }
+      return e;
+    }
+  }
+  hook(n, e, ctx);
+  return e;
+}
+function hook(n, e, ctx) {
+  ctx.map.set(n, e);
+  if (ctx.pick && n.k !== "eslot" && n.k !== "slot") {
+    e.classList.add("pick");
+    e.addEventListener("click", ev => { ev.stopPropagation(); ctx.pick(n, e); });
+  }
+}
+const staticCtx = () => ({ map: new WeakMap(), slotEl: () => h("span", { class: "slot s-expr" }, " ") });
+function renderScript(list, ctx) { return h("div", { class: "script" }, list.map(n => rStmt(n, ctx))); }
+
+/* ============================================================ Interpreter */
+function toNum(x) {
+  if (typeof x === "number") return x;
+  const s = String(x).trim();
+  if (s === "") return 0;
+  const n = Number(s);
+  return Number.isNaN(n) ? 0 : n;
+}
+function fmt(v) { return typeof v === "number" ? String(+v.toFixed(6)) : String(v); }
+
+class Runner {
+  constructor({ vars = ["Ergebnis", "Stelle"], getEl, onFinish, onStart } = {}) {
+    this.varNames = vars; this.vars = Object.fromEntries(vars.map(v => [v, 0]));
+    this.getEl = getEl || (() => null); this.onFinish = onFinish; this.onStart = onStart;
+    this.running = false; this.token = 0;
+    this.el = this.build();
+  }
+  build() {
+    this.bubble = h("div", { class: "bubble", hidden: true });
+    this.askInput = h("input", { id: "ask-" + Math.random().toString(36).slice(2, 8), type: "text", inputmode: "numeric", autocomplete: "off", "aria-label": "Antwort eingeben", placeholder: "Antwort eintippen …" });
+    this.askBtn = h("button", { class: "btn", type: "submit" }, "✓");
+    this.askBar = h("form", { class: "askbar", hidden: true }, this.askInput, this.askBtn);
+    this.stage = h("div", { class: "stage" }, this.bubble, robotSvg(), this.askBar);
+    this.monEls = {};
+    this.monitors = h("div", { class: "monitors" }, this.varNames.map(v => { const b = h("b", {}, "0"); this.monEls[v] = b; return h("span", { class: "mon" }, v, b); }));
+    this.mode = h("select", { class: "field", id: "mode-" + Math.random().toString(36).slice(2, 8), "aria-label": "Tempo" },
+      h("option", { value: "normal" }, "Tempo: normal"), h("option", { value: "step" }, "Schritt für Schritt"), h("option", { value: "fast" }, "Sofort"));
+    this.startBtn = h("button", { class: "btn go", type: "button", onclick: () => this.start() }, "⚑ Start");
+    this.stepBtn = h("button", { class: "btn ghost", type: "button", hidden: true, onclick: () => this._next && this._next() }, "Nächster Schritt ›");
+    this.stopBtn = h("button", { class: "btn ghost", type: "button", disabled: true, onclick: () => this.stop() }, "■ Stopp");
+    this.log = h("div", { class: "log", "aria-live": "polite" });
+    return h("div", { class: "stack" }, this.stage, h("div", { class: "row" }, this.startBtn, this.stepBtn, this.stopBtn, this.mode), this.monitors, this.log);
+  }
+  setScript(fn) { this.scriptFn = fn; }
+  updateMon(name) { const b = this.monEls[name]; if (!b) return; b.textContent = fmt(this.vars[name]); b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 180); }
+  addLog(t) { this.log.append(h("div", {}, t)); this.log.scrollTop = this.log.scrollHeight; }
+  stop(msg) { this.token++; this.finish(msg); }
+  finish(msg) {
+    this.running = false; this.stage.classList.remove("running");
+    this.startBtn.disabled = false; this.stopBtn.disabled = true; this.stepBtn.hidden = true; this.askBar.hidden = true;
+    if (this.hl) this.hl.classList.remove("run-hl");
+    if (msg) this.addLog(msg);
+  }
+  async start() {
+    if (this.running) return;
+    const script = this.scriptFn ? this.scriptFn() : [];
+    const my = ++this.token;
+    this.running = true; this.steps = 0; this.answer = ""; this.said = null;
+    this.log.textContent = ""; this.bubble.hidden = true;
+    this.stage.classList.add("running"); this.startBtn.disabled = true; this.stopBtn.disabled = false;
+    this.onStart && this.onStart();
+    try {
+      await this.exec(script, my);
+      if (my !== this.token) return;
+      this.finish("— Programm beendet —");
+      this.onFinish && this.onFinish({ answer: this.answer, said: this.said, vars: { ...this.vars } });
+    } catch (e) {
+      if (e && e.stop && my === this.token) this.finish(e.msg);
+    }
+  }
+  async tick(node, my) {
+    if (my !== this.token) throw { stop: true };
+    if (++this.steps > 3000) throw { stop: true, msg: "Abgebrochen: Das Programm läuft zu lange." };
+    if (this.hl) this.hl.classList.remove("run-hl");
+    this.hl = this.getEl(node); if (this.hl) this.hl.classList.add("run-hl");
+    const m = this.mode.value;
+    if (m === "step") { this.stepBtn.hidden = false; await new Promise(r => (this._next = r)); this._next = null; }
+    else await new Promise(r => setTimeout(r, m === "fast" ? 0 : 520));
+    if (my !== this.token) throw { stop: true };
+  }
+  val(n) {
+    if (!n) return "";
+    switch (n.k) {
+      case "num": return n.v;
+      case "str": return n.v;
+      case "var": return this.vars[n.name];
+      case "answer": return this.answer;
+      case "len": return String(this.val(n.s)).length;
+      case "letter": { const s = String(this.val(n.s)); const i = toNum(this.val(n.i)) - 1; return i < 0 || i >= s.length ? "" : s.charAt(i); }
+      case "add": return toNum(this.val(n.a)) + toNum(this.val(n.b));
+      case "mul": return toNum(this.val(n.a)) * toNum(this.val(n.b));
+      case "join": return fmt(this.val(n.a)) + fmt(this.val(n.b));
+    }
+    return "";
+  }
+  async exec(list, my) {
+    for (const node of list) {
+      if (!node) continue;
+      await this.tick(node, my);
+      switch (node.k) {
+        case "flag": this.addLog("⚑ Start"); break;
+        case "ask": {
+          this.bubble.hidden = false; this.bubble.textContent = node.q;
+          this.askBar.hidden = false; this.askInput.value = ""; this.askInput.focus({ preventScroll: true });
+          this.answer = await new Promise(res => { this.askBar.onsubmit = ev => { ev.preventDefault(); res(this.askInput.value.trim()); }; });
+          if (my !== this.token) throw { stop: true };
+          this.askBar.hidden = true; this.bubble.hidden = true;
+          this.addLog(`Antwort = ${this.answer || "(leer)"}`);
+          break;
+        }
+        case "say": {
+          const t = fmt(this.val(node.v)); this.said = t;
+          this.bubble.hidden = false; this.bubble.replaceChildren(h("span", { class: "num" }, t || " "));
+          this.addLog(`sagt: ${t}`); break;
+        }
+        case "set": {
+          const before = node.v && node.v.k === "add" ? this.explainAdd(node.v) : null;
+          this.vars[node.name] = this.val(node.v); this.updateMon(node.name);
+          this.addLog(`${node.name} = ${before ? before + " = " : ""}${fmt(this.vars[node.name])}`); break;
+        }
+        case "change": this.vars[node.name] = toNum(this.vars[node.name]) + toNum(this.val(node.by)); this.updateMon(node.name); this.addLog(`${node.name} = ${fmt(this.vars[node.name])}`); break;
+        case "repeat": {
+          const times = Math.round(toNum(this.val(node.n)));
+          this.addLog(`wiederhole ${times}-mal`);
+          for (let i = 0; i < times; i++) { await this.exec(node.body, my); if (i < times - 1) await this.tick(node, my); }
+          break;
+        }
+      }
+    }
+  }
+  explainAdd(n) {
+    const part = x => x && x.k === "mul" ? `${fmt(toNum(this.val(x.a)))}·${fmt(toNum(this.val(x.b)))}` : fmt(toNum(this.val(x)));
+    return `${part(n.a)} + ${part(n.b)}`;
+  }
+}
+function robotSvg() {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 120 130"); s.setAttribute("class", "robot"); s.setAttribute("aria-hidden", "true");
+  s.innerHTML = `<line x1="60" y1="8" x2="60" y2="26" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <circle class="lampx" cx="60" cy="9" r="8"/>
+  <rect x="14" y="26" width="92" height="66" rx="18" fill="var(--b-sense)"/>
+  <rect x="26" y="38" width="68" height="34" rx="10" fill="var(--card)"/>
+  <circle cx="45" cy="55" r="6" fill="var(--ink)"/><circle cx="75" cy="55" r="6" fill="var(--ink)"/>
+  <rect x="34" y="98" width="52" height="28" rx="8" fill="var(--b-sense)" opacity=".8"/>
+  <text x="60" y="117" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#fff">0101</text>`;
+  return s;
+}
+
+/* ============================================================ Baukasten (Zusammenstecken) */
+class Builder {
+  constructor(stage) {
+    this.stage = stage; this.placed = {}; this.selected = null; this.solved = false;
+    this.pieces = Object.fromEntries(stage.pieces.map(p => [p.id, p]));
+    this.order = stage.pieces.map(p => p.id);
+    this.scriptBox = h("div", { class: "panel stack" });
+    this.tray = h("div", { class: "tray", "aria-label": "Bausteinkiste" });
+    this.msg = h("div", { class: "msg info", "aria-live": "polite" }, "Ziehe die Blöcke aus der Kiste in die gestrichelten Lücken. Du kannst auch erst einen Block und dann eine Lücke antippen.");
+    this.runner = new Runner({ getEl: n => this.map && this.map.get(n), onStart: () => {} });
+    this.runner.setScript(() => this.resolve(stage.script));
+    this.el = h("div", { class: "grid2" },
+      h("div", { class: "stack" }, this.scriptBox,
+        h("div", { class: "panel stack" }, h("h3", {}, "Bausteinkiste"), this.tray,
+          h("div", { class: "row" }, h("button", { class: "btn", type: "button", onclick: () => this.check() }, "Prüfen"),
+            h("button", { class: "btn ghost", type: "button", onclick: () => { this.placed = {}; this.solved = false; this.render(); } }, "Alles zurück in die Kiste")),
+          this.msg)),
+      h("div", { class: "panel stack" }, h("h3", {}, "Bühne"), h("p", { class: "lead" }, "Starte dein Programm jederzeit, auch halb fertig. So siehst du, was jeder Block tut."), this.runner.el));
+    this.render();
+  }
+  resolve(list) {
+    const R = n => {
+      if (!n) return null;
+      if (n.k === "slot" || n.k === "eslot") { const p = this.placed[n.id]; return p ? R(this.pieces[p].node) : null; }
+      const c = { ...n };
+      if (n.body) c.body = n.body.map(R);
+      for (const key of ["v", "by", "n", "s", "i", "a", "b"]) if (n[key] && typeof n[key] === "object") c[key] = R(n[key]);
+      return keep(n, c);
+    };
+    const keep = (orig, copy) => { this.alias.set(copy, orig); return copy; };
+    this.alias = new WeakMap();
+    const out = list.map(R);
+    const map = this.map;
+    this.runner.getEl = n => map.get(this.alias.get(n) || n);
+    return out;
+  }
+  slotEl(n, kind) {
+    const pid = this.placed[n.id];
+    const s = h("span", { class: `slot s-${kind}` + (pid ? " filled" : ""), "data-slot": n.id, role: "button", tabindex: "0",
+      "aria-label": pid ? "Belegte Lücke" : "Leere Lücke" }, pid ? this.pieceEl(pid) : (kind === "stmt" ? "Block hier einstecken" : "?"));
+    s.addEventListener("click", ev => { ev.stopPropagation(); if (this.selected) this.place(this.selected, n.id); });
+    s.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && this.selected) { ev.preventDefault(); this.place(this.selected, n.id); } });
+    return s;
+  }
+  pieceEl(pid) {
+    const p = this.pieces[pid];
+    const inner = isStmt(p.node) ? rStmt(p.node, this.ctx) : rExpr(p.node, this.ctx);
+    const w = h("span", { class: "piece" + (this.selected === pid ? " sel" : ""), "data-piece": pid, tabindex: "0", role: "button",
+      "aria-label": "Baustein: " + inner.textContent.replace(/\s+/g, " ").trim() }, inner);
+    w.style.display = "inline-block";
+    this.enableDrag(w, pid);
+    w.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.toggleSel(pid); } });
+    return w;
+  }
+  toggleSel(pid) { this.selected = this.selected === pid ? null : pid; this.render(); }
+  enableDrag(w, pid) {
+    w.addEventListener("pointerdown", ev => {
+      if (ev.button !== 0 || this.runner.running) return;
+      ev.stopPropagation(); ev.preventDefault();
+      const sx = ev.clientX, sy = ev.clientY; let ghost = null;
+      const move = e => {
+        if (!ghost && Math.hypot(e.clientX - sx, e.clientY - sy) > 6) {
+          ghost = w.cloneNode(true); ghost.classList.add("drag-ghost"); document.body.append(ghost);
+        }
+        if (ghost) {
+          ghost.style.left = e.clientX - 20 + "px"; ghost.style.top = e.clientY - 18 + "px";
+          document.querySelectorAll(".slot.hot,.tray.hot").forEach(x => x.classList.remove("hot"));
+          const t = this.targetAt(e.clientX, e.clientY, pid); if (t) t.classList.add("hot");
+        }
+      };
+      const up = e => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        document.querySelectorAll(".slot.hot,.tray.hot").forEach(x => x.classList.remove("hot"));
+        if (!ghost) {
+          const host = w.parentElement && w.parentElement.closest(".slot");
+          if (this.selected && this.selected !== pid && host) this.place(this.selected, host.dataset.slot);
+          else this.toggleSel(pid);
+          return;
+        }
+        ghost.remove();
+        const t = this.targetAt(e.clientX, e.clientY, pid);
+        if (t && t.dataset.slot) this.place(pid, t.dataset.slot);
+        else if (t === this.tray) this.unplace(pid);
+      };
+      window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+    });
+  }
+  targetAt(x, y, pid) {
+    const els = document.elementsFromPoint(x, y);
+    for (const el of els) {
+      if (el.closest(".drag-ghost")) continue;
+      const s = el.closest(".slot");
+      if (s && !s.closest(`[data-piece="${pid}"]`)) return s;
+      if (el.closest(".tray")) return this.tray;
+    }
+    return null;
+  }
+  findSlot(id, list = this.stage.script) {
+    let found = null;
+    const walk = n => {
+      if (!n || typeof n !== "object" || found) return;
+      if ((n.k === "slot" || n.k === "eslot") && n.id === id) { found = n; return; }
+      for (const key of ["v", "by", "n", "s", "i", "a", "b"]) walk(n[key]);
+      if (n.body) n.body.forEach(walk);
+    };
+    list.forEach(walk);
+    return found;
+  }
+  place(pid, sid) {
+    if (this.runner.running) return this.say("Erst stoppen, dann umbauen.", "info");
+    const sl = this.findSlot(sid);
+    if (!sl) return;
+    const wantStmt = sl.k === "slot";
+    if (isStmt(this.pieces[pid].node) !== wantStmt) {
+      this.say(wantStmt ? "In diese Lücke passt nur ein eckiger Befehlsblock." : "In diese runde Lücke passt nur ein runder Werteblock.", "bad");
+      return;
+    }
+    for (const [k, v] of Object.entries(this.placed)) if (v === pid) delete this.placed[k];
+    this.placed[sid] = pid; this.selected = null; this.solved = false; this.render();
+  }
+  unplace(pid) { for (const [k, v] of Object.entries(this.placed)) if (v === pid) delete this.placed[k]; this.selected = null; this.render(); }
+  say(t, kind = "info") { this.msg.className = "msg " + kind; this.msg.textContent = t; }
+  render() {
+    this.map = new WeakMap();
+    this.ctx = { map: this.map, slotEl: (n, k) => this.slotEl(n, k) };
+    this.scriptBox.replaceChildren(h("h3", {}, "Skript"), renderScript(this.stage.script, this.ctx));
+    const free = this.order.filter(id => !Object.values(this.placed).includes(id));
+    this.tray.replaceChildren(...(free.length ? free.map(id => this.pieceEl(id)) : [h("span", { class: "tray-empty" }, "Die Kiste ist leer. Jetzt prüfen!")]));
+  }
+  check() {
+    const slots = this.stage.slots; let bad = null, empty = 0;
+    for (const [sid, rule] of Object.entries(slots)) {
+      const el = this.scriptBox.querySelector(`[data-slot="${sid}"]`);
+      const pid = this.placed[sid];
+      el && el.classList.remove("ok", "bad");
+      if (!pid) { empty++; continue; }
+      const ok = rule.accept.includes(pid);
+      el && el.classList.add(ok ? "ok" : "bad");
+      if (!ok && !bad) bad = this.pieces[pid].why || rule.hint;
+    }
+    if (bad) return this.say("Noch nicht ganz: " + bad, "bad");
+    if (empty) return this.say(`Alles, was steckt, ist richtig. Es ${empty === 1 ? "fehlt noch 1 Block" : `fehlen noch ${empty} Blöcke`}.`, "info");
+    this.solved = true;
+    this.say(this.stage.success, "ok");
+    this.onSolved && this.onSolved();
+  }
+}
+
+/* ============================================================ Inhalte: Etappen */
+const P = (id, node, why) => ({ id, node, why });
+const ETAPPEN = [
+  {
+    id: "A", title: "Der Rechner hört zu",
+    intro: "Jedes Programm braucht einen Start: Wenn die Flagge angeklickt wird, geht es los. Der Rechner soll nach einer Dualzahl fragen und die Antwort wiederholen.",
+    script: [flag(), slot("A1"), slot("A2")],
+    pieces: [P("sayHallo", say(str("Hallo!")), "Dieser Block sagt immer „Hallo!“, egal, was du eingibst."), P("sayAns", say(ans())), P("ask", ask("Gib eine Dualzahl ein"))],
+    slots: { A1: { accept: ["ask"], hint: "Zuerst muss der Rechner fragen, sonst gibt es noch keine Antwort." }, A2: { accept: ["sayAns"], hint: "Am Ende soll er die Antwort sagen." } },
+    success: "Geschafft! Starte jetzt und tippe 1011 ein. Der Rechner wiederholt deine Eingabe, er rechnet aber noch nicht.",
+    think: ["Warum muss der frage-Block oben stehen?", "Der Block „Antwort“ ist erst gefüllt, wenn gefragt wurde. Scratch arbeitet die Blöcke von oben nach unten ab."],
+  },
+  {
+    id: "B", title: "Ein Gedächtnis für das Ergebnis",
+    intro: "Jetzt bekommt der Rechner eine Variable: einen beschrifteten Speicher namens „Ergebnis“. Wir bauen das Rezept aus Station 2 ein: Ergebnis · 2 + Ziffer. Erst einmal nur für die erste Ziffer.",
+    script: [flag(), ask("Gib eine Dualzahl ein"), slot("B1"), set("Ergebnis", add(eslot("B2"), eslot("B3"))), slot("B4")],
+    pieces: [P("mul10", mul(vr("Ergebnis"), num(10)), "„mal 10“ gehört zum Zehnersystem. Im Dualsystem verdoppeln wir."), P("sayErg", say(vr("Ergebnis"))),
+      P("letter1", letter(num(1), ans())), P("set0", set("Ergebnis", num(0))), P("sayAns2", say(ans()), "Dann sagt er nur deine Eingabe. Wir wollen das Ergebnis hören."), P("mul2", mul(vr("Ergebnis"), num(2)))],
+    slots: {
+      B1: { accept: ["set0"], hint: "Vor dem Rechnen muss das Ergebnis auf 0 stehen, wie in der ersten Zeile der Tabelle." },
+      B2: { accept: ["mul2", "letter1"], hint: "In die Rechnung gehören „Ergebnis * 2“ und die Ziffer." },
+      B3: { accept: ["mul2", "letter1"], hint: "In die Rechnung gehören „Ergebnis * 2“ und die Ziffer." },
+      B4: { accept: ["sayErg"], hint: "Am Ende soll der Rechner das Ergebnis sagen." },
+    },
+    success: "Richtig! Teste 1 und dann 1011. Bei 1011 kommt nur 1 heraus. Woran liegt das?",
+    think: ["Warum kommt bei 1011 nur 1 heraus?", "„Zeichen 1 von Antwort“ liest immer nur die erste Ziffer. Wir müssen das Rezept für jede Ziffer wiederholen, und zwar jedes Mal an der nächsten Stelle."],
+  },
+  {
+    id: "C", title: "Jede Ziffer einmal",
+    intro: "Eine Schleife wiederholt Blöcke. Eine zweite Variable „Stelle“ merkt sich, welche Ziffer gerade dran ist. Aus der festen 1 im Zeichen-Block ist jetzt „Stelle“ geworden.",
+    script: [flag(), ask("Gib eine Dualzahl ein"), set("Ergebnis", num(0)), slot("C1"),
+      rep(eslot("C2"), [set("Ergebnis", add(mul(vr("Ergebnis"), num(2)), letter(vr("Stelle"), ans()))), slot("C3")]), say(vr("Ergebnis"))],
+    pieces: [P("chgNeg", change("Stelle", num(-1)), "Dann läuft Stelle rückwärts (0, −1, …), und es gibt keine Ziffer mehr zu lesen."), P("lenAns", len(ans())),
+      P("set1", set("Stelle", num(1))), P("four", num(4), "Mit 4 klappt es nur bei vierstelligen Zahlen. Probiere 101!"), P("chg1", change("Stelle", num(1))),
+      P("set0s", set("Stelle", num(0)), "Die erste Ziffer steht an Stelle 1. Ein „Zeichen 0“ gibt es nicht.")],
+    slots: {
+      C1: { accept: ["set1"], hint: "Bevor die Schleife startet, muss Stelle auf die erste Ziffer zeigen." },
+      C2: { accept: ["lenAns"], hint: "Die Schleife soll so oft laufen, wie die Zahl Ziffern hat." },
+      C3: { accept: ["chg1"], hint: "Nach jeder Ziffer muss Stelle eins weiter rücken." },
+    },
+    success: "Dein Binärrechner ist fertig! Teste 1011 im Tempo „Schritt für Schritt“ und vergleiche mit deiner Tabelle aus Station 2.",
+    think: ["Was passiert, wenn „ändere Stelle um 1“ fehlt?", "Stelle bleibt immer 1. Dann wird jedes Mal die erste Ziffer gelesen: Bei 1011 kommt 1, 3, 7, 15 heraus, also 15 statt 11."],
+  },
+];
+
+/* Fehlerjagd */
+const FINAL = () => [flag(), ask("Gib eine Dualzahl ein"), set("Ergebnis", num(0)), set("Stelle", num(1)),
+  rep(len(ans()), [set("Ergebnis", add(mul(vr("Ergebnis"), num(2)), letter(vr("Stelle"), ans()))), change("Stelle", num(1))]), say(vr("Ergebnis"))];
+const BUGS = [
+  { name: "Fall 1: Zu große Zahlen", tip: "Teste 1011. Es kommt 1011 heraus statt 11.",
+    make: () => [flag(), ask("Gib eine Dualzahl ein"), set("Ergebnis", num(0)), set("Stelle", num(1)),
+      rep(len(ans()), [set("Ergebnis", add(bug(mul(vr("Ergebnis"), num(10))), letter(vr("Stelle"), ans()))), change("Stelle", num(1))]), say(vr("Ergebnis"))],
+    explain: "„Ergebnis * 10“ rechnet im Zehnersystem. Jede Stelle ist dann zehnmal so viel wert. Im Dualsystem muss es „* 2“ heißen." },
+  { name: "Fall 2: Immer dieselbe Ziffer", tip: "Teste 1011 und beobachte die Variable Stelle.",
+    make: () => [flag(), ask("Gib eine Dualzahl ein"), set("Ergebnis", num(0)), set("Stelle", num(1)),
+      rep(len(ans()), [set("Ergebnis", add(mul(vr("Ergebnis"), num(2)), letter(vr("Stelle"), ans())))]), bug(change("Stelle", num(1))), say(vr("Ergebnis"))],
+    explain: "„ändere Stelle um 1“ steht unter der Schleife statt darin. Stelle rückt also erst weiter, wenn schon alles fertig ist. Bis dahin wird immer die erste Ziffer gelesen." },
+  { name: "Fall 3: Nur die letzte Ziffer", tip: "Teste 1011 und 1010. Was fällt dir auf?",
+    make: () => [flag(), ask("Gib eine Dualzahl ein"), set("Stelle", num(1)),
+      rep(len(ans()), [bug(set("Ergebnis", num(0))), set("Ergebnis", add(mul(vr("Ergebnis"), num(2)), letter(vr("Stelle"), ans()))), change("Stelle", num(1))]), say(vr("Ergebnis"))],
+    explain: "„setze Ergebnis auf 0“ steht in der Schleife. Vor jeder Ziffer wird das Ergebnis wieder gelöscht. Übrig bleibt nur die letzte Ziffer. Der Block gehört vor die Schleife." },
+  { name: "Fall 4: Hinterhältig", tip: "Bei 1011 stimmt alles! Teste andere Zahlen, zum Beispiel 101 oder 110011.",
+    make: () => [flag(), ask("Gib eine Dualzahl ein"), set("Ergebnis", num(0)), set("Stelle", num(1)),
+      rep(bug(num(4)), [set("Ergebnis", add(mul(vr("Ergebnis"), num(2)), letter(vr("Stelle"), ans()))), change("Stelle", num(1))]), say(vr("Ergebnis"))],
+    explain: "„wiederhole 4 mal“ passt nur zu vierstelligen Zahlen. Bei 101 wird eine leere vierte Ziffer gelesen, das ergibt 10 statt 5. Richtig ist „Länge von Antwort“. Merke: Ein Programm ist erst dann gut getestet, wenn verschiedene Eingaben geprüft wurden." },
+];
+
+/* ============================================================ Lehrkraft-Hinweise */
+const TEACH = {
+  bits: { time: "DS 1 · ca. 20 min · Plenum, dann Partnerarbeit", goal: "Die Lernenden verstehen den Stellenwert im Dualsystem: Jede Stelle ist doppelt so viel wert wie ihre rechte Nachbarin.",
+    items: ["Einstieg unplugged: Vier Lernende halten Karten mit 8, 4, 2, 1 Punkten vor die Klasse. „Karte zeigen“ = 1, „Karte umdrehen“ = 0.",
+      "Impuls: „Wie stellen wir die 11 dar, wenn wir nur zeigen oder verdecken dürfen?“",
+      "Anknüpfung Klasse 5: Im Zehnersystem ist jede Stelle 10-mal so viel wert (Einer, Zehner, Hunderter).",
+      "Sicherung: Welche Zahl ist die größte mit 4 Lampen? (15 = 16 − 1)"] },
+  rezept: { time: "DS 1 · ca. 20 min · Einzelarbeit im Heft, dann Vergleich", goal: "Die Lernenden wenden das Verdoppel-Verfahren (Horner-Schema) an und begründen, warum es dasselbe Ergebnis wie die Stellenwerte liefert.",
+    items: ["Erst vorrechnen (1011 am Beamer), dann 110 und 10011 selbst im Heft in die Tabelle eintragen.",
+      "Impuls: „Warum verdoppeln wir? Was passiert mit den Ziffern, die schon gelesen wurden?“ Antwort: Jede schon gelesene Ziffer rückt eine Stelle nach links und ist dann doppelt so viel wert.",
+      "Die Tabelle ist später die Kontrolle für das Programm. Bitte im Heft aufbewahren!"] },
+  bausteine: { time: "DS 1 · ca. 15 min · Lehrervortrag mit Beamer", goal: "Die Lernenden kennen die Fachbegriffe Ereignis, Befehl, Variable, Schleife und Ausgabe.",
+    items: ["Die Begriffe einzeln einführen und zu jedem Begriff kurz das Rezept aus Station 2 zeigen: Wo steckt hier eine Variable, wo eine Wiederholung?",
+      "Analogie Steckbausteine: Die Grenze gemeinsam formulieren lassen (Reihenfolge, „passt“ heißt nicht „richtig“).",
+      "Hinweis zu Scratch: Das Malzeichen ist dort „*“."] },
+  bauen: { time: "Etappe A in DS 1 (ca. 15 min), Etappen B und C in DS 2 (ca. 35 min) · Partnerarbeit (Pilot und Navigator, Wechsel pro Etappe)", goal: "Die Lernenden setzen das Verfahren als Algorithmus aus vorgegebenen Blöcken zusammen und überprüfen es durch Testen.",
+    items: ["Etappe A gemeinsam am Beamer zusammenstecken, dann B und C in Partnerarbeit.",
+      "Nach jeder Etappe: Die Frage „Zum Nachdenken“ im Plenum besprechen, bevor die nächste Etappe startet.",
+      "Schnelle Paare: Tempo „Schritt für Schritt“ wählen und das Protokoll mit der eigenen Tabelle aus Station 2 vergleichen.",
+      "Differenzierung: Die Ablenker-Blöcke führen gezielt zu typischen Fehlern. Die Rückmeldung beim Prüfen erklärt, warum ein Block nicht passt."] },
+  fehler: { time: "DS 2 · ca. 20 min · Partnerarbeit, dann Sicherung im Plenum", goal: "Die Lernenden finden Fehler in Algorithmen durch gezieltes Testen und begründen ihre Wahl.",
+    items: ["Jeder Fall: erst eine Vermutung äußern, dann testen und dann den Block anklicken.",
+      "Fall 4 zeigt, warum ein einziger Test nicht reicht. Daraus kann man einen Merksatz fürs Heft machen.",
+      "Leistungsstarke: Sie bauen einen eigenen Fehler aus und lassen die Nachbargruppe suchen (im echten Scratch)."] },
+  fertig: { time: "DS 2 · ca. 15 min · danach Transfer in Scratch (ca. 15 min oder als Hausaufgabe)", goal: "Die Lernenden testen systematisch, beantworten die Verständnisfragen und übertragen das Skript nach Scratch.",
+    items: ["Das Testprotokoll füllt sich automatisch, wenn eine Testzahl richtig berechnet wurde.",
+      "Exit-Ticket: die drei Fragen schriftlich beantworten, die Antworten erst danach aufdecken.",
+      "Transfer: Das Skript im Scratch-Editor nachbauen (scratch.mit.edu, ohne Konto möglich). Die Blocktabelle zeigt die Kategorien.",
+      "Expertenaufgabe: Dezimal → Dual mit Division durch 2 und Rest."] },
+};
+const PLAN = [
+  ["DS 1", "Station 1 Bits zählen · Station 2 Verdoppel-Rezept · Station 3 Bausteine · Station 4 Etappe A"],
+  ["DS 2", "Wiederholung (5 min) · Station 4 Etappen B und C · Station 5 Fehlerjagd · Station 6 Tests und Exit-Ticket · Transfer nach Scratch"],
+];
+
+function teacherBox(id, extra) {
+  const t = TEACH[id];
+  return h("aside", { class: "teacher", "aria-label": "Hinweise für die Lehrkraft" },
+    h("h3", {}, "Für die Lehrkraft"), h("div", { class: "meta" }, t.time), h("p", {}, h("b", {}, "Ziel: "), t.goal),
+    h("ul", {}, t.items.map(i => h("li", {}, i))), extra || null);
+}
+
+/* ============================================================ Stationen */
+const STATIONS = [
+  { id: "bits", label: "Bits zählen", render: sBits },
+  { id: "rezept", label: "Verdoppel-Rezept", render: sRezept },
+  { id: "bausteine", label: "Bausteine", render: sBausteine },
+  { id: "bauen", label: "Zusammenbauen", render: sBauen },
+  { id: "fehler", label: "Fehlerjagd", render: sFehler },
+  { id: "fertig", label: "Fertig & testen", render: sFertig },
+];
+function head(i, title, lead) {
+  return h("div", { class: "station-head" }, h("div", { class: "eyebrow" }, `Station ${i + 1} von ${STATIONS.length}`), h("h2", {}, title), h("p", { class: "lead" }, lead));
+}
+function nextBtn(i) {
+  if (i >= STATIONS.length - 1) return null;
+  return h("div", { class: "next-row" }, h("a", { class: "btn", href: "#" + STATIONS[i + 1].id, style: "text-decoration:none" }, `Weiter zu Station ${i + 2}: ${STATIONS[i + 1].label} ›`));
+}
+
+/* ---------- Station 1 */
+function sBits(i) {
+  const vals = [8, 4, 2, 1]; const on = [true, false, true, true];
+  const targets = [6, 9, 13, 15]; let ti = 0;
+  const cards = vals.map((v, k) => h("button", { class: "bit", type: "button", "aria-pressed": String(on[k]), "aria-label": `Lampe mit Wert ${v}`,
+    onclick: e => { on[k] = !on[k]; e.currentTarget.setAttribute("aria-pressed", String(on[k])); upd(); } },
+    h("span", { class: "val" }, v), h("span", { class: "lamp" }), h("span", { class: "dig" }, on[k] ? "1" : "0")));
+  const dual = h("span", { class: "big" }), dec = h("span", { class: "big" }), sum = h("span", { class: "big" });
+  const tgt = h("span", { class: "target" }); const dots = h("div", { class: "dots" }, targets.map(() => h("i"))); const fb = h("div", { "aria-live": "polite" });
+  function upd() {
+    cards.forEach((c, k) => c.querySelector(".dig").textContent = on[k] ? "1" : "0");
+    const d = vals.reduce((s, v, k) => s + (on[k] ? v : 0), 0);
+    dual.textContent = on.map(b => (b ? 1 : 0)).join(""); dec.textContent = d;
+    const parts = vals.filter((v, k) => on[k]); sum.textContent = parts.length ? parts.join(" + ") : "0";
+    if (ti < targets.length && d === targets[ti]) {
+      dots.children[ti].classList.add("on"); ti++;
+      fb.replaceChildren(h("div", { class: "msg ok" }, ti < targets.length ? `Richtig! ${d} = ${dual.textContent}₂` : `Alle geschafft! ${d} = ${dual.textContent}₂`));
+      if (ti >= targets.length) markDone("bits");
+    }
+    tgt.textContent = ti < targets.length ? `Schalte die Zahl ${targets[ti]} ein.` : "Alle Aufgaben gelöst ✓";
+  }
+  upd();
+  return [teacherBox("bits"), head(i, "Bits zählen mit vier Lampen", "Ein Computer kennt nur zwei Zustände: Strom an (1) oder Strom aus (0). Mit vier Lampen kannst du trotzdem bis 15 zählen. Tippe die Lampen an."),
+    h("div", { class: "stack" },
+      h("div", { class: "panel stack" }, h("div", { class: "bits" }, cards),
+        h("div", { class: "readout" }, h("div", {}, h("span", { class: "lbl" }, "Dualzahl"), dual), h("div", {}, h("span", { class: "lbl" }, "Rechnung"), sum), h("div", {}, h("span", { class: "lbl" }, "Dezimalzahl"), dec))),
+      h("div", { class: "panel stack" }, h("div", { class: "challenge" }, tgt, dots), fb),
+      h("div", { class: "insight" }, h("b", {}, "Merke: "), "Im Zehnersystem ist jede Stelle 10-mal so viel wert wie ihre rechte Nachbarin. Im ", h("b", {}, "Dualsystem"), " gibt es nur die Ziffern 0 und 1, und jede Stelle ist ", h("b", {}, "2-mal"), " so viel wert: 1, 2, 4, 8, 16, …"),
+      h("details", { class: "q" }, h("summary", {}, "Zum Nachdenken: Welche Zahl ist die größte, die du mit 4 Lampen darstellen kannst?"), h("p", {}, "1111₂ = 8 + 4 + 2 + 1 = 15. Mit einer fünften Lampe (16) kämst du bis 31."))),
+    nextBtn(i)];
+}
+
+/* ---------- Station 2 */
+function sRezept(i) {
+  const input = h("input", { class: "field wide", id: "rez-in", value: "1011", inputmode: "numeric", "aria-label": "Dualzahl" });
+  const digitsBox = h("div", { class: "digits", "aria-hidden": "true" });
+  const tbody = h("tbody"); const fb = h("div", { "aria-live": "polite" }); const ctrl = h("div", { class: "row" });
+  let digits = [], k = 0, erg = 0;
+  function reset() {
+    const v = input.value.trim();
+    if (!/^[01]{1,10}$/.test(v)) { fb.replaceChildren(h("div", { class: "msg bad" }, "Bitte nur die Ziffern 0 und 1 eingeben (höchstens 10 Stück).")); return; }
+    digits = [...v].map(Number); k = 0; erg = 0; tbody.replaceChildren(h("tr", {}, h("td", {}, "Start"), h("td", { class: "m" }, "–"), h("td", { class: "m" }, "–"), h("td", { class: "m" }, "0")));
+    fb.replaceChildren(); drawDigits(); step();
+  }
+  function drawDigits() { digitsBox.replaceChildren(...digits.map((d, j) => h("span", { class: j < k ? "used" : j === k ? "cur" : "" }, d))); }
+  function step() {
+    drawDigits();
+    if (k >= digits.length) {
+      const sv = digits.map((d, j) => d * 2 ** (digits.length - 1 - j));
+      ctrl.replaceChildren(h("button", { class: "btn ghost", type: "button", onclick: reset }, "Neu starten"));
+      fb.replaceChildren(h("div", { class: "msg ok" }, `Fertig: ${digits.join("")}₂ = ${erg}. Kontrolle mit Stellenwerten: ${sv.join(" + ")} = ${sv.reduce((a, b) => a + b, 0)} ✓`));
+      markDone("rezept"); return;
+    }
+    const d = digits[k]; const guess = h("input", { class: "field", id: "rez-g", inputmode: "numeric", "aria-label": "Neues Ergebnis" });
+    const want = erg * 2 + d;
+    const reveal = () => { tbody.append(h("tr", {}, h("td", {}, `Ziffer ${k + 1}`), h("td", { class: "m" }, d), h("td", { class: "m" }, `${erg} · 2 + ${d}`), h("td", { class: "m" }, want))); erg = want; k++; step(); };
+    ctrl.replaceChildren(h("span", {}, `Ziffer ${k + 1} ist `, h("b", {}, d), `. Rechne: ${erg} · 2 + ${d} = `), guess,
+      h("button", { class: "btn", type: "button", onclick: () => {
+        if (Number(guess.value) === want && guess.value.trim() !== "") { fb.replaceChildren(h("div", { class: "msg ok" }, "Stimmt!")); reveal(); }
+        else fb.replaceChildren(h("div", { class: "msg bad" }, "Noch nicht. Tipp: Erst das alte Ergebnis verdoppeln, dann die Ziffer addieren."));
+      } }, "Prüfen"),
+      h("button", { class: "btn ghost", type: "button", onclick: () => { fb.replaceChildren(); reveal(); } }, "Zeigen"));
+    guess.addEventListener("keydown", e => { if (e.key === "Enter") ctrl.querySelector(".btn").click(); });
+  }
+  setTimeout(reset);
+  return [teacherBox("rezept"), head(i, "Das Verdoppel-Rezept", "Stellenwerte addieren klappt gut für Menschen. Für ein Programm gibt es ein Rezept, das die Ziffern einfach von links nach rechts liest."),
+    h("div", { class: "grid2" },
+      h("div", { class: "panel stack" },
+        h("div", { class: "recipe" }, h("b", {}, "Rezept"), h("span", {}, "1. Ergebnis = 0"), h("span", {}, "2. Für jede Ziffer von links:"), h("span", {}, "   Ergebnis = Ergebnis · 2 + Ziffer"), h("span", {}, "3. Ergebnis sagen")),
+        h("div", { class: "row" }, h("label", { for: "rez-in" }, "Dualzahl:"), input, h("button", { class: "btn ghost", type: "button", onclick: reset }, "Übernehmen")),
+        digitsBox, ctrl, fb),
+      h("div", { class: "panel stack" }, h("h3", {}, "Deine Tabelle"),
+        h("div", { class: "tw" }, h("table", { class: "rec" }, h("thead", {}, h("tr", {}, h("th", {}, "Schritt"), h("th", {}, "Ziffer"), h("th", {}, "Rechnung"), h("th", {}, "Ergebnis"))), tbody)),
+        h("details", { class: "q" }, h("summary", {}, "Warum funktioniert das Verdoppeln?"), h("p", {}, "Wenn eine neue Ziffer dazukommt, rücken alle schon gelesenen Ziffern eine Stelle nach links. Jede Stelle ist dann doppelt so viel wert. Deshalb verdoppeln wir das bisherige Ergebnis.")))),
+    nextBtn(i)];
+}
+
+/* ---------- Station 3 */
+function sBausteine(i) {
+  const ctx = staticCtx();
+  const T = (name, where, block, text, life) => h("div", { class: "panel term" }, h("div", { class: "eyebrow" }, name), h("div", { class: "script" }, block), h("p", {}, text), h("p", { class: "lead", style: "font-size:.95rem" }, life), h("div", { class: "where" }, "In Scratch: " + where));
+  return [teacherBox("bausteine"), head(i, "Die Bausteine", "Ein Programm ist eine Folge von Befehlen. In Scratch ist jeder Befehl ein Block. Hier lernst du die fünf Arten kennen, die du für den Rechner brauchst, eine nach der anderen."),
+    h("div", { class: "terms" },
+      T("1 · Ereignis", "Ereignisse", rStmt(flag(), ctx), "Ein Ereignis startet das Skript. Alles darunter läuft danach von oben nach unten ab.", "Wie der Startschuss beim Sprint."),
+      T("2 · Eingabe", "Fühlen", h("div", { class: "stack" }, rStmt(ask("Gib eine Dualzahl ein"), ctx), rExpr(ans(), ctx)), "„frage … und warte“ wartet auf eine Eingabe. Was eingetippt wurde, steckt danach im runden Block „Antwort“.", "Wie eine Frage im Unterricht: Die Antwort merkt man sich."),
+      T("3 · Variable", "Variablen", h("div", { class: "stack" }, rStmt(set("Ergebnis", num(0)), ctx), rStmt(change("Stelle", num(1)), ctx)), "Eine Variable ist ein Speicher mit Namen. „setze“ legt einen Wert hinein, „ändere um“ zählt etwas dazu.", "Wie eine beschriftete Kiste mit genau einem Zettel darin."),
+      T("4 · Schleife", "Steuerung", rStmt(rep(num(4), []), ctx), "Eine Schleife wiederholt die Blöcke, die in ihr stecken, so oft wie angegeben.", "Wie „4 Runden laufen“ im Sportunterricht."),
+      T("5 · Rechnen & Ausgabe", "Operatoren · Aussehen", h("div", { class: "stack" }, rExpr(add(mul(vr("Ergebnis"), num(2)), letter(vr("Stelle"), ans())), ctx), rStmt(say(vr("Ergebnis")), ctx)), "Runde Blöcke liefern einen Wert, z. B. eine Rechnung („*“ heißt mal). Sie passen nur in runde Lücken. „sage“ zeigt einen Wert in einer Sprechblase.", "Wie ein Taschenrechner, der das Ergebnis anzeigt.")),
+    h("div", { class: "panel stack", style: "margin-top:18px" },
+      h("h3", {}, "Vergleich: Steckbausteine"),
+      h("p", {}, "Scratch-Blöcke funktionieren wie Steckbausteine (z. B. LEGO): Eckige Befehle stecken untereinander, runde Werte stecken in runde Lücken. Was nicht passt, lässt sich gar nicht zusammenstecken."),
+      h("p", {}, h("b", {}, "Wo der Vergleich hinkt: "), "Bei einem LEGO-Turm ist die Reihenfolge der Steine oft egal. In einem Programm bestimmt die Reihenfolge, was passiert. Und ein Block, der passt, kann trotzdem falsch sein: „* 10“ passt genauso gut wie „* 2“, rechnet aber falsch.")),
+    h("div", { class: "next-row" }, h("a", { class: "btn", href: "#bauen", style: "text-decoration:none", onclick: () => markDone("bausteine") }, "Verstanden, weiter zu Station 4: Zusammenbauen ›"))];
+}
+
+/* ---------- Station 4 */
+let etappeIdx = 0;
+function sBauen(i) {
+  const box = h("div", { class: "stack" });
+  const steps = h("div", { class: "steps", role: "tablist", "aria-label": "Etappen" });
+  const doneE = state.etappen || {};
+  function show(k) {
+    etappeIdx = k; const E = ETAPPEN[k];
+    steps.replaceChildren(...ETAPPEN.map((e, j) => h("button", { type: "button", class: doneE[e.id] ? "done" : "", "aria-current": j === k ? "step" : null, onclick: () => show(j) }, `Etappe ${e.id}: ${e.title}`)));
+    const b = new Builder(E);
+    const think = h("details", { class: "q", hidden: !doneE[E.id] }, h("summary", {}, "Zum Nachdenken: " + E.think[0]), h("p", {}, E.think[1]));
+    const next = h("div", { class: "next-row", hidden: !doneE[E.id] },
+      k < ETAPPEN.length - 1 ? h("button", { class: "btn", type: "button", onclick: () => show(k + 1) }, `Weiter zu Etappe ${ETAPPEN[k + 1].id} ›`)
+        : h("a", { class: "btn", href: "#fehler", style: "text-decoration:none" }, "Weiter zu Station 5: Fehlerjagd ›"));
+    b.onSolved = () => {
+      doneE[E.id] = true; store.set({ etappen: doneE }); think.hidden = false; next.hidden = false;
+      steps.children[k].classList.add("done");
+      if (ETAPPEN.every(e => doneE[e.id])) markDone("bauen");
+    };
+    box.replaceChildren(h("div", { class: "insight" }, h("b", {}, `Etappe ${E.id}: ${E.title}. `), E.intro), b.el, think, next);
+  }
+  show(etappeIdx);
+  return [teacherBox("bauen"), head(i, "Zusammenbauen", "Jetzt wird aus dem Rezept ein Programm. In drei Etappen steckst du die Blöcke zusammen. Nach jeder Etappe kannst du das Programm direkt ausprobieren."), steps, box];
+}
+
+/* ---------- Station 5 */
+let bugIdx = 0;
+function sFehler(i) {
+  const box = h("div"); const tabs = h("div", { class: "cases" });
+  const found = state.bugs || {};
+  function show(k) {
+    bugIdx = k; const B = BUGS[k]; const prog = B.make();
+    tabs.replaceChildren(...BUGS.map((b, j) => h("button", { class: "btn" + (j === k ? "" : " ghost"), type: "button", onclick: () => show(j) }, (found[j] ? "✓ " : "") + b.name)));
+    const fb = h("div", { "aria-live": "polite" }, h("div", { class: "msg info" }, B.tip + " Klicke dann auf den Block, der den Fehler verursacht."));
+    const map = new WeakMap();
+    const runner = new Runner({ getEl: n => map.get(n) });
+    runner.setScript(() => prog);
+    const ctx = { map, slotEl: () => null, pick: (n, el) => {
+      if (runner.running) return;
+      if (n.bug) {
+        el.classList.add("found"); found[k] = true; store.set({ bugs: found });
+        fb.replaceChildren(h("div", { class: "msg ok" }, "Gefunden! " + B.explain));
+        tabs.children[k].textContent = "✓ " + B.name;
+        if (BUGS.every((_, j) => found[j])) markDone("fehler");
+      } else fb.replaceChildren(h("div", { class: "msg bad" }, "Dieser Block ist in Ordnung. Teste weiter und beobachte die Variablen im Protokoll."));
+    } };
+    box.replaceChildren(h("div", { class: "grid2" }, h("div", { class: "panel stack" }, h("h3", {}, "Fehlerhaftes Skript"), renderScript(prog, ctx), fb),
+      h("div", { class: "panel stack" }, h("h3", {}, "Bühne"), runner.el)));
+  }
+  show(bugIdx);
+  return [teacherBox("fehler"), head(i, "Fehlerjagd", "Diese vier Rechner sehen fast richtig aus, haben aber jeweils einen Fehler. Teste sie mit verschiedenen Zahlen und finde den falschen Block."), h("div", { class: "stack" }, tabs, box), nextBtn(i)];
+}
+
+/* ---------- Station 6 */
+function sFertig(i) {
+  const tests = [["0", 0], ["1", 1], ["10", 2], ["111", 7], ["1011", 11], ["10000", 16], ["11111111", 255]];
+  const res = state.tests || {};
+  const prog = FINAL(); const map = new WeakMap();
+  const testEls = tests.map(([inp, out]) => h("div", { class: "test" + (res[inp] ? " pass" : "") }, h("span", {}, inp), h("span", {}, res[inp] ? `= ${out} ✓` : "?")));
+  const runner = new Runner({ getEl: n => map.get(n), onFinish: r => {
+    const t = tests.findIndex(([inp]) => inp === r.answer);
+    if (t < 0) return;
+    const ok = String(r.said) === String(tests[t][1]);
+    testEls[t].className = "test " + (ok ? "pass" : "fail");
+    testEls[t].lastChild.textContent = ok ? `= ${tests[t][1]} ✓` : `≠ ${r.said}`;
+    if (ok) { res[tests[t][0]] = true; store.set({ tests: res }); }
+    if (tests.every(([inp]) => res[inp])) markDone("fertig");
+  } });
+  runner.setScript(() => prog);
+  const ctx = { map, slotEl: () => null };
+  const rows = [["Wenn ⚑ angeklickt wird", "Ereignisse"], ["frage … und warte, Antwort", "Fühlen"], ["setze … auf, ändere … um, Ergebnis, Stelle", "Variablen (vorher „Neue Variable“ anlegen)"],
+    ["wiederhole … mal", "Steuerung"], ["+, *, Zeichen … von …, Länge von …", "Operatoren"], ["sage …", "Aussehen"]];
+  return [teacherBox("fertig", h("div", {}, h("h3", {}, "Ablauf der Reihe (2 Doppelstunden)"), h("div", { class: "tw" }, h("table", { class: "plan" }, h("tbody", {}, PLAN.map(([a, b]) => h("tr", {}, h("td", {}, a), h("td", {}, b)))))),
+    h("p", { class: "meta", style: "margin-top:8px" }, "Bezug: KLP Mathematik Gesamtschule NRW, Inhaltsfeld Arithmetik/Algebra (Stellenwertsysteme) und die prozessbezogenen Kompetenzen Operieren, Problemlösen, Argumentieren. Medienkompetenzrahmen NRW, Bereich 6: Problemlösen und Modellieren (6.2 Algorithmen erkennen, 6.3 Modellieren und Programmieren)."))),
+    head(i, "Fertig und getestet?", "Das ist der fertige Binärrechner. Teste ihn mit allen Zahlen aus dem Testprotokoll. Ein Feld wird grün, wenn der Rechner richtig gerechnet hat."),
+    h("div", { class: "grid2" },
+      h("div", { class: "stack" }, h("div", { class: "panel stack" }, h("h3", {}, "Der Binärrechner"), renderScript(prog, ctx)),
+        h("div", { class: "panel stack" }, h("h3", {}, "Testprotokoll"), h("div", { class: "tests" }, testEls))),
+      h("div", { class: "panel stack" }, h("h3", {}, "Bühne"), runner.el)),
+    h("div", { class: "grid2", style: "margin-top:18px" },
+      h("div", { class: "panel stack" }, h("h3", {}, "Exit-Ticket: drei Fragen"),
+        h("details", { class: "q" }, h("summary", {}, "1. Was zeigt der Rechner bei 110? Rechne mit dem Rezept."), h("p", {}, "6. Ergebnis: 0 → 0·2+1 = 1 → 1·2+1 = 3 → 3·2+0 = 6.")),
+        h("details", { class: "q" }, h("summary", {}, "2. Wozu braucht der Rechner die Variable Stelle?"), h("p", {}, "Sie merkt sich, welche Ziffer gerade gelesen wird. Ohne sie würde der Rechner immer nur die erste Ziffer lesen.")),
+        h("details", { class: "q" }, h("summary", {}, "3. Warum steht „setze Ergebnis auf 0“ vor der Schleife und nicht darin?"), h("p", {}, "In der Schleife würde das Ergebnis vor jeder Ziffer gelöscht, und es bliebe nur die letzte Ziffer übrig. Davor wird es nur einmal am Anfang auf 0 gesetzt."))),
+      h("div", { class: "panel stack" }, h("h3", {}, "Jetzt in echtem Scratch"),
+        h("p", {}, "Öffne den Scratch-Editor (", h("a", { href: "https://scratch.mit.edu/projects/editor/", target: "_blank", rel: "noopener" }, "scratch.mit.edu"), "), lege die Variablen „Ergebnis“ und „Stelle“ an und baue das Skript nach. Hier findest du die Blöcke:"),
+        h("div", { class: "tw" }, h("table", { class: "find-table" }, h("thead", {}, h("tr", {}, h("th", {}, "Block"), h("th", {}, "Kategorie"))), h("tbody", {}, rows.map(([a, b]) => h("tr", {}, h("td", {}, a), h("td", {}, b)))))),
+        h("details", { class: "q" }, h("summary", {}, "Expertenaufgabe: Dezimal → Dual"), h("p", {}, "Baue einen zweiten Rechner, der eine Dezimalzahl in eine Dualzahl umwandelt. Rezept: Teile die Zahl immer wieder durch 2. Der Rest (0 oder 1) wird vorne an die Dualzahl angehängt. Wiederhole das, bis die Zahl 0 ist. Du brauchst die Operatoren „mod“ (Rest), „abrunden von“ und „verbinde“."))))];
+}
+
+/* ============================================================ Navigation */
+function renderNav() {
+  const cur = currentId();
+  $("#nav").replaceChildren(...STATIONS.map((s, i) => h("a", { href: "#" + s.id, class: state.done[s.id] ? "done" : "", "aria-current": s.id === cur ? "page" : null },
+    h("span", { class: "n" }, state.done[s.id] ? "✓" : i + 1), s.label)));
+}
+function currentId() { const id = location.hash.slice(1); return STATIONS.some(s => s.id === id) ? id : "bits"; }
+function route() {
+  const id = currentId(); const i = STATIONS.findIndex(s => s.id === id);
+  $("#main").replaceChildren(...STATIONS[i].render(i).filter(Boolean));
+  renderNav(); window.scrollTo({ top: 0 });
+}
+const tt = $("#teacherToggle");
+function applyTeacher() { document.body.classList.toggle("teacher-on", state.teacher); tt.setAttribute("aria-pressed", String(state.teacher)); }
+tt.addEventListener("click", () => { state.teacher = !state.teacher; store.set({ teacher: state.teacher }); applyTeacher(); });
+window.addEventListener("hashchange", route);
+applyTeacher(); route();
+</script>

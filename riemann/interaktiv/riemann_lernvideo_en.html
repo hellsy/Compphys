@@ -1,0 +1,1171 @@
+<title>Riemann Hypothesis Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ein Videoplayer (immer dunkle "Leinwand") oben, rechts Kapitelliste; darunter Ausprobieren + Transkript. */
+:root {
+  --bg: #eef0f6;
+  --surface: #ffffff;
+  --ink: #151a2d;
+  --muted: #586079;
+  --line: #d9dcea;
+  --accent: #2c3c9e;
+  --accent-ink: #ffffff;
+  --gold: #946a00;
+  --good: #1d7a45;
+  --bad: #b3342a;
+  --stage: #0b1020;
+  --f-disp: "Literata", Georgia, "Times New Roman", serif;
+  --f-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #080b15; --surface: #111730; --ink: #e6e9f5; --muted: #98a0be; --line: #242c4c;
+    --accent: #8fa0ff; --accent-ink: #0b1020; --gold: #f2c14e; --good: #5fd39a; --bad: #ff8a7d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #080b15; --surface: #111730; --ink: #e6e9f5; --muted: #98a0be; --line: #242c4c;
+  --accent: #8fa0ff; --accent-ink: #0b1020; --gold: #f2c14e; --good: #5fd39a; --bad: #ff8a7d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; display: grid; gap: 22px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+header.top h1 { font-family: var(--f-disp); font-weight: 600; font-size: clamp(26px, 4vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+header.top h1 em { font-style: italic; font-weight: 500; color: var(--gold); }
+header.top p { margin: 0; color: var(--muted); max-width: 52ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.player { background: var(--stage); border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px -24px rgba(10, 16, 40, 0.55); min-width: 0; }
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; cursor: pointer; user-select: none; touch-action: pan-y; }
+.stage.grab { cursor: grab; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.subs { position: absolute; left: 50%; bottom: 4.5%; transform: translateX(-50%); width: min(88%, 980px); text-align: center; pointer-events: none; }
+.subs span { display: inline; background: rgba(5, 8, 18, 0.78); color: #f1f3fb; font-size: clamp(12px, 1.75vw, 19px); line-height: 1.6; padding: 0.18em 0.5em; box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 4px; }
+.bigplay { position: absolute; inset: 0; margin: auto; width: 84px; height: 84px; border-radius: 50%; border: 0; background: rgba(242, 193, 78, 0.95); color: #10162e; display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 0 10px rgba(242, 193, 78, 0.18); transition: transform .15s; }
+.bigplay:hover { transform: scale(1.06); }
+.bigplay:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+.bigplay svg { width: 32px; height: 32px; margin-left: 5px; }
+
+.overlay { position: absolute; inset: 0; background: rgba(6, 9, 20, 0.8); display: grid; place-items: center; padding: 3%; cursor: default; }
+.qcard { background: #141b38; color: #eef0fa; border: 1px solid #2c3766; border-radius: 12px; padding: clamp(14px, 2.6vw, 30px); width: min(640px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 12px; }
+.qcard .eyebrow { color: #f2c14e; }
+.qcard h3 { margin: 0; font-family: var(--f-disp); font-weight: 600; font-size: clamp(16px, 2.2vw, 24px); line-height: 1.25; text-wrap: balance; }
+.qopts { display: grid; gap: 8px; }
+.qopt { text-align: left; font: inherit; font-size: clamp(13px, 1.5vw, 16px); color: inherit; background: #1b2347; border: 1px solid #2f3a6b; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+.qopt:hover:not(:disabled) { border-color: #f2c14e; }
+.qopt:focus-visible { outline: 2px solid #f2c14e; outline-offset: 2px; }
+.qopt.right { border-color: #5fd39a; background: #15392d; }
+.qopt.wrong { border-color: #ff8a7d; background: #3d1d22; }
+.qopt:disabled { cursor: default; }
+.qfeed { font-size: clamp(13px, 1.4vw, 15px); color: #c8cde6; margin: 0; }
+.qrow { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.btn { font: inherit; font-weight: 500; font-size: 14px; border-radius: 8px; padding: 8px 16px; cursor: pointer; border: 1px solid transparent; }
+.btn.gold { background: #f2c14e; color: #10162e; }
+.btn.ghost { background: transparent; color: #c8cde6; border-color: #3a4575; }
+.btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.bar { position: relative; height: 22px; display: flex; gap: 3px; padding: 8px 14px 6px; cursor: pointer; }
+.seg { position: relative; flex: 1 1 0; height: 6px; background: #2a3358; border-radius: 3px; overflow: hidden; }
+.seg i { position: absolute; inset: 0 auto 0 0; background: #f2c14e; width: 0; }
+.bar:focus-visible { outline: 2px solid #f2c14e; outline-offset: -2px; }
+.controls { display: flex; align-items: center; gap: 6px; padding: 4px 10px 12px; color: #d9ddf0; flex-wrap: wrap; }
+.cbtn { background: transparent; border: 0; color: inherit; width: 38px; height: 38px; border-radius: 8px; display: grid; place-items: center; cursor: pointer; }
+.cbtn:hover { background: #1c2448; }
+.cbtn:focus-visible { outline: 2px solid #f2c14e; }
+.cbtn svg { width: 20px; height: 20px; }
+.time { font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: #aab1d3; margin-left: 4px; }
+.chapname { font-size: 13px; color: #d9ddf0; margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 120px; }
+.toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+.tog { font: inherit; font-size: 12.5px; color: #aab1d3; background: transparent; border: 1px solid #323c69; border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+.tog[aria-pressed="true"] { color: #10162e; background: #f2c14e; border-color: #f2c14e; }
+.tog:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+select.tog { appearance: none; padding-right: 11px; }
+select.tog option { color: #000; }
+
+aside.chapters { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 4px; }
+aside.chapters h2 { margin: 0 0 6px; font-size: 13px; }
+.chap { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; text-align: left; font: inherit; color: var(--ink); background: transparent; border: 0; border-radius: 8px; padding: 8px 8px; cursor: pointer; }
+.chap:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.chap:focus-visible { outline: 2px solid var(--accent); }
+.chap .n { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chap .t { font-weight: 500; }
+.chap .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chap.on { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.chap.on .n { color: var(--accent); }
+.chap .q { font-size: 12px; color: var(--muted); grid-column: 2 / 4; }
+.chap .q.ok { color: var(--good); }
+.score { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+
+.lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 12px; min-width: 0; }
+.panel h2 { margin: 0; font-family: var(--f-disp); font-weight: 600; font-size: 21px; text-wrap: balance; }
+.panel p { margin: 0; max-width: 65ch; }
+.try-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.try-row label { font-weight: 500; }
+.try-val { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 15px; color: var(--accent); min-width: 9ch; text-align: right; }
+input[type="range"] { width: 100%; accent-color: var(--accent); grid-column: 1 / -1; }
+.hint { color: var(--muted); font-size: 14px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 4px; }
+.fact { border-top: 2px solid var(--line); padding-top: 8px; }
+.fact b { display: block; font-family: var(--f-disp); font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fact span { font-size: 13px; color: var(--muted); }
+.transcript { max-height: 560px; overflow: auto; }
+.transcript h3 { margin: 14px 0 4px; font-size: 13px; font-family: var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.transcript h3:first-child { margin-top: 0; }
+.line { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); background: transparent; border: 0; border-left: 2px solid transparent; padding: 6px 10px; cursor: pointer; border-radius: 0 6px 6px 0; }
+.line:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.line:focus-visible { outline: 2px solid var(--accent); }
+.line.on { border-left-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.line .ts { font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+footer.note { color: var(--muted); font-size: 13px; max-width: 80ch; }
+@media (max-width: 600px) { .subs { bottom: 3%; width: 94%; } .subs span { font-size: 11px; line-height: 1.45; } .bigplay { width: 56px; height: 56px; box-shadow: 0 0 0 6px rgba(242,193,78,0.18); } .bigplay svg { width: 22px; height: 22px; } }
+@media (prefers-reduced-motion: reduce) { .bigplay { transition: none; } }
+</style>
+
+<div class="wrap" lang="en">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Interactive learning video · 8 chapters · with quiz questions</div>
+      <h1>The Riemann Hypothesis <em>ζ(s) = 0</em></h1>
+    </div>
+    <p>From the prime numbers through Euler’s zeta function to the zeros on the critical line. Every graphic is computed live in your browser. Pause at any time and change the values yourself.</p>
+  </header>
+
+  <div class="main">
+    <section class="player" aria-label="Video player">
+      <div class="stage" id="stage">
+        <canvas id="cv" aria-label="Animation about the Riemann hypothesis"></canvas>
+        <div class="subs" id="subs" aria-live="polite"></div>
+        <button class="bigplay" id="bigplay" aria-label="Play video"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l15 8-15 8z"/></svg></button>
+        <div class="overlay" id="quiz" hidden>
+          <div class="qcard" role="dialog" aria-labelledby="qq">
+            <div class="eyebrow" id="qeye">Quick question</div>
+            <h3 id="qq"></h3>
+            <div class="qopts" id="qopts"></div>
+            <p class="qfeed" id="qfeed"></p>
+            <div class="qrow">
+              <button class="btn ghost" id="qskip">Skip</button>
+              <button class="btn gold" id="qnext" hidden>Continue</button>
+            </div>
+          </div>
+        </div>
+        <div class="overlay" id="endcard" hidden>
+          <div class="qcard">
+            <div class="eyebrow">End of the video</div>
+            <h3>The hypothesis has been open since 1859. Now you know what it is about.</h3>
+            <p class="qfeed" id="endscore"></p>
+            <div class="qrow"><button class="btn gold" id="replay">Watch again</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="bar" id="bar" role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+      <div class="controls">
+        <button class="cbtn" id="prev" aria-label="Previous chapter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+        <button class="cbtn" id="play" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor" id="playicon"><path d="M7 4l13 8-13 8z"/></svg></button>
+        <button class="cbtn" id="next" aria-label="Next chapter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+        <span class="time" id="time">0:00 / 0:00</span>
+        <span class="chapname" id="chapname"></span>
+        <div class="toggles">
+          <button class="tog" id="tSubs" aria-pressed="true">Subtitles</button>
+          <button class="tog" id="tVoice" aria-pressed="false">Narrator</button>
+          <button class="tog" id="tQuiz" aria-pressed="true">Quiz</button>
+          <select class="tog" id="speed" aria-label="Speed">
+            <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <aside class="chapters" aria-label="Chapters">
+      <h2 class="eyebrow">Chapters</h2>
+      <div id="chaplist" style="display:grid;gap:2px"></div>
+      <div class="score" id="score">Quiz: no answers yet</div>
+    </aside>
+  </div>
+
+  <div class="lower">
+    <section class="panel" id="trypanel" aria-live="polite">
+      <div class="eyebrow">Try it yourself</div>
+      <h2 id="tryTitle"></h2>
+      <p class="hint" id="tryHint"></p>
+      <div class="try-row" id="tryRow">
+        <label for="trySlider" id="tryLabel"></label>
+        <span class="try-val" id="tryVal"></span>
+        <input type="range" id="trySlider" min="0" max="1000" step="1" value="0">
+      </div>
+      <div class="facts" id="facts"></div>
+    </section>
+    <section class="panel">
+      <div class="eyebrow">Transcript · click to jump</div>
+      <div class="transcript" id="transcript"></div>
+    </section>
+  </div>
+
+  <footer class="note">Computation: ζ(s) via Borwein’s method for the eta function and Riemann’s functional equation, zeros via sign changes of the Riemann–Siegel function Z(t). Primes by sieve up to 100,000. The narrator uses your browser’s English voice, if available.</footer>
+</div>
+<script>
+function MathLib() {
+  const PI = Math.PI;
+  function cmul(a, b) { return [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]]; }
+  function cdiv(a, b) { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; }
+  function cexp(a) { const e = Math.exp(a[0]); return [e * Math.cos(a[1]), e * Math.sin(a[1])]; }
+  function clog(a) { return [Math.log(Math.hypot(a[0], a[1])), Math.atan2(a[1], a[0])]; }
+  function csin(a) { return [Math.sin(a[0]) * Math.cosh(a[1]), Math.cos(a[0]) * Math.sinh(a[1])]; }
+  function rpow(lnb, s) { const m = Math.exp(s[0] * lnb), a = s[1] * lnb; return [m * Math.cos(a), m * Math.sin(a)]; }
+  const LG = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  function gamma(z) {
+    if (z[0] < 0.5) {
+      const s = csin([PI * z[0], PI * z[1]]);
+      return cdiv([PI, 0], cmul(s, gamma([1 - z[0], -z[1]])));
+    }
+    const zz = [z[0] - 1, z[1]];
+    const x = [LG[0], 0];
+    for (let i = 1; i < 9; i++) { const q = cdiv([LG[i], 0], [zz[0] + i, zz[1]]); x[0] += q[0]; x[1] += q[1]; }
+    const t = [zz[0] + 7.5, zz[1]], lt = clog(t), a = zz[0] + 0.5, b = zz[1];
+    const e = cexp([a * lt[0] - b * lt[1] - t[0], a * lt[1] + b * lt[0] - t[1]]);
+    const r = Math.sqrt(2 * PI);
+    return cmul([r * e[0], r * e[1]], x);
+  }
+  // Borwein-Verfahren für die Dirichletsche Eta-Funktion
+  const bcache = {};
+  let NBASE = 25;
+  function bcoef(n) {
+    if (bcache[n]) return bcache[n];
+    const d = new Float64Array(n + 1);
+    let term = 1, sum = 1; d[0] = 1;
+    for (let i = 0; i < n; i++) { term *= 4 * (n + i) * (n - i) / ((2 * i + 1) * (2 * i + 2)); sum += term; d[i + 1] = sum; }
+    const c = new Float64Array(n), lnk = new Float64Array(n);
+    for (let k = 0; k < n; k++) { c[k] = ((k % 2) ? -1 : 1) * (d[k] - d[n]) / d[n]; lnk[k] = Math.log(k + 1); }
+    return (bcache[n] = { c, lnk });
+  }
+  function eta(s) {
+    const n = Math.max(20, Math.ceil(0.9 * Math.abs(s[1]) + NBASE));
+    const { c, lnk } = bcoef(n);
+    let re = 0, im = 0;
+    for (let k = 0; k < n; k++) {
+      const m = Math.exp(-s[0] * lnk[k]), a = -s[1] * lnk[k];
+      re -= c[k] * m * Math.cos(a); im -= c[k] * m * Math.sin(a);
+    }
+    return [re, im];
+  }
+  function zeta(s) {
+    if (s[0] >= 0.5) {
+      const p = rpow(Math.LN2, [1 - s[0], -s[1]]);
+      return cdiv(eta(s), [1 - p[0], -p[1]]);
+    }
+    const o = [1 - s[0], -s[1]];
+    const a = rpow(Math.LN2, s), b = rpow(Math.log(PI), [s[0] - 1, s[1]]);
+    const c = csin([PI * s[0] / 2, PI * s[1] / 2]);
+    return cmul(cmul(cmul(a, b), c), cmul(gamma(o), zeta(o)));
+  }
+  function clgamma(z) {
+    let sre = 0, sim = 0, w = [z[0], z[1]];
+    for (let k = 0; k < 8; k++) { const l = clog(w); sre += l[0]; sim += l[1]; w = [w[0] + 1, w[1]]; }
+    const lw = clog(w), iw = cdiv([1, 0], w), iw2 = cmul(iw, iw), iw3 = cmul(iw, iw2), iw5 = cmul(iw3, iw2);
+    let r = cmul([w[0] - 0.5, w[1]], lw);
+    r = [r[0] - w[0] + 0.5 * Math.log(2 * PI) + iw[0] / 12 - iw3[0] / 360 + iw5[0] / 1260,
+         r[1] - w[1] + iw[1] / 12 - iw3[1] / 360 + iw5[1] / 1260];
+    return [r[0] - sre, r[1] - sim];
+  }
+  function theta(t) {
+    if (t > 30) return t / 2 * Math.log(t / (2 * PI)) - t / 2 - PI / 8 + 1 / (48 * t) + 7 / (5760 * t * t * t);
+    return clgamma([0.25, t / 2])[1] - t / 2 * Math.log(PI);
+  }
+  function Zb(t) { const z = zeta([0.5, t]), th = theta(t); return z[0] * Math.cos(th) - z[1] * Math.sin(th); }
+  function Zrs(t) {
+    const a = Math.sqrt(t / (2 * PI)), N = Math.floor(a), p = a - N, th = theta(t);
+    let s = 0;
+    for (let n = 1; n <= N; n++) s += Math.cos(th - t * Math.log(n)) / Math.sqrt(n);
+    const C0 = Math.cos(2 * PI * (p * p - p - 1 / 16)) / Math.cos(2 * PI * p);
+    return 2 * s + ((N - 1) % 2 ? -1 : 1) * Math.pow(a, -0.5) * C0;
+  }
+  function Z(t) { return t < 80 ? Zb(t) : Zrs(t); }
+  function findZeros(T) {
+    const out = [], h = 0.04;
+    let t0 = 10, z0 = Z(t0);
+    for (let t1 = t0 + h; t1 <= T; t1 += h) {
+      const z1 = Z(t1);
+      if (z0 === 0 || z0 * z1 < 0) {
+        let a = t0, b = t1, fa = z0;
+        for (let i = 0; i < 40; i++) { const m = (a + b) / 2, fm = Z(m); if (fa * fm <= 0) b = m; else { a = m; fa = fm; } }
+        out.push((a + b) / 2);
+      }
+      t0 = t1; z0 = z1;
+    }
+    return out;
+  }
+  function hsv(h, s, v) {
+    const i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - s), q = v * (1 - f * s), u = v * (1 - (1 - f) * s);
+    switch (((i % 6) + 6) % 6) {
+      case 0: return [v, u, p]; case 1: return [q, v, p]; case 2: return [p, v, u];
+      case 3: return [p, q, v]; case 4: return [u, p, v]; default: return [v, p, q];
+    }
+  }
+  // Farbbild von ζ: Zeilen j0..j1 (j=0 oben bei im1)
+  function domainRows(PX, re0, re1, im1, j0, j1) {
+    NBASE = 11;
+    const W = Math.round((re1 - re0) * PX);
+    const data = new Uint8ClampedArray(W * (j1 - j0) * 4);
+    let o = 0;
+    for (let j = j0; j < j1; j++) {
+      const im = im1 - (j + 0.5) / PX;
+      for (let i = 0; i < W; i++) {
+        const re = re0 + (i + 0.5) / PX;
+        const z = zeta([re, im]);
+        const m = Math.hypot(z[0], z[1]);
+        let r, g, b;
+        if (!isFinite(m) || m > 1e6) { r = g = b = 1; }
+        else {
+          const h = (Math.atan2(z[1], z[0]) / (2 * PI) + 1) % 1;
+          const lm = Math.log2(m + 1e-12), f = lm - Math.floor(lm);
+          let v = 0.38 + 0.52 * Math.pow(f, 0.75);
+          v *= 1 - 0.75 * Math.exp(-m * 5);
+          [r, g, b] = hsv(h, 0.7, v);
+        }
+        data[o++] = r * 255; data[o++] = g * 255; data[o++] = b * 255; data[o++] = 255;
+      }
+    }
+    NBASE = 25;
+    return { W, data };
+  }
+  return { zeta, Z, theta, findZeros, domainRows, gamma };
+}
+const M = MathLib();
+const SW = 1600, SH = 900;
+const COL = { bg: '#0b1020', grid: 'rgba(160,175,230,0.09)', axis: 'rgba(190,200,240,0.5)', text: '#e9ecf8', dim: '#9aa3c7', faint: '#5c6690',
+  gold: '#f2c14e', cyan: '#5ad1e6', coral: '#ff7a6b', violet: '#b49cff', panel: 'rgba(14,20,44,0.86)', line: '#2b3561' };
+const F = {
+  disp: (s, w = 600) => `${w} ${s}px Literata, Georgia, serif`,
+  dispI: (s) => `italic 500 ${s}px Literata, Georgia, serif`,
+  sans: (s, w = 500) => `${w} ${s}px "IBM Plex Sans", system-ui, sans-serif`,
+  mono: (s, w = 500) => `${w} ${s}px "IBM Plex Mono", ui-monospace, monospace`,
+};
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+const lerp = (a, b, t) => a + (b - a) * t;
+const loglerp = (a, b, t) => Math.exp(lerp(Math.log(a), Math.log(b), t));
+const de = (v, d = 0) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+// ------------------------------------------------------------ Daten
+const NMAX = 100000;
+const sieve = new Uint8Array(NMAX + 1); sieve[0] = sieve[1] = 1;
+for (let i = 2; i * i <= NMAX; i++) if (!sieve[i]) for (let j = i * i; j <= NMAX; j += i) sieve[j] = 1;
+const PI_ = new Int32Array(NMAX + 1);
+for (let n = 2, c = 0; n <= NMAX; n++) { if (!sieve[n]) c++; PI_[n] = c; }
+const PRIMES = []; for (let n = 2; n <= NMAX; n++) if (!sieve[n]) PRIMES.push(n);
+const LI = new Float64Array(NMAX + 1); LI[2] = 1.045163780117493;
+for (let n = 2; n < NMAX; n++) LI[n + 1] = LI[n] + (1 / Math.log(n) + 4 / Math.log(n + 0.5) + 1 / Math.log(n + 1)) / 6;
+const li = x => { const n = Math.floor(x); return LI[n] + (x - n) / Math.log(x); };
+const DIFF = new Float32Array(NMAX + 1); for (let n = 2; n <= NMAX; n++) DIFF[n] = LI[n] - PI_[n];
+const PSI = new Float64Array(61);
+for (let n = 2; n <= 60; n++) { let v = 0; for (const p of PRIMES) { if (p > n) break; let q = p; while (q <= n) { v += Math.log(p); q *= p; } } PSI[n] = v; }
+const ZEROS30 = [14.134725, 21.02204, 25.010858, 30.424876, 32.935062, 37.586178, 40.918719, 43.327073, 48.005151, 49.773832,
+  52.970321, 56.446248, 59.347044, 60.831779, 63.010784, 65.112544, 67.079811, 69.546402, 72.067158, 75.704691,
+  77.14484, 79.337375, 82.910381, 84.735493, 87.425275, 88.809111, 92.491899, 94.651344, 95.870634, 98.831194];
+let ZEROS = ZEROS30.slice();
+// Kurve ζ(½ + it) für 0 ≤ t ≤ 60
+const SP = []; for (let t = 0; t <= 60.0001; t += 0.025) { const z = M.zeta([0.5, t]); SP.push([t, z[0], z[1], M.Z(t)]); }
+
+// Farbbild der Zetafunktion (Web Worker)
+const DOM = { PX: 24, re0: -7.5, re1: 4.5, im0: -4, im1: 54 };
+DOM.W = Math.round((DOM.re1 - DOM.re0) * DOM.PX); DOM.H = Math.round((DOM.im1 - DOM.im0) * DOM.PX);
+const domCanvas = document.createElement('canvas'); domCanvas.width = DOM.W; domCanvas.height = DOM.H;
+const domCtx = domCanvas.getContext('2d');
+let domDone = 0; const CH_ROWS = 24, NCHUNK = Math.ceil(DOM.H / CH_ROWS);
+function startCompute() {
+  const src = `const M=(${MathLib.toString()})();onmessage=e=>{const d=e.data;if(d.type==='zeros'){postMessage({type:'zeros',z:M.findZeros(d.T)});return;}for(const j0 of d.chunks){const j1=Math.min(j0+${CH_ROWS},${DOM.H});const r=M.domainRows(${DOM.PX},${DOM.re0},${DOM.re1},${DOM.im1},j0,j1);postMessage({type:'rows',j0,j1,data:r.data},[r.data.buffer]);}};`;
+  const order = []; for (let k = NCHUNK - 1; k >= 0; k--) order.push(k * CH_ROWS); // unten zuerst
+  const onMsg = d => {
+    if (d.type === 'zeros') { if (d.z.length > 30) ZEROS = d.z; refreshTry(); return; }
+    domCtx.putImageData(new ImageData(d.data, DOM.W, d.j1 - d.j0), 0, d.j0); domDone++;
+  };
+  try {
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    const nw = clamp((navigator.hardwareConcurrency || 2) - 1, 1, 3);
+    const zw = new Worker(url); zw.onmessage = e => onMsg(e.data); zw.postMessage({ type: 'zeros', T: 300 });
+    for (let w = 0; w < nw; w++) {
+      const wk = new Worker(url); wk.onmessage = e => onMsg(e.data);
+      wk.postMessage({ type: 'rows', chunks: order.filter((_, i) => i % nw === w) });
+    }
+  } catch (err) {
+    // Fallback ohne Worker: stückweise im Hauptthread
+    setTimeout(() => { const z = M.findZeros(300); if (z.length > 30) ZEROS = z; refreshTry(); }, 200);
+    let i = 0;
+    const step = () => { if (i >= order.length) return; const j0 = order[i++]; const j1 = Math.min(j0 + CH_ROWS, DOM.H);
+      const r = M.domainRows(DOM.PX, DOM.re0, DOM.re1, DOM.im1, j0, j1); onMsg({ type: 'rows', j0, j1, data: r.data }); setTimeout(step, 30); };
+    setTimeout(step, 400);
+  }
+}
+
+// ------------------------------------------------------------ Zeichenhilfen
+function plot(x, y, w, h, xa, xb, ya, yb, logx) {
+  const lxa = Math.log(xa), lxb = Math.log(xb);
+  const X = v => x + (logx ? (Math.log(v) - lxa) / (lxb - lxa) : (v - xa) / (xb - xa)) * w;
+  const Y = v => y + h - (v - ya) / (yb - ya) * h;
+  return { x, y, w, h, xa, xb, ya, yb, X, Y, logx };
+}
+function niceStep(span, n) { const raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag; return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag; }
+function ticks(a, b, n) { const s = niceStep(b - a, n), out = []; for (let v = Math.ceil(a / s) * s; v <= b + s * 1e-9; v += s) out.push(+v.toPrecision(12)); return out; }
+function txt(ctx, s, x, y, font, color, align = 'left', base = 'alphabetic') { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base; ctx.fillText(s, x, y); }
+function axes(ctx, P, o = {}) {
+  const xt = o.xt || ticks(P.xa, P.xb, 8), yt = o.yt || ticks(P.ya, P.yb, 6);
+  ctx.lineWidth = 1; ctx.strokeStyle = COL.grid;
+  ctx.beginPath();
+  for (const v of xt) { const X = Math.round(P.X(v)) + 0.5; ctx.moveTo(X, P.y); ctx.lineTo(X, P.y + P.h); }
+  for (const v of yt) { const Y = Math.round(P.Y(v)) + 0.5; ctx.moveTo(P.x, Y); ctx.lineTo(P.x + P.w, Y); }
+  ctx.stroke();
+  ctx.strokeStyle = COL.axis; ctx.beginPath();
+  const y0 = (P.ya <= 0 && P.yb >= 0) ? P.Y(0) : P.y + P.h;
+  ctx.moveTo(P.x, y0); ctx.lineTo(P.x + P.w, y0); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x, P.y + P.h); ctx.stroke();
+  const xf = o.xf || (v => de(v)), yf = o.yf || (v => de(v));
+  for (const v of xt) txt(ctx, xf(v), P.X(v), P.y + P.h + 28, F.mono(17, 400), COL.dim, 'center');
+  for (const v of yt) txt(ctx, yf(v), P.x - 12, P.Y(v) + 6, F.mono(17, 400), COL.dim, 'right');
+  if (o.xl) txt(ctx, o.xl, P.x + P.w, P.y + P.h + 58, F.sans(19, 500), COL.dim, 'right');
+  if (o.yl) txt(ctx, o.yl, P.x, P.y - 16, F.sans(19, 500), COL.dim, 'left');
+}
+function clipTo(ctx, P) { ctx.save(); ctx.beginPath(); ctx.rect(P.x, P.y, P.w, P.h); ctx.clip(); }
+function card(ctx, x, y, w, h, alpha = 1) { ctx.save(); ctx.globalAlpha *= alpha; ctx.fillStyle = COL.panel; ctx.strokeStyle = COL.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x, y, w, h, 14); ctx.fill(); ctx.stroke(); ctx.restore(); }
+function legend(ctx, x, y, items) { items.forEach((it, i) => { const yy = y + i * 34; ctx.strokeStyle = it.c; ctx.lineWidth = 4; ctx.setLineDash(it.dash || []); ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + 34, yy); ctx.stroke(); ctx.setLineDash([]); txt(ctx, it.t, x + 46, yy + 7, F.sans(20, 500), COL.text); }); }
+function wrapText(ctx, s, x, y, maxW, lh, font, color, align = 'left') {
+  ctx.font = font; const words = s.split(' '); let line = '', yy = y;
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { txt(ctx, line, x, yy, font, color, align); line = w; yy += lh; } else line = t; }
+  if (line) txt(ctx, line, x, yy, font, color, align); return yy;
+}
+function header(ctx, title, sub) { txt(ctx, title, 80, 84, F.disp(40), COL.text); if (sub) txt(ctx, sub, 80, 122, F.sans(21, 400), COL.dim); }
+function dot(ctx, x, y, r, c, glow) { if (glow) { ctx.fillStyle = c; ctx.globalAlpha *= 0.25; ctx.beginPath(); ctx.arc(x, y, r * 2.4, 0, 7); ctx.fill(); ctx.globalAlpha /= 0.25; } ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+
+// ------------------------------------------------------------ Kapitel
+const CH = [
+{
+  title: 'A puzzle from 1859', try: null,
+  beats: [
+    'In 1859 Bernhard Riemann published a paper only eight pages long: “On the Number of Primes Less Than a Given Magnitude”.',
+    'Almost in passing, it contains a conjecture that nobody has been able to prove to this day. It links the prime numbers to the zeros of a single function. Let us see how.',
+  ],
+  draw(ctx, st) {
+    const lx = 1180;
+    ctx.strokeStyle = COL.gold; ctx.globalAlpha = 0.55; ctx.lineWidth = 2; ctx.setLineDash([10, 10]);
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, SH); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    // Nullstellen wandern langsam nach unten aus dem Bild (Blick entlang der Geraden nach oben)
+    const scroll = st.lt * 14;
+    for (const g of ZEROS30) {
+      const y = 760 - (g * 16 - scroll);
+      if (y < -20 || y > SH + 20) continue;
+      dot(ctx, lx, y, 6, COL.gold, true);
+      txt(ctx, de(g, 2), lx + 22, y + 6, F.mono(16, 400), 'rgba(242,193,78,0.75)');
+    }
+    txt(ctx, 'Re(s) = ½', lx - 16, 860, F.mono(18), COL.gold, 'right');
+    txt(ctx, 'LEARNING VIDEO · NUMBER THEORY', 110, 250, F.mono(18, 500), COL.gold);
+    txt(ctx, 'The Riemann', 104, 345, F.disp(84), COL.text);
+    txt(ctx, 'Hypothesis', 104, 445, F.disp(84), COL.text);
+    txt(ctx, 'Prime numbers, the zeta function and its zeros', 110, 510, F.sans(27, 400), COL.dim);
+    const a = st.ap(0, 1.2);
+    ctx.globalAlpha = a;
+    txt(ctx, 'Bernhard Riemann, Monthly Reports of the Berlin Academy, 1859', 110, 640, F.sans(20, 400), COL.dim);
+    txt(ctx, '„Ueber die Anzahl der Primzahlen unter einer gegebenen Grösse“', 110, 680, F.dispI(26), COL.text);
+    ctx.globalAlpha = st.ap(1, 1.2);
+    txt(ctx, 'ζ(s) = 0  ⟹  Re(s) = ½ ?', 110, 780, F.disp(40), COL.gold);
+    ctx.globalAlpha = 1;
+  },
+},
+{
+  title: 'Counting primes',
+  beats: [
+    'Prime numbers are the building blocks of the whole numbers: every number greater than 1 can be written as a product of primes in exactly one way.',
+    'The sieve of Eratosthenes finds them: we cross out all multiples of 2, then of 3, of 5 and of 7. What remains are the 25 primes up to 100.',
+    'One by one they look randomly scattered. But if we count how many primes there are up to x, we get a staircase that climbs remarkably evenly: the prime counting function π(x).',
+    'As a teenager, Gauss guessed that π(x) grows roughly like x divided by the natural logarithm of x. The logarithmic integral li(x) fits even better.',
+    'This is the prime number theorem, proved in 1896. What remains open is how large the error between π(x) and li(x) can be. That is exactly what the Riemann hypothesis is about.',
+  ],
+  try: { label: 'Upper limit x', min: 100, max: 100000, log: true, fmt: v => de(Math.round(v)), title: 'How good is the approximation?',
+    hint: 'Drag x up to 100,000. The staircase π(x) stays close to li(x), while x / ln x is visibly too low.' },
+  drive(st) { if (st.beat <= 1) return 100; if (st.beat === 2) return loglerp(100, 1000, ease(st.bp)); if (st.beat === 3) return loglerp(1000, 100000, ease(st.bp)); return 100000; },
+  facts(v) { const X = Math.round(v); return [[de(PI_[X]), 'primes up to ' + de(X)], [de(X / Math.log(X), 0), 'x / ln x'], [de(li(X), 0), 'li(x)'], [de(100 * (li(X) - PI_[X]) / PI_[X], 2) + ' %', 'error of li(x)']]; },
+  draw(ctx, st) {
+    const g = 1 - st.ap(2, 1.0);
+    if (g > 0) { ctx.globalAlpha = g; drawSieve(ctx, st); }
+    const a = st.ap(2, 1.0);
+    if (a > 0) { ctx.globalAlpha = a; drawPi(ctx, st); }
+    ctx.globalAlpha = 1;
+  },
+  quiz: { q: 'What does the prime number theorem say?', opts: ['There are only finitely many primes.', 'π(x) grows roughly like x / ln x.', 'Two primes are always 2 apart.'], a: 1,
+    why: 'The prime number theorem (Hadamard and de la Vallée Poussin, 1896): π(x) behaves asymptotically like x / ln x, and even more precisely like li(x).' },
+},
+{
+  title: 'The zeta function',
+  beats: [
+    'In the 18th century Leonhard Euler studied an infinite sum: one, plus one half to the power s, plus one third to the power s, and so on. Today it is called the zeta function.',
+    'For s equal to 2 we add up the reciprocals of the squares. The sum grows ever more slowly and approaches π² over 6, about 1.6449. This is the famous Basel problem.',
+    'For s equal to 1 we get the harmonic series. It grows painfully slowly, but beyond every bound: the series diverges.',
+    'For every s greater than 1 the sum converges. The larger s, the faster the terms fall off and the closer ζ(s) is to 1.',
+  ],
+  try: { label: 'Exponent s', min: 0.6, max: 4, fmt: v => de(v, 2), title: 'Does the series converge?',
+    hint: 'For s ≤ 1 the sum grows without bound. To the right of 1 it approaches a fixed value ζ(s).' },
+  drive(st) { return [2, 2, 1, lerp(1.25, 4, ease(st.bp))][st.beat]; },
+  facts(s) { const z = s > 1.0001 ? de(M.zeta([s, 0])[0], 4) : '∞'; let S = 0; for (let n = 1; n <= 60; n++) S += Math.pow(n, -s); return [['ζ(' + de(s, 2) + ')', 'exponent'], [z, 'limit'], [de(S, 4), 'sum of the first 60 terms']]; },
+  draw(ctx, st) {
+    const s = st.p;
+    const K = st.user || st.beat === 3 ? 60 : clamp(1 + Math.floor(st.since * 6), 1, 60);
+    txt(ctx, 'ζ(s) = 1 + 1/2ˢ + 1/3ˢ + 1/4ˢ + …', 80, 92, F.disp(42), COL.text);
+    txt(ctx, 's = ' + de(s, 2), 1520, 92, F.mono(34, 500), COL.gold, 'right');
+    const P1 = plot(130, 210, 600, 540, 0.5, 30.5, 0, 1.05);
+    axes(ctx, P1, { xt: [1, 5, 10, 15, 20, 25, 30], yt: [0, 0.25, 0.5, 0.75, 1], yf: v => de(v, 2), xl: 'n', yl: 'term 1/nˢ' });
+    for (let n = 1; n <= Math.min(K, 30); n++) {
+      const v = Math.pow(n, -s), bw = P1.w / 30 * 0.7;
+      ctx.fillStyle = COL.cyan; ctx.globalAlpha = 0.85;
+      ctx.fillRect(P1.X(n) - bw / 2, P1.Y(v), bw, P1.Y(0) - P1.Y(v)); ctx.globalAlpha = 1;
+    }
+    const P2 = plot(900, 210, 620, 540, 0, 60, 0, 6);
+    axes(ctx, P2, { xt: [0, 10, 20, 30, 40, 50, 60], yt: [0, 1, 2, 3, 4, 5, 6], xl: 'number of terms N', yl: 'partial sum' });
+    const zv = s > 1.0001 ? M.zeta([s, 0])[0] : Infinity;
+    clipTo(ctx, P2);
+    if (zv < 6) { ctx.strokeStyle = COL.gold; ctx.lineWidth = 2.5; ctx.setLineDash([12, 9]); ctx.beginPath(); ctx.moveTo(P2.x, P2.Y(zv)); ctx.lineTo(P2.x + P2.w, P2.Y(zv)); ctx.stroke(); ctx.setLineDash([]); }
+    let S = 0; ctx.strokeStyle = COL.cyan; ctx.lineWidth = 3; ctx.beginPath();
+    for (let n = 1; n <= K; n++) { S += Math.pow(n, -s); n === 1 ? ctx.moveTo(P2.X(n), P2.Y(S)) : ctx.lineTo(P2.X(n), P2.Y(S)); }
+    ctx.stroke();
+    S = 0; for (let n = 1; n <= K; n++) { S += Math.pow(n, -s); dot(ctx, P2.X(n), P2.Y(S), 3.5, COL.cyan); }
+    ctx.restore();
+    const lab = zv < 6 ? 'ζ(' + de(s, 2) + ') = ' + de(zv, 4) : (s > 1.0001 ? 'ζ(' + de(s, 2) + ') = ' + de(zv, 2) + ' (off the chart)' : 'diverges');
+    txt(ctx, lab, P2.x + P2.w - 10, zv < 6 ? P2.Y(zv) - 14 : P2.y + 30, F.mono(21, 500), zv < 6 ? COL.gold : COL.coral, 'right');
+    txt(ctx, 'Partial sum of ' + K + ' terms: ' + de(S, 4), P2.x + 10, P2.y + 30, F.mono(19, 400), COL.dim);
+    if (st.beat === 1 && !st.user) { ctx.globalAlpha = clamp((st.since - 4) / 0.8, 0, 1); card(ctx, P2.x + 200, P2.Y(1.645) + 40, 400, 96); txt(ctx, '1 + ¼ + ⅑ + 1/16 + …', P2.x + 220, P2.Y(1.645) + 80, F.disp(26), COL.text); txt(ctx, '= π²/6 (Euler, 1734)', P2.x + 220, P2.Y(1.645) + 118, F.disp(26), COL.gold); ctx.globalAlpha = 1; }
+  },
+  quiz: { q: 'What is the value of ζ(2) = 1 + 1/4 + 1/9 + 1/16 + … ?', opts: ['Exactly 2', 'The series diverges', 'π²/6 ≈ 1.6449'], a: 2,
+    why: 'Euler showed in 1734 that the sum of the reciprocals of all squares is π²/6. Only the harmonic series at s = 1 diverges.' },
+},
+{
+  title: 'Euler’s bridge to the primes',
+  beats: [
+    'Euler’s brilliant step: the same sum can be written as a product over all primes. Each prime p contributes a factor 1 over 1 minus p to the power minus s.',
+    'Why? Each factor is a geometric series. Multiplying them all out produces every number n exactly once, because its prime factorization is unique. Sum and product head to the same value.',
+    'So all the information about the primes is hidden inside the zeta function. Whoever understands ζ understands how the primes are distributed.',
+  ],
+  try: { label: 'Exponent s', min: 1.15, max: 4, fmt: v => de(v, 2), title: 'Sum versus product',
+    hint: 'For every s > 1 the sum (blue) and the prime product (red) end up at the same value ζ(s).' },
+  drive(st) { return 2; },
+  facts(s) { let P = 1; for (const p of PRIMES) { if (p > 60) break; P /= 1 - Math.pow(p, -s); } return [[de(M.zeta([s, 0])[0], 4), 'ζ(s)'], [de(P, 4), 'product over p ≤ 60']]; },
+  draw(ctx, st) {
+    const s = st.p, zv = M.zeta([s, 0])[0];
+    const K = st.user ? 60 : clamp(1 + Math.floor(st.lt * 3.2), 1, 60);
+    txt(ctx, '∑ 1/nˢ  =  ∏  1 / (1 − p⁻ˢ)', 80, 92, F.disp(44), COL.text);
+    txt(ctx, 'n ≥ 1', 104, 124, F.mono(17, 400), COL.dim); txt(ctx, 'p prime', 330, 124, F.mono(17, 400), COL.dim);
+    txt(ctx, 's = ' + de(s, 2), 1520, 92, F.mono(34, 500), COL.gold, 'right');
+    const top = zv * 1.06 + 0.05;
+    const P = plot(130, 200, 860, 560, 0, 60, 1, top);
+    axes(ctx, P, { xt: [0, 10, 20, 30, 40, 50, 60], yt: ticks(1, top, 5), yf: v => de(v, 2), xl: 'up to N' });
+    clipTo(ctx, P);
+    ctx.strokeStyle = COL.gold; ctx.lineWidth = 2.5; ctx.setLineDash([12, 9]); ctx.beginPath(); ctx.moveTo(P.x, P.Y(zv)); ctx.lineTo(P.x + P.w, P.Y(zv)); ctx.stroke(); ctx.setLineDash([]);
+    let S = 0, Pr = 1; const sp = [], pp = [];
+    for (let n = 1; n <= K; n++) { S += Math.pow(n, -s); if (n > 1 && !sieve[n]) Pr /= 1 - Math.pow(n, -s); sp.push([n, S]); pp.push([n, Pr]); }
+    ctx.strokeStyle = COL.coral; ctx.lineWidth = 3.5; ctx.beginPath();
+    pp.forEach(([n, v], i) => { if (i === 0) ctx.moveTo(P.X(n), P.Y(v)); else { ctx.lineTo(P.X(n), P.Y(pp[i - 1][1])); ctx.lineTo(P.X(n), P.Y(v)); } }); ctx.stroke();
+    ctx.strokeStyle = COL.cyan; ctx.lineWidth = 3; ctx.beginPath(); sp.forEach(([n, v], i) => i ? ctx.lineTo(P.X(n), P.Y(v)) : ctx.moveTo(P.X(n), P.Y(v))); ctx.stroke();
+    ctx.restore();
+    legend(ctx, P.x + P.w - 430, P.y + P.h - 150, [{ c: COL.cyan, t: 'sum over all n ≤ N' }, { c: COL.coral, t: 'product over all primes p ≤ N' }]);
+    txt(ctx, 'ζ(' + de(s, 2) + ') = ' + de(zv, 4), P.x + P.w - 10, P.Y(zv) - 14, F.mono(21, 500), COL.gold, 'right');
+    // rechte Tafel
+    const cx = 1050, cw = 480;
+    card(ctx, cx, 200, cw, 560);
+    if (st.beat === 0 || st.user) {
+      txt(ctx, 'Prime factors', cx + 28, 248, F.sans(22, 600), COL.text);
+      let pr = 1; let y = 296;
+      for (const p of [2, 3, 5, 7, 11, 13, 17, 19]) {
+        const f = 1 / (1 - Math.pow(p, -s)); pr *= f;
+        const vis = st.user ? 1 : clamp((st.lt - (p === 2 ? 1 : 1 + 0.9 * [2, 3, 5, 7, 11, 13, 17, 19].indexOf(p))) / 0.5, 0, 1);
+        ctx.globalAlpha = vis;
+        txt(ctx, 'p = ' + p, cx + 28, y, F.mono(20, 400), COL.coral);
+        txt(ctx, '× ' + de(f, 4), cx + 190, y, F.mono(20, 400), COL.text);
+        txt(ctx, '= ' + de(pr, 4), cx + cw - 28, y, F.mono(20, 400), COL.dim, 'right');
+        y += 46;
+      }
+      ctx.globalAlpha = 1;
+      txt(ctx, '… and so on for all primes', cx + 28, y + 10, F.sans(18, 400), COL.dim);
+    } else if (st.beat === 1) {
+      const a = st.ap(1, 0.8); ctx.globalAlpha = a;
+      txt(ctx, 'Multiplying out', cx + 28, 248, F.sans(22, 600), COL.text);
+      const L = ['(1 + 1/2ˢ + 1/4ˢ + 1/8ˢ + …)', '× (1 + 1/3ˢ + 1/9ˢ + …)', '× (1 + 1/5ˢ + 1/25ˢ + …)', '× …'];
+      L.forEach((l, i) => { ctx.globalAlpha = a * clamp((st.since - i * 0.8) / 0.5, 0, 1); txt(ctx, l, cx + 28, 304 + i * 44, F.disp(24, 400), COL.text); });
+      ctx.globalAlpha = a * clamp((st.since - 4) / 0.6, 0, 1);
+      txt(ctx, '= 1 + 1/2ˢ + 1/3ˢ + 1/4ˢ + 1/5ˢ', cx + 28, 506, F.disp(24, 400), COL.gold);
+      txt(ctx, '   + 1/6ˢ + …', cx + 28, 546, F.disp(24, 400), COL.gold);
+      ctx.globalAlpha = a * clamp((st.since - 6.5) / 0.6, 0, 1);
+      wrapText(ctx, 'Example: 1/6ˢ appears exactly once, as 1/2ˢ · 1/3ˢ, because 6 = 2 · 3.', cx + 28, 620, cw - 56, 30, F.sans(19, 400), COL.dim);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalAlpha = st.ap(2, 0.8);
+      txt(ctx, 'Prime numbers', cx + cw / 2, 400, F.disp(36), COL.coral, 'center');
+      txt(ctx, '⟷', cx + cw / 2, 470, F.disp(44), COL.text, 'center');
+      txt(ctx, 'Zeta function ζ(s)', cx + cw / 2, 540, F.disp(36), COL.cyan, 'center');
+      ctx.globalAlpha = 1;
+    }
+  },
+  quiz: { q: 'Why is the sum ∑ 1/nˢ equal to the product over all primes?', opts: ['Because every number has a unique prime factorization.', 'Because the sum diverges at s = 1.', 'Because all odd numbers are prime.'], a: 0,
+    why: 'Multiplying out the factors produces each 1/nˢ exactly once, from the prime factors of n. That is the fundamental theorem of arithmetic.' },
+},
+{
+  title: 'Into the complex plane',
+  beats: [
+    'In 1859 Riemann went one step further: he plugged complex numbers into s, s equals σ plus i times t. Every point of this plane becomes an input.',
+    'The colour shows the angle of the result ζ(s), the bright rings show its size. Wherever all colours meet in one point, ζ(s) equals zero.',
+    'The sum itself only converges to the right of σ equals 1. Riemann nevertheless extended ζ to the whole plane. Only at s equals 1 a pole remains, where ζ becomes infinite.',
+    'At minus 2, minus 4, minus 6 and so on lie the trivial zeros. They are completely understood.',
+    'The other zeros are the exciting ones. They all lie in the narrow critical strip between σ equals 0 and σ equals 1. Let us travel up the strip.',
+    'The first is at t of about 14.13, followed by 21.02, 25.01 and 30.42. Every single one sits exactly on the golden line σ equals one half.',
+  ],
+  try: { label: 'Height t (centre of the view)', min: 0.6, max: 50, fmt: v => 't ≈ ' + de(v, 1), title: 'The map of ζ',
+    hint: 'Move the view upward or drag directly in the picture. Watch where the colours meet.' },
+  drive(st) { if (st.beat <= 3) return 1.2; if (st.beat === 4) return lerp(1.2, 16, ease(st.bp)); return lerp(16, 33, ease(st.bp)); },
+  facts(cy) { const inView = ZEROS.filter(g => Math.abs(g - cy) < 3.375); return [[inView.length ? inView.map(g => de(g, 2)).join(' · ') : 'none', 'zeros in view'], [de(cy - 3.375, 1) + ' … ' + de(cy + 3.375, 1), 'visible range of t']]; },
+  draw(ctx, st) {
+    const cy = st.p, hh = SH / SW * 12 / 2;
+    const V = { X: re => (re - DOM.re0) / 12 * SW, Y: im => SH / 2 - (im - cy) / (2 * hh) * SH };
+    const ca = st.user ? 1 : st.ap(1, 1.4);
+    if (ca > 0) {
+      ctx.globalAlpha = ca; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      const sy = (DOM.im1 - (cy + hh)) * DOM.PX, sh = 2 * hh * DOM.PX;
+      ctx.drawImage(domCanvas, 0, sy, DOM.W, sh, 0, 0, SW, SH);
+      ctx.globalAlpha = ca * 0.28; ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1;
+      if (domDone < NCHUNK) { card(ctx, 1150, 30, 410, 54); txt(ctx, 'Computing colour map … ' + Math.round(100 * domDone / NCHUNK) + ' %', 1175, 65, F.mono(19), COL.text); }
+    }
+    // Gitter
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(220,228,255,0.12)'; ctx.beginPath();
+    for (let r = -7; r <= 4; r++) { ctx.moveTo(V.X(r), 0); ctx.lineTo(V.X(r), SH); }
+    const t0 = Math.ceil((cy - hh) / 2) * 2; for (let t = t0; t <= cy + hh; t += 2) { ctx.moveTo(0, V.Y(t)); ctx.lineTo(SW, V.Y(t)); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(235,240,255,0.65)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(V.X(0), 0); ctx.lineTo(V.X(0), SH);
+    if (cy - hh < 0) { ctx.moveTo(0, V.Y(0)); ctx.lineTo(SW, V.Y(0)); } ctx.stroke();
+    for (let r = -7; r <= 4; r++) if (r !== 0) txt(ctx, String(r).replace('-', '−'), V.X(r), SH - 18, F.mono(17), 'rgba(235,240,255,0.8)', 'center');
+    for (let t = t0; t <= cy + hh; t += 2) if (t !== 0 || cy - hh >= 0) txt(ctx, de(t).replace('-', '−') + ' i', V.X(0) - 10, V.Y(t) + 6, F.sans(17), 'rgba(235,240,255,0.8)', 'right');
+    txt(ctx, 'σ = Re(s)', SW - 24, SH - 46, F.mono(18), COL.text, 'right');
+    // Beat 0: ein Punkt s wandert
+    if (st.beat === 0 && !st.user) {
+      const sg = 2 + 1.6 * Math.cos(st.lt * 0.7), tt = 1.2 + 1.8 * Math.sin(st.lt * 0.9);
+      ctx.strokeStyle = COL.cyan; ctx.setLineDash([6, 6]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(V.X(sg), V.Y(0)); ctx.lineTo(V.X(sg), V.Y(tt)); ctx.lineTo(V.X(0), V.Y(tt)); ctx.stroke(); ctx.setLineDash([]);
+      dot(ctx, V.X(sg), V.Y(tt), 9, COL.cyan, true);
+      card(ctx, V.X(sg) + 20, V.Y(tt) - 78, 330, 60);
+      txt(ctx, 's = ' + de(sg, 2) + ' + ' + de(tt, 2) + ' i', V.X(sg) + 40, V.Y(tt) - 38, F.mono(22), COL.text);
+      card(ctx, 60, 60, 560, 120); txt(ctx, 's = σ + i t', 90, 120, F.disp(40), COL.text); txt(ctx, 'σ: real part (to the right) · t: imaginary part (up)', 90, 156, F.sans(18, 400), COL.dim);
+    }
+    // Legende Farbkreis
+    if (ca > 0.01 && (st.beat >= 1 || st.user)) {
+      ctx.globalAlpha = ca; card(ctx, 60, 60, 390, 132);
+      const cx0 = 120, cy0 = 126;
+      for (let k = 0; k < 60; k++) { ctx.fillStyle = `hsl(${k * 6},70%,58%)`; ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.arc(cx0, cy0, 36, k * Math.PI / 30, (k + 1.05) * Math.PI / 30); ctx.fill(); }
+      txt(ctx, 'colour = angle of ζ(s)', 176, 116, F.sans(19, 500), COL.text);
+      txt(ctx, 'rings = size |ζ(s)|', 176, 150, F.sans(19, 400), COL.dim);
+      ctx.globalAlpha = 1;
+    }
+    // Pol und Konvergenzgebiet
+    const a2 = st.user ? 1 : st.ap(2, 1);
+    if (a2 > 0 && (st.beat >= 2 || st.user)) {
+      ctx.globalAlpha = a2 * (st.beat === 2 && !st.user ? 1 : 0.6);
+      ctx.strokeStyle = COL.text; ctx.lineWidth = 2; ctx.setLineDash([3, 7]); ctx.beginPath(); ctx.moveTo(V.X(1), 0); ctx.lineTo(V.X(1), SH); ctx.stroke(); ctx.setLineDash([]);
+      if (st.beat === 2 && !st.user) { ctx.fillStyle = 'rgba(90,209,230,0.12)'; ctx.fillRect(V.X(1), 0, SW - V.X(1), SH); txt(ctx, 'Here ∑ 1/nˢ converges', V.X(1) + 24, 240, F.sans(22, 600), COL.cyan); }
+      if (cy - hh < 0.3) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(V.X(1), V.Y(0), 16, 0, 7); ctx.stroke(); card(ctx, V.X(1) + 26, V.Y(0) - 92, 230, 52); txt(ctx, 'pole at s = 1', V.X(1) + 44, V.Y(0) - 58, F.sans(20, 600), COL.text); }
+      ctx.globalAlpha = 1;
+    }
+    const a3 = st.user ? 1 : st.ap(3, 1);
+    if (a3 > 0 && (st.beat >= 3 || st.user) && cy - hh < 0.3) {
+      ctx.globalAlpha = a3;
+      for (const r of [-2, -4, -6]) { ctx.strokeStyle = COL.coral; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(V.X(r), V.Y(0), 14, 0, 7); ctx.stroke(); }
+      card(ctx, V.X(-6.6), V.Y(0) + 26, 430, 52); txt(ctx, 'trivial zeros −2, −4, −6, …', V.X(-6.6) + 18, V.Y(0) + 60, F.sans(20, 600), COL.coral);
+      ctx.globalAlpha = 1;
+    }
+    const a4 = st.user ? 1 : st.ap(4, 1.2);
+    if (a4 > 0 && (st.beat >= 4 || st.user)) {
+      ctx.globalAlpha = a4;
+      ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fillRect(V.X(0), 0, V.X(1) - V.X(0), SH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(V.X(1), 0); ctx.lineTo(V.X(1), SH); ctx.stroke();
+      ctx.strokeStyle = COL.gold; ctx.lineWidth = 3; ctx.setLineDash([14, 10]); ctx.beginPath(); ctx.moveTo(V.X(0.5), 0); ctx.lineTo(V.X(0.5), SH); ctx.stroke(); ctx.setLineDash([]);
+      txt(ctx, 'critical strip 0 < σ < 1', V.X(1) + 18, 230, F.sans(20, 600), COL.text);
+      txt(ctx, 'σ = ½', V.X(0.5), 36, F.mono(20, 500), COL.gold, 'center');
+      ctx.globalAlpha = 1;
+    }
+    const a5 = st.user ? 1 : st.ap(5, 0.8);
+    if (a5 > 0 && (st.beat >= 5 || st.user)) {
+      ctx.globalAlpha = a5;
+      for (const g of ZEROS) { if (Math.abs(g - cy) > hh + 0.3) continue; const y = V.Y(g); dot(ctx, V.X(0.5), y, 7, COL.gold, true); card(ctx, V.X(1) + 16, y - 24, 210, 44); txt(ctx, '½ + ' + de(g, 3) + ' i', V.X(1) + 30, y + 7, F.mono(19), COL.gold); }
+      ctx.globalAlpha = 1;
+    }
+  },
+  quiz: { q: 'Where are the trivial zeros of the zeta function?', opts: ['On the line σ = ½', 'At s = −2, −4, −6, …', 'At the pole s = 1'], a: 1,
+    why: 'The trivial zeros are the negative even numbers. At s = 1, ζ has a pole, not a zero.' },
+},
+{
+  title: 'On the critical line',
+  beats: [
+    'Let us walk along the critical line σ equals one half and follow where ζ sends each point. The result is a curve that winds through the plane in loops.',
+    'Whenever the curve passes through the origin, we have found a zero. At t equals 14.13 it happens for the first time.',
+    'On the right is the Riemann–Siegel function Z(t). It is real and changes sign exactly where ζ vanishes on the line.',
+    'Methods like this have computed more than ten trillion zeros. All of them lie exactly on the critical line. But that is not a proof.',
+  ],
+  try: { label: 'Height t on the line', min: 0, max: 60, fmt: v => 't = ' + de(v, 2), title: 'The curve ζ(½ + it)',
+    hint: 'Drag t slowly across a zero, say 14.13 or 21.02: on the left the curve passes through the origin, on the right Z(t) changes sign.' },
+  drive(st) { return [lerp(0, 12, ease(st.bp)), lerp(12, 15.2, ease(st.bp)), lerp(15.2, 40, st.bp), lerp(40, 60, st.bp)][st.beat]; },
+  facts(T) { const k = ZEROS.filter(g => g <= T).length; const i = Math.min(SP.length - 1, Math.round(T / 0.025)); return [[String(k), 'zeros up to t'], [de(Math.hypot(SP[i][1], SP[i][2]), 3), '|ζ(½ + it)|'], [de(SP[i][3], 3), 'Z(t)']]; },
+  draw(ctx, st) {
+    const T = st.p, n = Math.min(SP.length - 1, Math.round(T / 0.025));
+    header(ctx, 'ζ(½ + i t)', 'Image of the critical line in the complex plane');
+    const P1 = plot(110, 180, 640, 640, -2.2, 4.2, -3.2, 3.2);
+    axes(ctx, P1, { xt: [-2, -1, 0, 1, 2, 3, 4], yt: [-3, -2, -1, 0, 1, 2, 3], xf: v => de(v).replace('-', '−'), yf: v => (de(v) + ' i').replace('-', '−') });
+    clipTo(ctx, P1);
+    ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(90,209,230,0.85)'; ctx.beginPath();
+    for (let i = 0; i <= n; i++) { const p = SP[i]; i ? ctx.lineTo(P1.X(p[1]), P1.Y(p[2])) : ctx.moveTo(P1.X(p[1]), P1.Y(p[2])); }
+    ctx.stroke();
+    ctx.restore();
+    const near = ZEROS.find(g => Math.abs(g - T) < 0.5);
+    ctx.strokeStyle = COL.gold; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(P1.X(0), P1.Y(0), near ? 16 + 10 * (1 - Math.abs(near - T) / 0.5) : 11, 0, 7); ctx.stroke();
+    const cp = SP[n]; dot(ctx, P1.X(cp[1]), P1.Y(cp[2]), 8, '#ffffff', true);
+    txt(ctx, 't = ' + de(T, 2), P1.x + P1.w - 12, P1.y + 32, F.mono(24, 500), COL.text, 'right');
+    // Z(t)
+    const za = st.user ? 1 : (st.beat >= 2 ? 0.35 + 0.65 * st.ap(2, 1) : 0.35);
+    ctx.globalAlpha = za;
+    const P2 = plot(870, 230, 660, 520, 0, 60, -4.2, 4.2);
+    axes(ctx, P2, { xt: [0, 10, 20, 30, 40, 50, 60], yt: [-4, -2, 0, 2, 4], yf: v => de(v).replace('-', '−'), xl: 't', yl: 'Z(t), real' });
+    clipTo(ctx, P2);
+    ctx.strokeStyle = COL.cyan; ctx.lineWidth = 2.6; ctx.beginPath();
+    for (let i = 0; i <= n; i += 2) { const p = SP[i]; i ? ctx.lineTo(P2.X(p[0]), P2.Y(p[3])) : ctx.moveTo(P2.X(p[0]), P2.Y(p[3])); }
+    ctx.lineTo(P2.X(SP[n][0]), P2.Y(SP[n][3])); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(P2.X(T), P2.y); ctx.lineTo(P2.X(T), P2.y + P2.h); ctx.stroke();
+    ZEROS.filter(g => g <= T && g <= 60).forEach((g, i) => { dot(ctx, P2.X(g), P2.Y(0), 6, COL.gold, true); if (i < 6) txt(ctx, de(g, 2), P2.X(g), P2.Y(0) + (i % 2 ? 40 : -22), F.mono(15), COL.gold, 'center'); });
+    ctx.globalAlpha = 1;
+    const k = ZEROS.filter(g => g <= T).length;
+    txt(ctx, 'Zeros found: ' + k, 870, 170, F.sans(24, 600), COL.gold);
+    if (st.beat >= 2 && !st.user) { ctx.globalAlpha = st.ap(2, 1); txt(ctx, 'Z(t) = e^{iθ(t)} · ζ(½ + it)', 1530, 170, F.mono(20, 400), COL.dim, 'right'); ctx.globalAlpha = 1; }
+    if (st.beat === 3 && !st.user) {
+      const a = st.ap(3, 1) * clamp((st.since - 2) / 1, 0, 1); ctx.globalAlpha = a;
+      card(ctx, 870, 640, 660, 120); txt(ctx, 'more than 10,000,000,000,000', 900, 690, F.disp(34), COL.gold);
+      txt(ctx, 'zeros computed, all with Re(s) = ½', 900, 730, F.sans(21, 400), COL.text); ctx.globalAlpha = 1;
+    }
+  },
+  quiz: { q: 'What does a sign change of the function Z(t) mean?', opts: ['There is a prime at t.', 'ζ has a pole there.', 'ζ has a zero on the critical line.'], a: 2,
+    why: 'Z(t) has the same size as ζ(½ + it) but is real. A sign change means ζ(½ + it) = 0.' },
+},
+{
+  title: 'The music of the primes',
+  beats: [
+    'Why do these zeros matter so much? Riemann found an explicit formula that recovers the primes from the zeros.',
+    'The red staircase is the Chebyshev function ψ(x). At every prime power it jumps by the logarithm of the prime. The blue curve starts out as a smooth straight line.',
+    'Each pair of zeros adds a wave that oscillates faster the higher the zero lies. With every wave the curve hugs the staircase more closely.',
+    'With over a hundred zeros the sum clearly traces the jumps at the primes. The zeros are the notes from which the primes make their music.',
+  ],
+  try: { label: 'Number of zero pairs', min: 0, max: 138, int: true, fmt: v => String(Math.round(v)), title: 'Primes from waves',
+    hint: 'With 0 zeros only the straight line remains. Increase the number and watch the jumps at 2, 3, 4, 5, 7, 8, 9, 11 … appear.' },
+  drive(st) { const N = ZEROS.length; return [0, 0, Math.round(lerp(0, 20, ease(st.bp))), Math.round(lerp(20, N, ease(st.bp)))][st.beat]; },
+  facts(N) { N = Math.min(Math.round(N), ZEROS.length); return [[String(N), 'zero pairs'], [N ? 't ≈ ' + de(ZEROS[N - 1], 1) : '–', 'highest zero used']]; },
+  draw(ctx, st) {
+    const N = Math.min(Math.round(st.p), ZEROS.length);
+    txt(ctx, 'ψ(x) = x − ∑ xᵖ/ρ − ln 2π − ½ ln(1 − x⁻²)'.replace('xᵖ', 'x^ρ'), 80, 92, F.disp(38), COL.text);
+    txt(ctx, 'sum over the zeros ρ = ½ ± i t', 82, 128, F.sans(20, 400), COL.dim);
+    txt(ctx, N + ' zero pairs', 1520, 92, F.mono(30, 500), COL.gold, 'right');
+    const P = plot(130, 190, 1390, 590, 1, 50, -2, 52);
+    axes(ctx, P, { xt: [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50], yt: [0, 10, 20, 30, 40, 50], xl: 'x' });
+    for (const p of PRIMES) { if (p > 50) break; ctx.strokeStyle = COL.coral; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(P.X(p), P.Y(-2)); ctx.lineTo(P.X(p), P.Y(-2) - 10); ctx.stroke(); }
+    clipTo(ctx, P);
+    ctx.strokeStyle = COL.coral; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(P.X(1), P.Y(0));
+    for (let n = 2; n <= 50; n++) { ctx.lineTo(P.X(n), P.Y(PSI[n - 1])); ctx.lineTo(P.X(n), P.Y(PSI[n])); }
+    ctx.lineTo(P.X(50), P.Y(PSI[50])); ctx.stroke();
+    ctx.strokeStyle = COL.cyan; ctx.lineWidth = 2.4; ctx.beginPath();
+    const Zs = ZEROS.slice(0, N), C = Math.log(2 * Math.PI);
+    let first = true;
+    for (let px = 0; px <= P.w; px += 1.5) {
+      const x = 1 + px / P.w * 49; if (x < 1.03) continue;
+      const L = Math.log(x), r = Math.sqrt(x);
+      let s = 0; for (const g of Zs) s += (0.5 * Math.cos(g * L) + g * Math.sin(g * L)) / (0.25 + g * g);
+      const y = x - 2 * r * s - C - 0.5 * Math.log(1 - 1 / (x * x));
+      if (first) { ctx.moveTo(P.X(x), P.Y(y)); first = false; } else ctx.lineTo(P.X(x), P.Y(y));
+    }
+    ctx.stroke(); ctx.restore();
+    legend(ctx, P.x + 40, P.y + 40, [{ c: COL.coral, t: 'ψ(x): sum of ln p over all prime powers pᵏ ≤ x' }, { c: COL.cyan, t: 'explicit formula with ' + N + ' zero pairs' }]);
+  },
+  quiz: { q: 'In the explicit formula, what does each additional pair of zeros do?', opts: ['It adds a wave that traces the prime staircase more precisely.', 'It removes a prime from the count.', 'It moves the pole at s = 1.'], a: 0,
+    why: 'Each pair ρ = ½ ± it contributes an oscillation of frequency t with amplitude √x. Together they create the jumps of ψ(x).' },
+},
+{
+  title: 'The hypothesis',
+  beats: [
+    'The Riemann hypothesis states: all non-trivial zeros of the zeta function have real part one half.',
+    'It means the primes are distributed as evenly as is possible at all. The gap between π(x) and li(x) would then always stay below roughly the square root of x times ln x.',
+    'Here is the difference li(x) minus π(x) up to 100,000. It stays comfortably inside the golden corridor that the hypothesis predicts.',
+    'Since the year 2000 the hypothesis has been one of the seven Millennium Prize Problems of the Clay Institute. A proof is worth one million dollars. To this day nobody has found one.',
+  ],
+  try: { label: 'Upper limit x', min: 3000, max: 100000, log: true, fmt: v => de(Math.round(v)), title: 'The error inside the corridor',
+    hint: 'The golden corridor is ±√x · ln x / (8π), Schoenfeld’s bound assuming the Riemann hypothesis, valid from x = 2657.' },
+  drive(st) { if (st.beat <= 1) return 3000; if (st.beat === 2) return loglerp(3000, 100000, ease(st.bp)); return 100000; },
+  facts(v) { const X = Math.round(v); const b = Math.sqrt(X) * Math.log(X) / (8 * Math.PI); return [[de(DIFF[X], 1), 'li(x) − π(x)'], ['± ' + de(b, 1), 'corridor at x']]; },
+  draw(ctx, st) {
+    const gOut = st.user ? 1 : st.ap(1, 0.6), g = st.user ? 1 : ease((st.lt - st.bs[1] - 0.5) / 0.9);
+    if (gOut < 1) {
+      ctx.globalAlpha = 1 - gOut;
+      const lx = 1330;
+      ctx.strokeStyle = COL.gold; ctx.lineWidth = 3; ctx.setLineDash([14, 10]); ctx.beginPath(); ctx.moveTo(lx, 60); ctx.lineTo(lx, 840); ctx.stroke(); ctx.setLineDash([]);
+      ZEROS30.slice(0, 14).forEach((z, i) => dot(ctx, lx, 820 - z * 9.6, 7, COL.gold, true));
+      txt(ctx, 'THE RIEMANN HYPOTHESIS', 120, 250, F.mono(20), COL.gold);
+      txt(ctx, 'All non-trivial zeros', 116, 340, F.disp(58), COL.text);
+      txt(ctx, 'of the zeta function have', 116, 420, F.disp(58), COL.text);
+      txt(ctx, 'real part ½.', 116, 500, F.disp(58), COL.gold);
+      txt(ctx, 'ζ(ρ) = 0  and  0 < Re ρ < 1   ⟹   Re ρ = ½', 120, 620, F.mono(28, 500), COL.dim);
+      ctx.globalAlpha = 1;
+    }
+    if (g > 0) {
+      ctx.globalAlpha = g * (st.beat === 3 && !st.user ? 1 - 0.7 * st.ap(3, 1) : 1);
+      const X = st.p, B = Math.sqrt(X) * Math.log(X) / (8 * Math.PI) * 1.25;
+      header(ctx, 'li(x) − π(x)', 'Deviation of the logarithmic integral from the prime count');
+      const P = plot(160, 190, 1360, 600, 2, X, -B, B);
+      axes(ctx, P, { xt: ticks(0, X, 6).filter(v => v >= 2), yt: ticks(-B, B, 6), yf: v => de(v).replace('-', '−'), xl: 'x' });
+      clipTo(ctx, P);
+      ctx.fillStyle = 'rgba(242,193,78,0.16)'; ctx.beginPath();
+      const steps = 300;
+      for (let i = 0; i <= steps; i++) { const x = 2 + (X - 2) * i / steps; const b = Math.sqrt(x) * Math.log(x) / (8 * Math.PI); i ? ctx.lineTo(P.X(x), P.Y(b)) : ctx.moveTo(P.X(x), P.Y(b)); }
+      for (let i = steps; i >= 0; i--) { const x = 2 + (X - 2) * i / steps; const b = Math.sqrt(x) * Math.log(x) / (8 * Math.PI); ctx.lineTo(P.X(x), P.Y(-b)); }
+      ctx.fill(); ctx.strokeStyle = 'rgba(242,193,78,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = COL.cyan; ctx.lineWidth = 2; ctx.beginPath();
+      const cols = Math.round(P.w);
+      for (let c = 0; c < cols; c++) {
+        const a = Math.max(2, Math.floor(2 + (X - 2) * c / cols)), b = Math.max(a, Math.floor(2 + (X - 2) * (c + 1) / cols));
+        let lo = Infinity, hi = -Infinity; for (let n = a; n <= b; n++) { const d = DIFF[n]; if (d < lo) lo = d; if (d > hi) hi = d; }
+        const xx = P.x + c + 0.5; if (c === 0) ctx.moveTo(xx, P.Y(hi)); else ctx.lineTo(xx, P.Y(hi)); ctx.lineTo(xx, P.Y(lo));
+      }
+      ctx.stroke(); ctx.restore();
+      legend(ctx, P.x + 40, P.y + 40, [{ c: COL.cyan, t: 'li(x) − π(x)' }, { c: COL.gold, t: 'corridor ±√x · ln x / (8π) from the hypothesis' }]);
+      ctx.globalAlpha = 1;
+    }
+    if (st.beat === 3 && !st.user) {
+      const a = st.ap(3, 1.2); ctx.globalAlpha = a;
+      card(ctx, 330, 230, 940, 420);
+      txt(ctx, 'MILLENNIUM-PROBLEM · CLAY MATHEMATICS INSTITUTE', 800, 300, F.mono(19), COL.gold, 'center');
+      txt(ctx, '$1,000,000', 800, 410, F.disp(92), COL.text, 'center');
+      txt(ctx, 'for a proof of the Riemann hypothesis', 800, 470, F.sans(24, 400), COL.dim, 'center');
+      txt(ctx, 'open since 1859', 800, 580, F.disp(34), COL.gold, 'center');
+      ctx.globalAlpha = 1;
+    }
+  },
+  quiz: { q: 'What does the Riemann hypothesis claim?', opts: ['There are infinitely many twin primes.', 'All non-trivial zeros of ζ have real part ½.', 'The zeta function has no zeros at all.'], a: 1,
+    why: 'Exactly: all zeros in the critical strip lie on the line Re(s) = ½. Twin primes are a different open problem.' },
+},
+];
+
+function drawSieve(ctx, st) {
+  const ox = 120, oy = 150, cs = 66;
+  const phase = st.beat < 1 ? -1 : st.beat > 1 ? 5 : st.bp * 4.8;
+  const SPF = [2, 3, 5, 7];
+  for (let n = 1; n <= 100; n++) {
+    const r = Math.floor((n - 1) / 10), c = (n - 1) % 10, x = ox + c * cs, y = oy + r * cs;
+    let state = 'plain';
+    if (n === 1) state = 'one';
+    else if (sieve[n]) {
+      const q = SPF.find(p => n % p === 0), qi = SPF.indexOf(q);
+      const mult = []; for (let m = q * q; m <= 100; m += q) mult.push(m);
+      const pos = mult.indexOf(n) / mult.length;
+      if (mult.indexOf(n) >= 0 && phase > qi + pos * 0.9) state = 'cross';
+      else if (phase > qi + 1) state = 'cross';
+    } else {
+      const qi = SPF.indexOf(n);
+      if ((qi >= 0 && phase > qi) || phase >= 4) state = 'prime';
+    }
+    ctx.fillStyle = state === 'prime' ? 'rgba(255,122,107,0.2)' : 'rgba(255,255,255,0.04)';
+    ctx.strokeStyle = state === 'prime' ? COL.coral : 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1.5; ctx.beginPath(); ctx.roundRect(x + 3, y + 3, cs - 6, cs - 6, 8); ctx.fill(); ctx.stroke();
+    const col = state === 'prime' ? COL.coral : state === 'cross' ? '#3d4670' : state === 'one' ? COL.faint : COL.text;
+    txt(ctx, String(n), x + cs / 2, y + cs / 2 + 8, F.mono(22, state === 'prime' ? 600 : 400), col, 'center');
+    if (state === 'cross') { ctx.strokeStyle = '#5b6696'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 14, y + cs - 14); ctx.lineTo(x + cs - 14, y + 14); ctx.stroke(); }
+  }
+  const rx = 860;
+  if (st.beat === 0) {
+    txt(ctx, 'Every number > 1 is a product', rx, 240, F.disp(38), COL.text);
+    txt(ctx, 'of primes:', rx, 290, F.disp(38), COL.text);
+    [['60', '2 · 2 · 3 · 5'], ['91', '7 · 13'], ['84', '2 · 2 · 3 · 7'], ['97', '97  (prime itself)']].forEach(([a, b], i) => {
+      ctx.globalAlpha *= clamp((st.since - 1 - i * 1.4) / 0.6, 0, 1);
+      txt(ctx, a + ' =', rx + 70, 390 + i * 70, F.mono(32, 500), COL.text, 'right'); txt(ctx, b, rx + 90, 390 + i * 70, F.mono(32, 500), COL.coral);
+      ctx.globalAlpha = 1 - st.ap(2, 1.0);
+    });
+  } else {
+    const k = Math.min(3, Math.floor(Math.max(0, phase)));
+    txt(ctx, 'Sieve of Eratosthenes', rx, 240, F.disp(38), COL.text);
+    [2, 3, 5, 7].forEach((p, i) => {
+      const on = phase > i, cur = Math.floor(phase) === i && phase < 4;
+      txt(ctx, (on ? '✓ ' : '· ') + 'cross out multiples of ' + p, rx, 320 + i * 54, F.sans(26, cur ? 600 : 400), cur ? COL.text : on ? COL.dim : COL.faint);
+    });
+    ctx.globalAlpha *= clamp(phase - 4, 0, 1);
+    txt(ctx, '25 primes up to 100', rx, 600, F.disp(44), COL.coral);
+    txt(ctx, 'gaps: 1, 2, 2, 4, 2, 4, 2, 4, 6, 2, …', rx, 650, F.mono(22, 400), COL.dim);
+  }
+}
+function drawPi(ctx, st) {
+  const X = st.p, top = PI_[Math.floor(X)] * 1.2 + 2;
+  header(ctx, 'The prime counting function π(x)', 'number of primes less than or equal to x');
+  const P = plot(150, 190, 1370, 600, 0, X, 0, top);
+  axes(ctx, P, { xt: ticks(0, X, 8), yt: ticks(0, top, 5), xl: 'x' });
+  clipTo(ctx, P);
+  const a3 = st.user ? 1 : (st.beat >= 3 ? st.ap(3, 1) : 0), a3b = st.user ? 1 : (st.beat >= 3 ? clamp((st.since3) / 1, 0, 1) : 0);
+  const curve = (f, c, w, alpha) => { if (alpha <= 0) return; ctx.globalAlpha *= alpha; ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); let first = true; for (let px = 0; px <= P.w; px += 2) { const x = Math.max(2, P.xa + (P.xb - P.xa) * px / P.w); const y = f(x); if (first) { ctx.moveTo(P.X(x), P.Y(y)); first = false; } else ctx.lineTo(P.X(x), P.Y(y)); } ctx.stroke(); ctx.globalAlpha /= alpha; };
+  curve(x => x / Math.log(x), COL.violet, 3, a3);
+  curve(li, COL.cyan, 3, a3b);
+  ctx.strokeStyle = COL.coral; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(P.X(0), P.Y(0));
+  if (X <= 1400) { for (let n = 2; n <= X; n++) { if (!sieve[n]) { ctx.lineTo(P.X(n), P.Y(PI_[n - 1])); ctx.lineTo(P.X(n), P.Y(PI_[n])); } } ctx.lineTo(P.X(X), P.Y(PI_[Math.floor(X)])); }
+  else { for (let px = 0; px <= P.w; px++) { const x = Math.floor(X * px / P.w); ctx.lineTo(P.X(x), P.Y(PI_[x])); } }
+  ctx.stroke(); ctx.restore();
+  const items = [{ c: COL.coral, t: 'π(x)' }];
+  if (a3 > 0) items.push({ c: COL.violet, t: 'x / ln x  (Gauss, Legendre)' });
+  if (a3b > 0) items.push({ c: COL.cyan, t: 'li(x) = ∫ dt / ln t' });
+  legend(ctx, P.x + 40, P.y + 36, items);
+  const Xi = Math.floor(X);
+  card(ctx, 1170, 210, 330, 190);
+  txt(ctx, 'x = ' + de(Xi), 1195, 252, F.mono(22, 500), COL.text);
+  txt(ctx, 'π(x) = ' + de(PI_[Xi]), 1195, 290, F.mono(22, 500), COL.coral);
+  if (a3 > 0) { ctx.globalAlpha = a3; txt(ctx, 'x/ln x ≈ ' + de(Xi / Math.log(Xi)), 1195, 328, F.mono(20, 400), COL.violet); ctx.globalAlpha = 1; }
+  if (a3b > 0) { ctx.globalAlpha = a3b; txt(ctx, 'li(x) ≈ ' + de(li(Xi)), 1195, 366, F.mono(20, 400), COL.cyan); ctx.globalAlpha = 1; }
+  if (st.beat === 4 && !st.user) {
+    ctx.globalAlpha = st.ap(4, 1); card(ctx, 520, 560, 640, 130);
+    txt(ctx, 'prime number theorem (1896)', 550, 605, F.mono(18, 500), COL.gold);
+    txt(ctx, 'π(x) ~ x / ln x ~ li(x)', 550, 660, F.disp(40), COL.text); ctx.globalAlpha = 1;
+  }
+}
+
+// ------------------------------------------------------------ Zeitleiste
+const CPS = 14.5;
+let total = 0;
+const BEATS = [];
+CH.forEach((ch, ci) => {
+  ch.start = total; ch.bs = [];
+  ch.beats.forEach((text, bi) => { const dur = Math.max(5, text.length / CPS + 1.4); ch.bs.push(total - ch.start); BEATS.push({ ci, bi, text, start: total, dur }); total += dur; });
+  ch.end = total; ch.dur = ch.end - ch.start;
+});
+const beatAt = T => { let i = BEATS.length - 1; while (i > 0 && BEATS[i].start > T) i--; return i; };
+
+// ------------------------------------------------------------ Zustand
+const S = { T: 0, playing: false, speed: 1, subs: true, voice: false, quizOn: true, user: {}, answered: {}, correct: {}, holdSince: 0, speaking: false, ended: false, lastBeat: -1, quizShown: -1 };
+try { const v = JSON.parse(localStorage.getItem('rh-prefs') || '{}'); if (typeof v.subs === 'boolean') S.subs = v.subs; if (typeof v.quizOn === 'boolean') S.quizOn = v.quizOn; } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem('rh-prefs', JSON.stringify({ subs: S.subs, quizOn: S.quizOn })); } catch (e) {} };
+
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+function resize() { const r = stage.getBoundingClientRect(); const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.max(320, Math.round(r.width * dpr)); cv.height = Math.round(cv.width * 9 / 16); }
+window.addEventListener('resize', resize); resize();
+
+function stateFor(T) {
+  const bi = beatAt(T), b = BEATS[bi], ch = CH[b.ci];
+  const lt = T - ch.start;
+  const st = { ci: b.ci, beat: b.bi, bp: clamp((T - b.start) / b.dur, 0, 1), lt, since: T - b.start, bs: ch.bs };
+  st.ap = (k, d = 0.8) => ease((lt - ch.bs[k]) / d);
+  st.since3 = ch.bs[3] !== undefined ? lt - ch.bs[3] - 2.5 : 0;
+  const u = S.user[b.ci];
+  st.user = u !== undefined && u !== null;
+  st.p = st.user ? u : (ch.drive ? ch.drive(st) : 0);
+  return st;
+}
+function render() {
+  const k = cv.width / SW; ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, SW, SH);
+  const st = stateFor(S.T);
+  ctx.save(); CH[st.ci].draw(ctx, st); ctx.restore();
+  ctx.globalAlpha = 1;
+  return st;
+}
+
+// ------------------------------------------------------------ Sprache
+let deVoice = null;
+function pickVoice() { try { const vs = speechSynthesis.getVoices(); deVoice = vs.find(v => /^en(-|_|$)/i.test(v.lang)) || null; } catch (e) {} }
+try { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } catch (e) {}
+function speak(text) {
+  if (!S.voice) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/ζ/g, 'Zeta').replace(/π\(x\)/g, 'pi of x').replace(/π²/g, 'pi squared').replace(/li\(x\)/g, 'L I of x').replace(/ψ\(x\)/g, 'psi of x').replace(/Z\(t\)/g, 'Z of t').replace(/σ/g, 'Sigma'));
+    u.lang = 'en-US'; if (deVoice) u.voice = deVoice; u.rate = 1.02 * S.speed;
+    S.speaking = true; S.holdSince = 0;
+    u.onend = u.onerror = () => { S.speaking = false; };
+    speechSynthesis.speak(u);
+  } catch (e) { S.speaking = false; }
+}
+function hush() { try { speechSynthesis.cancel(); } catch (e) {} S.speaking = false; }
+
+// ------------------------------------------------------------ Steuerung
+function setPlaying(p) {
+  if (p && S.ended) { S.T = 0; S.ended = false; $('endcard').hidden = true; }
+  S.playing = p;
+  $('bigplay').hidden = p || !$('quiz').hidden || !$('endcard').hidden;
+  $('playicon').innerHTML = p ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4l13 8-13 8z"/>';
+  $('play').setAttribute('aria-label', p ? 'Pause' : 'Play');
+  if (p) {
+    const st = stateFor(S.T); S.user[st.ci] = null;
+    if (S.voice) { const b = BEATS[beatAt(S.T)]; S.T = b.start; speak(b.text); }
+    S.lastBeat = beatAt(S.T);
+  } else hush();
+}
+function seek(T) {
+  S.T = clamp(T, 0, total - 0.001); S.ended = false; $('endcard').hidden = true; $('quiz').hidden = true;
+  S.quizShown = -1; S.lastBeat = beatAt(S.T); hush();
+  if (S.playing && S.voice) speak(BEATS[S.lastBeat].text);
+  if (!S.playing) $('bigplay').hidden = false;
+}
+function showQuiz(ci) {
+  const q = CH[ci].quiz; S.quizShown = ci; setPlaying(false); $('bigplay').hidden = true;
+  $('qeye').textContent = 'Quick question on chapter ' + ci + ' · ' + CH[ci].title;
+  $('qq').textContent = q.q; $('qfeed').textContent = ''; $('qnext').hidden = true; $('qskip').hidden = false;
+  const box = $('qopts'); box.innerHTML = '';
+  q.opts.forEach((o, i) => {
+    const b = document.createElement('button'); b.className = 'qopt'; b.textContent = o; b.id = 'qopt' + i;
+    b.onclick = () => {
+      [...box.children].forEach((c, j) => { c.disabled = true; if (j === q.a) c.classList.add('right'); else if (j === i) c.classList.add('wrong'); });
+      S.answered[ci] = true; S.correct[ci] = i === q.a;
+      $('qfeed').textContent = (i === q.a ? 'Correct. ' : 'Not quite. ') + q.why;
+      $('qnext').hidden = false; $('qskip').hidden = true; $('qnext').focus(); updateChapters();
+    };
+    box.appendChild(b);
+  });
+  $('quiz').hidden = false; setTimeout(() => box.firstChild && box.firstChild.focus(), 30);
+}
+function leaveQuiz() { $('quiz').hidden = true; const ci = S.quizShown; S.quizShown = -1; S.T = CH[ci].end + 0.0005; if (S.T >= total) { endVideo(); return; } S.lastBeat = beatAt(S.T); setPlaying(true); }
+$('qnext').onclick = leaveQuiz;
+$('qskip').onclick = () => { S.answered[S.quizShown] = S.answered[S.quizShown] || false; leaveQuiz(); };
+function endVideo() {
+  S.playing = false; S.ended = true; hush(); S.T = total - 0.001;
+  const n = Object.values(S.correct).filter(Boolean).length, q = CH.filter(c => c.quiz).length;
+  $('endscore').textContent = 'Quiz: ' + n + ' of ' + q + ' questions answered correctly.';
+  $('endcard').hidden = false; $('bigplay').hidden = true;
+  $('playicon').innerHTML = '<path d="M7 4l13 8-13 8z"/>';
+}
+$('replay').onclick = () => { S.answered = {}; S.correct = {}; S.user = {}; updateChapters(); S.ended = true; setPlaying(true); };
+$('bigplay').onclick = e => { e.stopPropagation(); setPlaying(true); };
+$('play').onclick = () => setPlaying(!S.playing);
+stage.addEventListener('click', e => { if (dragMoved) return; if (e.target === cv && $('quiz').hidden && $('endcard').hidden) setPlaying(!S.playing); });
+$('prev').onclick = () => { const ci = CH.findIndex(c => S.T < c.end); const tgt = S.T - CH[ci].start > 3 ? ci : Math.max(0, ci - 1); seek(CH[tgt].start); };
+$('next').onclick = () => { const ci = CH.findIndex(c => S.T < c.end); if (ci < CH.length - 1) seek(CH[ci + 1].start); };
+function tog(id, key, after) { const b = $(id); b.setAttribute('aria-pressed', String(S[key])); b.onclick = () => { S[key] = !S[key]; b.setAttribute('aria-pressed', String(S[key])); after && after(); savePrefs(); }; }
+tog('tSubs', 'subs'); tog('tQuiz', 'quizOn');
+tog('tVoice', 'voice', () => { if (S.voice) { if (!('speechSynthesis' in window)) { S.voice = false; $('tVoice').setAttribute('aria-pressed', 'false'); $('tVoice').textContent = 'Narrator unavailable'; return; } if (S.playing) { const b = BEATS[beatAt(S.T)]; S.T = b.start; speak(b.text); } } else hush(); });
+$('speed').onchange = e => { S.speed = +e.target.value; };
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,select,textarea') || !$('quiz').hidden) return;
+  if (e.code === 'Space' && !e.target.closest('button')) { e.preventDefault(); setPlaying(!S.playing); }
+  if (e.key === 'ArrowRight' && !e.target.closest('[role=slider]')) seek(S.T + 5);
+  if (e.key === 'ArrowLeft' && !e.target.closest('[role=slider]')) seek(S.T - 5);
+});
+
+// Fortschrittsbalken
+const bar = $('bar');
+CH.forEach(ch => { const s = document.createElement('div'); s.className = 'seg'; s.style.flexGrow = ch.dur; s.title = ch.title; s.appendChild(document.createElement('i')); bar.appendChild(s); });
+function barSeek(e) { const segs = [...bar.children]; for (let i = 0; i < segs.length; i++) { const r = segs[i].getBoundingClientRect(); if (e.clientX <= r.right + 1.5 || i === segs.length - 1) { const f = clamp((e.clientX - r.left) / r.width, 0, 1); seek(CH[i].start + f * CH[i].dur); return; } } }
+let barDrag = false;
+bar.addEventListener('pointerdown', e => { barDrag = true; bar.setPointerCapture(e.pointerId); barSeek(e); });
+bar.addEventListener('pointermove', e => { if (barDrag) barSeek(e); });
+bar.addEventListener('pointerup', () => { barDrag = false; });
+bar.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { seek(S.T + 5); e.preventDefault(); } if (e.key === 'ArrowLeft') { seek(S.T - 5); e.preventDefault(); } });
+
+// chapter list + transcript
+const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const chapEls = CH.map((ch, i) => {
+  const b = document.createElement('button'); b.className = 'chap';
+  b.innerHTML = `<span class="n">${String(i).padStart(2, '0')}</span><span class="t"></span><span class="d">${mmss(ch.dur)}</span><span class="q"></span>`;
+  b.querySelector('.t').textContent = ch.title; b.onclick = () => { seek(ch.start); };
+  $('chaplist').appendChild(b); return b;
+});
+function updateChapters() {
+  CH.forEach((ch, i) => { const q = chapEls[i].querySelector('.q'); if (!ch.quiz) { q.textContent = 'Introduction'; q.className = 'q'; return; } if (S.correct[i]) { q.textContent = 'Quiz correct'; q.className = 'q ok'; } else if (S.answered[i] === true) { q.textContent = 'Quiz answered'; q.className = 'q'; } else { q.textContent = 'Quiz at the end'; q.className = 'q'; } });
+  const n = Object.keys(S.answered).filter(k => S.answered[k] === true).length, c = Object.values(S.correct).filter(Boolean).length;
+  $('score').textContent = n ? `Quiz: ${c} of ${n} answered questions correct (${CH.filter(c => c.quiz).length} in total)` : 'Quiz: no answers yet';
+}
+updateChapters();
+const lineEls = [];
+CH.forEach((ch, ci) => {
+  const h = document.createElement('h3'); h.textContent = ci + ' · ' + ch.title; $('transcript').appendChild(h);
+  BEATS.filter(b => b.ci === ci).forEach(b => { const el = document.createElement('button'); el.className = 'line'; el.innerHTML = `<span class="ts">${mmss(b.start)}</span>`; el.appendChild(document.createTextNode(b.text)); el.onclick = () => seek(b.start + 0.01); $('transcript').appendChild(el); lineEls.push(el); });
+});
+
+// Ausprobieren
+const slider = $('trySlider');
+let tryCh = -1;
+const toSlider = (t, v) => t.log ? 1000 * Math.log(v / t.min) / Math.log(t.max / t.min) : 1000 * (v - t.min) / (t.max - t.min);
+const fromSlider = (t, s) => { let v = t.log ? t.min * Math.pow(t.max / t.min, s / 1000) : t.min + (t.max - t.min) * s / 1000; if (t.int) v = Math.round(v); return v; };
+function refreshTry(force) {
+  const st = stateFor(S.T), ch = CH[st.ci], t = ch.try;
+  if (st.ci !== tryCh || force) {
+    tryCh = st.ci;
+    $('tryTitle').textContent = t ? t.title : ch.title;
+    $('tryHint').textContent = t ? t.hint : 'There is nothing to adjust in the introduction. From chapter 1 on you can control every graphic yourself: just move the slider and the video pauses automatically.';
+    $('tryRow').hidden = !t;
+    if (t) $('tryLabel').textContent = t.label;
+  }
+  if (t) {
+    if (document.activeElement !== slider) slider.value = toSlider(t, st.p);
+    $('tryVal').textContent = t.fmt(st.p);
+    const f = ch.facts ? ch.facts(st.p) : [];
+    const html = f.map(([a, b]) => `<div class="fact"><b></b><span></span></div>`).join('');
+    const box = $('facts'); if (box.children.length !== f.length) box.innerHTML = html;
+    f.forEach(([a, b], i) => { box.children[i].querySelector('b').textContent = a; box.children[i].querySelector('span').textContent = b; });
+  } else $('facts').innerHTML = '';
+}
+slider.addEventListener('input', () => { const st = stateFor(S.T), t = CH[st.ci].try; if (!t) return; if (S.playing) setPlaying(false); S.user[st.ci] = fromSlider(t, +slider.value); });
+
+// Ziehen im Bild (Kapitel 4)
+let drag = null, dragMoved = false;
+stage.addEventListener('pointerdown', e => { const st = stateFor(S.T); if (st.ci !== 4 || e.target !== cv) return; drag = { y: e.clientY, v: st.p }; dragMoved = false; });
+window.addEventListener('pointermove', e => {
+  if (!drag) return; const dy = e.clientY - drag.y; if (Math.abs(dy) > 4) dragMoved = true; if (!dragMoved) return;
+  if (S.playing) setPlaying(false); $('bigplay').hidden = true;
+  const r = stage.getBoundingClientRect(); const units = dy / r.height * (SH / SW * 12);
+  S.user[4] = clamp(drag.v + units, CH[4].try.min, CH[4].try.max);
+});
+window.addEventListener('pointerup', () => { if (drag) setTimeout(() => { dragMoved = false; }, 0); drag = null; });
+
+// ------------------------------------------------------------ Hauptschleife
+let last = performance.now(), lastUI = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (S.playing) {
+    const bi = beatAt(S.T), b = BEATS[bi], bEnd = b.start + b.dur;
+    let nT = S.T + dt * S.speed;
+    if (nT >= bEnd) {
+      if (S.voice && S.speaking) { S.holdSince += dt; if (S.holdSince < 12) nT = bEnd - 1e-4; else S.speaking = false; }
+      if (nT >= bEnd) {
+        const ch = CH[b.ci];
+        if (bEnd >= ch.end - 1e-6 && ch.quiz && S.quizOn && S.quizShown !== b.ci) { S.T = bEnd - 1e-4; render(); showQuiz(b.ci); nT = S.T; }
+        else if (bEnd >= total - 1e-6) { endVideo(); nT = S.T; }
+      }
+    }
+    if (S.playing) {
+      S.T = Math.min(nT, total - 1e-4);
+      const nb = beatAt(S.T); if (nb !== S.lastBeat) { S.lastBeat = nb; speak(BEATS[nb].text); }
+    }
+  }
+  const st = render();
+  if (now - lastUI > 120) {
+    lastUI = now;
+    const b = BEATS[beatAt(S.T)];
+    const subs = $('subs');
+    const want = S.subs && (S.playing || S.T > 0.05) && $('quiz').hidden && $('endcard').hidden ? b.text : '';
+    if (subs.dataset.t !== want) { subs.dataset.t = want; subs.innerHTML = want ? '<span></span>' : ''; if (want) subs.firstChild.textContent = want; }
+    $('time').textContent = mmss(S.T) + ' / ' + mmss(total);
+    $('chapname').textContent = st.ci + ' · ' + CH[st.ci].title;
+    [...bar.children].forEach((s, i) => { s.firstChild.style.width = (100 * clamp((S.T - CH[i].start) / CH[i].dur, 0, 1)) + '%'; });
+    bar.setAttribute('aria-valuenow', String(Math.round(100 * S.T / total)));
+    bar.setAttribute('aria-valuetext', mmss(S.T) + ' of ' + mmss(total));
+    chapEls.forEach((el, i) => el.classList.toggle('on', i === st.ci));
+    const gi = beatAt(S.T); lineEls.forEach((el, i) => el.classList.toggle('on', i === gi));
+    stage.classList.toggle('grab', st.ci === 4);
+    refreshTry();
+  }
+  requestAnimationFrame(frame);
+}
+refreshTry(true);
+requestAnimationFrame(frame);
+startCompute();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+
+</script>
