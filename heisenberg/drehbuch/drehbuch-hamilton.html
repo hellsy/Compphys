@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Drehbuch Hamilton-Matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f5f7f9; --surface:#ffffff; --fg:#17212b; --muted:#55636f; --line:#d5dde4;
+  --accent:#1d5a86; --accent-soft:#e4eef6;
+  --tafel:#1f3a35; --chalk:#eef3ea; --chalk-dim:#a9bfb3; --gold:#e3c26a;
+  --do:#1d5a86; --ask:#8a5a00; --ask-soft:#fbf1dc; --sol:#2d6a3e; --sol-soft:#e6f2e9; --err:#a3372b; --err-soft:#fbe9e6;
+  --done:#2d6a3e; --done-soft:#e6f2e9; --ready:#1d5a86; --ready-soft:#e4eef6; --plan:#8a5a00; --plan-soft:#fbf1dc; --open:#55636f; --open-soft:#eceff2;
+  --f-display:"Bricolage Grotesque","Segoe UI",sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161c; --surface:#18212a; --fg:#e6edf3; --muted:#9aa8b4; --line:#2c3944;
+    --accent:#7fb7e0; --accent-soft:#1b2c3a;
+    --tafel:#1a2f2b; --chalk:#eef3ea; --chalk-dim:#8fa89b; --gold:#e3c26a;
+    --do:#7fb7e0; --ask:#e3b55a; --ask-soft:#2e2615; --sol:#7cc58f; --sol-soft:#16291d; --err:#ef8d80; --err-soft:#331a17;
+    --done:#7cc58f; --done-soft:#16291d; --ready:#7fb7e0; --ready-soft:#1b2c3a; --plan:#e3b55a; --plan-soft:#2e2615; --open:#9aa8b4; --open-soft:#222c35;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161c; --surface:#18212a; --fg:#e6edf3; --muted:#9aa8b4; --line:#2c3944;
+  --accent:#7fb7e0; --accent-soft:#1b2c3a;
+  --tafel:#1a2f2b; --chalk:#eef3ea; --chalk-dim:#8fa89b; --gold:#e3c26a;
+  --do:#7fb7e0; --ask:#e3b55a; --ask-soft:#2e2615; --sol:#7cc58f; --sol-soft:#16291d; --err:#ef8d80; --err-soft:#331a17;
+  --done:#7cc58f; --done-soft:#16291d; --ready:#7fb7e0; --ready-soft:#1b2c3a; --plan:#e3b55a; --plan-soft:#2e2615; --open:#9aa8b4; --open-soft:#222c35;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.55;margin:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:780px;margin-inline:auto;padding-block:8px 64px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,6vw,2.6rem);letter-spacing:-.01em}
+h2{font-size:1.6rem}
+h3{font-size:1.15rem;margin:0 0 6px;scroll-margin-top:60px}
+p{margin:.4em 0}
+a{color:var(--accent)}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:8px 16px;display:flex;gap:8px;overflow-x:auto;white-space:nowrap}
+nav a{font-size:.85rem;font-weight:600;color:var(--accent);text-decoration:none;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+nav a:focus-visible,.up:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{padding-block:28px 12px}
+.sub{color:var(--muted);margin-top:8px}
+section{padding-block:36px 8px;scroll-margin-top:60px}
+.time{display:inline-block;font-family:var(--f-mono);font-size:.8rem;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:3px 9px;border-radius:6px;margin-bottom:10px}
+.step{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.step h3 small{font-family:var(--f-mono);font-weight:400;font-size:.75rem;color:var(--muted);margin-left:6px}
+.blk{margin:10px 0;padding:10px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--line)}
+.blk .lab{display:block;font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px}
+.blk.do .lab{color:var(--do)}
+.blk.ask{background:var(--ask-soft);border-color:transparent}.blk.ask .lab{color:var(--ask)}
+.blk.sol{background:var(--sol-soft);border-color:transparent}.blk.sol .lab{color:var(--sol)}
+.blk.err{background:var(--err-soft);border-color:transparent}.blk.err .lab{color:var(--err)}
+.blk ul,.blk ol{margin:.3em 0;padding-left:1.2em}
+.blk li{margin:.2em 0}
+.tafel{background:var(--tafel);color:var(--chalk);border-radius:6px;padding:12px 16px;margin:10px 0;font-family:var(--f-mono);font-size:.93rem;line-height:1.7;overflow-x:auto}
+.tafel .lab{display:block;font-family:var(--f-body);font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--chalk-dim);margin-bottom:4px}
+.tafel b{color:var(--gold);font-weight:600}
+pre.code{background:var(--tafel);color:var(--chalk);border-radius:6px;padding:12px 14px;margin:10px 0;font-family:var(--f-mono);font-size:.82rem;line-height:1.55;overflow-x:auto;white-space:pre}
+pre.code .c{color:var(--chalk-dim)}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--accent-soft);padding:0 4px;border-radius:4px}
+.tw{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:.95rem;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);font-weight:600}
+.mono{font-family:var(--f-mono);font-size:.9rem;font-variant-numeric:tabular-nums}
+.cut{font-size:.95rem;color:var(--muted)}
+span.ref{display:inline-block;font-size:.85rem;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;padding:1px 8px;margin:2px 2px 2px 0}
+span.ref::before{content:"Skript ";font-family:var(--f-mono);font-size:.7rem;font-weight:400;color:var(--muted)}
+span.ab{display:inline-block;font-size:.85rem;font-weight:600;color:var(--ask);background:var(--ask-soft);border-radius:6px;padding:1px 8px;margin:2px 2px 2px 0}
+span.ab::before{content:"Blatt ";font-family:var(--f-mono);font-size:.7rem;font-weight:400}
+details{margin:10px 0;border-radius:8px;background:var(--sol-soft)}
+details>summary{cursor:pointer;list-style:none;padding:9px 14px;font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--sol)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸ ";}
+details[open]>summary::before{content:"▾ ";}
+details>div{padding:0 14px 10px}
+details.hint{background:var(--ask-soft)}
+details.hint>summary{color:var(--ask)}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.done{color:var(--done);background:var(--done-soft)}
+.pill.ready{color:var(--ready);background:var(--ready-soft)}
+.pill.plan{color:var(--plan);background:var(--plan-soft)}
+.pill.open{color:var(--open);background:var(--open-soft)}
+ul.tick{list-style:none;padding-left:0}
+ul.tick li{margin:.35em 0}
+ul.tick label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+ul.tick input{margin-top:.3em;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+ul.tick input:checked + span{color:var(--muted);text-decoration:line-through}
+.up{position:fixed;right:14px;bottom:14px;z-index:6;font-size:.85rem;font-weight:600;color:var(--accent);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 12px;text-decoration:none}
+footer{margin-top:40px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:12px}
+@media (min-width:700px){body{font-size:18px}}
+.files{display:grid;gap:8px;margin-top:12px}
+.file{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.file .ext{flex:none;width:46px;text-align:center;font-family:var(--f-mono);font-size:.7rem;font-weight:600;padding:4px 0;border-radius:5px;background:var(--accent-soft);color:var(--accent)}
+.file .nm{flex:1;min-width:0}
+.file .nm b{display:block;font-weight:600;line-height:1.25}
+.file .nm small{color:var(--muted);font-size:.85rem}
+.file button{flex:none;font:600 .85rem var(--f-body);color:var(--accent);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.file button:hover{background:var(--accent-soft)}
+.file a.open{flex:none;font:600 .85rem var(--f-body);color:var(--accent);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:6px 12px;text-decoration:none}
+.file button[disabled]{opacity:.55;cursor:default}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:8;background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:.9rem;font-weight:600;max-width:calc(100% - 32px)}
+@media (max-width:480px){.file{flex-wrap:wrap}.file button,.file a.open{margin-left:58px}.file a.open+button{margin-left:0}}
+mjx-container{color:inherit}
+mjx-container[display="true"]{overflow-x:auto;overflow-y:hidden;margin:.5em 0!important;padding:2px 0}
+.tafel mjx-container[display="true"]{margin:.3em 0!important}
+.tafel{font-family:var(--f-body);font-size:1rem}
+</style>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},svg:{fontCache:'global'},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+</head>
+<body>
+<div class="wrap" id="top">
+<header>
+  <h1>Drehbuch: Die Hamilton-Matrix für Spinmodelle</h1>
+  <p class="sub">Blatt 4, Aufgabe 2 (13 Punkte) · Skript Kapitel 2.2 „diagonalization of small clusters“, S. 5–10, dazu Kapitel 2.1 S. 2. Ziel: ein Programm, das für beliebiges \(N\) und beliebige Kopplungen \(J^\alpha_{ij}\) die Hamilton-Matrix aufstellt, und die Eigenenergien der drei Drei-Platz-Cluster aus Aufgabe 1.</p>
+</header>
+
+<nav aria-label="Abschnitte">
+  <a href="#top">↑ Anfang</a><a href="#dateien">Dateien</a><a href="#material">Material</a><a href="#vorher">Vorher</a><a href="#s1">1 Matrix</a><a href="#s2">2 Basis</a><a href="#s3">3 x-Link</a><a href="#s4">4 y-Link</a><a href="#s5">5 z-Link</a><a href="#s6">6 Code</a><a href="#s7">7 Eigenwerte</a><a href="#s8">8 Dünnbesetzt</a><a href="#notation">Notation</a><a href="#stand">Stand</a><a href="#weiter">Weiter</a><a href="#offen">Offen</a>
+</nav>
+
+<section id="dateien">
+  <h2>Dateien</h2>
+  <p class="cut">Auf „Herunterladen“ tippen und im Fenster bestätigen.</p>
+  <div class="files">
+    <div class="file" style="border-color:var(--sol);border-width:2px"><span class="ext">PDF</span><span class="nm"><b>Lesepaket zu Blatt 4 · hier anfangen</b><small>Blatt 4 (2 S.) + Skript Kap. 2, S. 1–10 (Spinmodelle, Basis, Links, Codestruktur) · 12 Seiten · 1,2 MB</small></span><a class="open" href="files/Lesepaket_Blatt4.pdf" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="Lesepaket_Blatt4.pdf">Herunterladen</button></div>
+    <div class="file" style="border-color:var(--accent);border-width:2px"><span class="ext">PDF</span><span class="nm"><b>Übungsblatt 4 · deine aktuelle Aufgabe</b><small>Aufgabe 1: Drei-Platz-Cluster von Hand (Ising, Heisenberg, Modell d) · Aufgabe 2: Programm für die Hamilton-Matrix und Eigenenergien · 2 Seiten</small></span><button type="button" data-f="Uebungsblatt_4.pdf">Herunterladen</button></div>
+    <div class="file"><span class="ext">PDF</span><span class="nm"><b>Lernskript Heisenberg-Modell</b><small>wächst mit: Aufgabe 1a komplett, Wahl der Basis, 1b Ising-Hamiltonian, Merkkästen, Methodenkarte · 7 Seiten</small></span><a class="open" href="files/heisenberg-lecture.pdf" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="heisenberg-lecture.pdf">Herunterladen</button></div>
+    <div class="file"><span class="ext">MP4</span><span class="nm"><b>Learning video (English): What the operators do to the spins</b><small>spin exchange, double flip, Ising, matrix · 73 s, ohne Ton · 1,2 MB</small></span><a class="open" href="files/heisenberg-spin-operators-en.mp4" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="heisenberg-spin-operators-en.mp4">Herunterladen</button></div>
+    <div class="file"><span class="ext">MP4</span><span class="nm"><b>Learning video 2 (English): The physical picture</b><small>metal vs. insulator, origin of J, ferro-/antiferromagnet, magnon, singlet/triplet energy levels · 64 s, ohne Ton · 2,2 MB · über das Skript hinaus</small></span><a class="open" href="files/heisenberg-physical-picture-en.mp4" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="heisenberg-physical-picture-en.mp4">Herunterladen</button></div>
+    <div class="file"><span class="ext">MP4</span><span class="nm"><b>Lernvideo (deutsch): Was die Operatoren mit den Spins machen</b><small>Tausch, Doppel-Flip, Ising, Matrix · 73 s, ohne Ton · 1,2 MB</small></span><a class="open" href="files/heisenberg-spin-operators.mp4" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="heisenberg-spin-operators.mp4">Herunterladen</button></div>
+    <div class="file"><span class="ext">PDF</span><span class="nm"><b>Übungsblatt 5</b><small>Spinkorrelationen der 1D-Heisenberg-Kette, reduzierte Dichtematrix · 2 Seiten · danach</small></span><a class="open" href="files/Uebungsblatt_5.pdf" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="Uebungsblatt_5.pdf">Herunterladen</button></div>
+    <div class="file"><span class="ext">PDF</span><span class="nm"><b>Übungsblatt 6</b><small>Kitaev-Cluster, Verschränkungsentropie · 2 Seiten · danach</small></span><a class="open" href="files/Uebungsblatt_6.pdf" target="_blank" rel="noopener">Öffnen</a><button type="button" data-f="Uebungsblatt_6.pdf">Herunterladen</button></div>
+    <div class="file"><span class="ext">PDF</span><span class="nm"><b>Vorlesungsskript cmbp22</b><small>Prof. Bulla, SS 2022 · 30 Seiten · Kap. 2.2 = S. 17–24 im PDF · 17,6 MB</small></span><a class="open" href="/_blob/574585a5e9dc05f918b74ce074b5a440" target="_blank" rel="noopener">Öffnen</a><button type="button" data-a="/_blob/574585a5e9dc05f918b74ce074b5a440" data-n="Skript_cmbp22.pdf">Herunterladen</button></div>
+    <div class="file"><span class="ext">JL</span><span class="nm"><b>Musterlösung three-site_cluster.jl</b><small>Julia · gibt Energien in Einheiten von J/4 aus</small></span><button type="button" data-f="three-site_cluster.jl">Herunterladen</button></div>
+    <div class="file"><span class="ext">PY</span><span class="nm"><b>Referenzcode hamilton_referenz.py</b><small>Python · erst nach eigenem Versuch öffnen · mit Kronecker-Test</small></span><button type="button" data-f="hamilton_referenz.py">Herunterladen</button></div>
+  </div>
+</section>
+
+<section id="material">
+  <h2>Material und Reihenfolge</h2>
+  <div class="tw"><table>
+    <tr><th>Nr.</th><th>Was</th><th>Wo</th><th>Stand</th></tr>
+    <tr><td class="mono">1</td><td>Basis, Binärlabel \(n\), \(S^\pm\), Umschreiben von \(H\)</td><td><span class="ref">2.1 S. 2</span></td><td><span class="pill done">erledigt</span></td></tr>
+    <tr><td class="mono">2</td><td>Schrödinger-Gleichung als Matrix-Eigenwertproblem</td><td><span class="ref">2.2 S. 5</span></td><td><span class="pill ready">lesen</span></td></tr>
+    <tr><td class="mono">3</td><td>x-, y-, z-Links und die Flip-Regel für \(l\)</td><td><span class="ref">2.2 S. 6–8</span></td><td><span class="pill ready">nachrechnen</span></td></tr>
+    <tr><td class="mono">4</td><td>Codestruktur (Schleife über \(n\), Schleife über Links)</td><td><span class="ref">2.2 S. 9</span></td><td><span class="pill plan">programmieren</span></td></tr>
+    <tr><td class="mono">5</td><td>Drei-Platz-Cluster von Hand (Ising, Heisenberg, Modell d)</td><td><span class="ab">4 · A1</span></td><td><span class="pill done">1a erledigt</span> <span class="pill plan">1b läuft</span></td></tr>
+    <tr><td class="mono">6</td><td>Programm und Eigenenergien</td><td><span class="ab">4 · A2</span></td><td><span class="pill plan">dann programmieren</span></td></tr>
+    <tr><td class="mono">7</td><td>Dünnbesetzte Matrix, Rechenzeit</td><td><span class="ref">2.2 S. 9–10</span></td><td><span class="pill open">Ausblick</span></td></tr>
+  </table></div>
+  <div class="blk do"><span class="lab">So liest du dieses Drehbuch</span>
+    <p><b>Erklärung</b> = erst anschaulich, dann formal. <b>Tafel</b> = Formel aus dem Skript. <b>Frage</b> = Verständnisfrage, erst selbst beantworten. <b>Selbst rechnen</b> = Rechenaufgabe mit Papier. <b>Hinweis</b> und <b>Lösung</b> sind zugeklappt, öffne sie erst nach deinem Versuch. <b>Achte auf</b> = typische Stolperstellen. <b>Gegenprobe</b> = was passiert, wenn man es falsch macht.</p>
+  </div>
+  <div class="blk err"><span class="lab">Vergleichsmaterial: fremde Bearbeitung</span>
+    <p>Die Abgaben „Exercise 3–6, C. Riesop“ samt Korrektur stammen nicht von dir, sondern aus den Materialien, die dir zur Verfügung gestellt wurden. Nimm sie erst <b>nach</b> deinem eigenen Versuch zum Vergleichen. Daraus lernst du für Blatt 4: Alle Matrizen waren richtig, trotzdem gab es 1,5 Punkte Abzug, weil Teil b auch die <b>Eigenenergien</b> verlangt. Szene 7 behandelt genau das.</p>
+  </div>
+</section>
+
+<section id="vorher">
+  <h2>Vorher: Vorwissen prüfen</h2>
+  <p class="cut">Aus dem Kopf beantworten, dann aufklappen. Die Haken speichert nur dein Gerät.</p>
+  <ul class="tick">
+    <li><label><input type="checkbox" id="v1"><span>\(S^z|{\uparrow}\rangle\) und \(S^z|{\downarrow}\rangle\) angeben (\(\hbar=1\)).</span></label></li>
+    <li><label><input type="checkbox" id="v2"><span>\(S^+|{\downarrow}\rangle\), \(S^+|{\uparrow}\rangle\), \(S^-|{\uparrow}\rangle\), \(S^-|{\downarrow}\rangle\) angeben.</span></label></li>
+    <li><label><input type="checkbox" id="v3"><span>\(S^x\) und \(S^y\) durch \(S^\pm\) ausdrücken.</span></label></li>
+    <li><label><input type="checkbox" id="v4"><span>Erklären, was \(|{\uparrow}\rangle_1\otimes|{\downarrow}\rangle_2\) bedeutet und warum \(N\) Spins \(2^N\) Basiszustände haben.</span></label></li>
+    <li><label><input type="checkbox" id="v5"><span>Was ist ein Eigenwertproblem \(\bar H\vec\psi = E\vec\psi\), und warum ist \(\bar H\) hermitesch?</span></label></li>
+  </ul>
+  <details><summary>Lösung</summary><div>
+    <ul>
+      <li>\(S^z|{\uparrow}\rangle = +\tfrac12|{\uparrow}\rangle,\quad S^z|{\downarrow}\rangle = -\tfrac12|{\downarrow}\rangle\) <span class="ref">2.1 S. 2</span></li>
+      <li>\(S^+|{\downarrow}\rangle = |{\uparrow}\rangle,\ S^+|{\uparrow}\rangle = 0,\ S^-|{\uparrow}\rangle = |{\downarrow}\rangle,\ S^-|{\downarrow}\rangle = 0\). Anschaulich: \(S^+\) hebt an, und was oben ist, kann nicht höher.</li>
+      <li>\(S^x = \tfrac12(S^+ + S^-),\quad S^y = \tfrac{1}{2i}(S^+ - S^-)\)</li>
+      <li>Jeder Platz hat zwei Möglichkeiten, die Plätze sind unabhängig: \(2\cdot 2\cdots 2 = 2^N\).</li>
+      <li>\(H\) ist ein hermitescher Operator, also \((\bar H)_{mn} = (\bar H)_{nm}^*\). Die Eigenwerte sind reell, das sind die Energien.</li>
+    </ul>
+  </div></details>
+</section>
+
+<section id="s1">
+  <span class="time">Szene 1</span>
+  <h2>Vom Operator zur Matrix</h2>
+  <div class="blk do"><span class="lab">Erklärung, anschaulich</span>
+    <p>Ein Computer kann mit \(H|\psi\rangle\) nichts anfangen, er braucht Zahlen. Wir wählen eine Basis und fragen für jedes Paar von Basiszuständen: Wie viel von \(|m\rangle\) steckt in \(H|n\rangle\)? Diese Zahlen bilden eine Tabelle, die Hamilton-Matrix.</p>
+  </div>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.2 S. 5</span></span>
+    \[\begin{aligned}
+    &\mathbf{1} = \sum_n |n\rangle\langle n| \ \text{einschieben, von links } \langle m|\,\cdot\\
+    &\sum_n \underbrace{\langle m|H|n\rangle}_{(\bar H)_{mn}}\,\underbrace{\langle n|\psi\rangle}_{(\vec\psi)_n} = E\,\underbrace{\langle m|\psi\rangle}_{(\vec\psi)_m} \qquad (*)\\
+    &\Rightarrow\quad \boxed{(\bar H)_{mn} = \langle m|H|n\rangle},\qquad \boxed{\bar H\vec\psi = E\vec\psi}
+    \end{aligned}\]
+  </div>
+  <div class="blk do"><span class="lab">Die eigentliche Frage</span><p>Das Skript fasst es selbst zusammen: „How to set up the Hamilton matrix?“ Von Hand geht es nur für sehr kleine Cluster (\(N=2\): \(4\times4\)). Für alles andere brauchen wir ein Programm.</p></div>
+  <div class="blk ask"><span class="lab">Frage</span>
+    <ol><li>Wo genau wird benutzt, dass die Basis vollständig ist?</li><li>Welcher Index von \((\bar H)_{mn}\) gehört zum Zustand, auf den \(H\) wirkt?</li></ol>
+  </div>
+  <details><summary>Lösung</summary><div>
+    <ol><li>Beim Einschieben von \(\mathbf{1} = \sum_n|n\rangle\langle n|\). Ohne Vollständigkeit wäre das nicht die Eins.</li><li>Der Spaltenindex \(n\). \(H|n\rangle\) ist die \(n\)-te Spalte. Darum schreibt der Code später in <code>H[l, n]</code>: Zeile \(l\), Spalte \(n\).</li></ol>
+  </div></details>
+</section>
+
+<section id="s2">
+  <span class="time">Szene 2</span>
+  <h2>Die Binärbasis</h2>
+  <div class="blk do"><span class="lab">Erklärung, anschaulich</span>
+    <p>Jeder Spin ist ein Bit: oben = 1, unten = 0. Eine Konfiguration aller Spins ist dann eine Binärzahl, und die Zahl ist das Label des Zustands. So wird aus \(|{\uparrow\downarrow\uparrow\uparrow}\rangle\) einfach \(13\).</p>
+  </div>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.1 S. 2</span></span>
+    \[\begin{aligned}
+    &|{\uparrow}\rangle_i \mathrel{\hat=} |1\rangle_i \ \to\ z_i = 1,\qquad |{\downarrow}\rangle_i \mathrel{\hat=} |0\rangle_i \ \to\ z_i = 0\\
+    &[n]_{10} = [z_N \dots z_2\, z_1]_2\\
+    &\boxed{n = \sum_{i=1}^{N} z_i\, 2^{\,i-1}},\qquad n = 0,1,\dots,2^N-1
+    \end{aligned}\]
+  </div>
+  <div class="blk err"><span class="lab">Achte auf: die Lesefalle</span>
+    <p>Im Ket steht <b>Platz 1 links</b>, in der Binärzahl steht <b>Platz 1 rechts</b>. \(|{\uparrow\downarrow\uparrow\uparrow}\rangle\) hat \((z_1,z_2,z_3,z_4) = (1,0,1,1)\), die Binärzahl ist aber \([1101]_2 = 13\). Wer einfach „1011“ abliest, landet bei \(11\) und rechnet mit dem falschen Zustand.</p>
+  </div>
+  <div class="blk ask"><span class="lab">Selbst rechnen</span>
+    <ol><li>Bestimme \(n\) für \(|{\uparrow\downarrow\uparrow\uparrow}\rangle\) (\(N=4\)). Das Beispiel aus dem Skript.</li><li>Schreibe für \(N=3\) alle 8 Zustände als Ket mit Platz 1 links auf, mit ihrem Label \(n\).</li><li>Wie liest du in Python \(z_i\) aus \(n\) ab, ohne einen String zu bauen?</li></ol>
+  </div>
+  <details class="hint"><summary>Hinweis zu 3</summary><div><p>Das \(i\)-te Bit von \(n\) bekommst du durch Verschieben und Maskieren: <code>(n &gt;&gt; (i-1)) &amp; 1</code>. Das entspricht <code>digits(n, base=2, pad=N)</code> in der Julia-Musterlösung.</p></div></details>
+  <details><summary>Lösung</summary><div>
+    <p>1) \(\ n = z_1\cdot1 + z_2\cdot2 + z_3\cdot4 + z_4\cdot8 = 1+0+4+8 = 13\) <span class="ref">2.2 S. 6–7</span></p>
+    <div class="tw"><table>
+      <tr><th>\(n\)</th><th>\([z_3z_2z_1]_2\)</th><th>Ket (Platz 1 2 3)</th></tr>
+      <tr><td class="mono">0</td><td class="mono">000</td><td>\(|{\downarrow\downarrow\downarrow}\rangle\)</td></tr>
+      <tr><td class="mono">1</td><td class="mono">001</td><td>\(|{\uparrow\downarrow\downarrow}\rangle\)</td></tr>
+      <tr><td class="mono">2</td><td class="mono">010</td><td>\(|{\downarrow\uparrow\downarrow}\rangle\)</td></tr>
+      <tr><td class="mono">3</td><td class="mono">011</td><td>\(|{\uparrow\uparrow\downarrow}\rangle\)</td></tr>
+      <tr><td class="mono">4</td><td class="mono">100</td><td>\(|{\downarrow\downarrow\uparrow}\rangle\)</td></tr>
+      <tr><td class="mono">5</td><td class="mono">101</td><td>\(|{\uparrow\downarrow\uparrow}\rangle\)</td></tr>
+      <tr><td class="mono">6</td><td class="mono">110</td><td>\(|{\downarrow\uparrow\uparrow}\rangle\)</td></tr>
+      <tr><td class="mono">7</td><td class="mono">111</td><td>\(|{\uparrow\uparrow\uparrow}\rangle\)</td></tr>
+    </table></div>
+    <p>3) <code>z = [(n &gt;&gt; (i-1)) &amp; 1 for i in range(1, N+1)]</code>, dann ist <code>z[i-1]</code> \(=z_i\). Python zählt ab 0, das Skript ab 1, also immer <code>i-1</code>.</p>
+  </div></details>
+</section>
+
+<section id="s3">
+  <span class="time">Szene 3</span>
+  <h2>Der x-Link: beide Spins kippen</h2>
+  <div class="blk do"><span class="lab">Erklärung, anschaulich</span>
+    <p>Der Hamiltonian ist eine Summe von Links \(J^\alpha_{pq}S^\alpha_pS^\alpha_q\). Statt \(H\) als Ganzes anzufassen, schauen wir, was <b>ein</b> Link mit <b>einem</b> Basiszustand macht. \(S^x\) kippt einen Spin, \(S^x_pS^x_q\) kippt also beide Spins \(p\) und \(q\). Herauskommt wieder genau ein Basiszustand \(|l\rangle\).</p>
+  </div>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.2 S. 6</span></span>
+    \[J^x_{pq}S^x_pS^x_q|n\rangle = \tfrac14 J^x_{pq}\left(S^+_pS^+_q + S^+_pS^-_q + S^-_pS^+_q + S^-_pS^-_q\right)|\dots z_p\dots z_q\dots\rangle\]
+    \[\to\ \text{nur einer der vier Terme ist } \neq 0\]
+  </div>
+  <div class="blk do"><span class="lab">Herleitung der Flip-Regel, Schritt für Schritt</span>
+    <ol>
+      <li>Kippen von Platz \(p\) ändert \(z_p\) und damit den Beitrag \(z_p\,2^{p-1}\) zu \(n\).</li>
+      <li>War \(z_p=0\) (\(\downarrow\to\uparrow\)), kommt \(2^{p-1}\) dazu. War \(z_p=1\) (\(\uparrow\to\downarrow\)), fällt \(2^{p-1}\) weg.</li>
+      <li>Beide Fälle in einer Formel: \((1-2z_p) = +1\) für \(z_p=0\) und \(-1\) für \(z_p=1\).</li>
+      <li>Für Platz \(q\) genauso, und die Änderungen addieren sich.</li>
+    </ol>
+  </div>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.2 S. 7, Gl. (*)</span></span>
+    \[\boxed{\,l = n + (1-2z_p)\,2^{p-1} + (1-2z_q)\,2^{q-1}\,}\qquad (*)\]
+    \[J^x_{pq}S^x_pS^x_q|n\rangle = \tfrac14 J^x_{pq}|l\rangle \quad\Rightarrow\quad \langle m|J^x_{pq}S^x_pS^x_q|n\rangle = \tfrac14 J^x_{pq}\,\delta_{ml}\]
+  </div>
+  <div class="blk ask"><span class="lab">Frage</span>
+    <ol><li>Warum ist bei \(S^x_pS^x_q\) immer genau einer der vier Terme ungleich null?</li><li>Wie viele von null verschiedene Matrixelemente erzeugt ein einziger x-Link in der ganzen Matrix?</li></ol>
+  </div>
+  <details><summary>Lösung</summary><div>
+    <ol><li>Auf Platz \(p\) wirkt nur der Operator, der zu \(z_p\) passt: \(S^+\) bei \(\downarrow\), \(S^-\) bei \(\uparrow\). Der andere gibt null. Für \(q\) genauso. Von \(2\cdot2\) Kombinationen bleibt genau eine.</li><li>Für jedes \(n\) genau eins, also \(2^N\) Elemente. <span class="ref">2.2 S. 7 unten</span></li></ol>
+  </div></details>
+  <div class="blk ask"><span class="lab">Selbst rechnen</span>
+    <p>\(N=4\), \(n=13\), Link \(J^x_{23}S^x_2S^x_3\). Bestimme \(l\) mit Gl. (*) und schreibe \(|l\rangle\) als Ket. Kontrolle: Spins 2 und 3 müssen gekippt sein.</p>
+  </div>
+  <details><summary>Lösung</summary><div>
+    <p>\((z_1,z_2,z_3,z_4)=(1,0,1,1)\), also \(z_2=0,\ z_3=1\).</p>
+    \[l = 13 + (1-0)\cdot2^1 + (1-2)\cdot2^2 = 13+2-4 = 11\]
+    <p>\(11 = [1011]_2 \ \Rightarrow\ (z_1,z_2,z_3,z_4) = (1,1,0,1) \ \Rightarrow\ |{\uparrow\uparrow\downarrow\uparrow}\rangle\). Spins 2 und 3 sind gekippt. ✓ <span class="ref">2.2 S. 6–7</span></p>
+  </div></details>
+</section>
+
+<section id="s4">
+  <span class="time">Szene 4</span>
+  <h2>Der y-Link: derselbe Flip, aber ein Vorzeichen</h2>
+  <div class="blk do"><span class="lab">Erklärung, anschaulich</span>
+    <p>\(S^y\) kippt ebenfalls, also landet der y-Link beim selben \(|l\rangle\) wie der x-Link. Das \(\tfrac1i\) in \(S^y = \tfrac{1}{2i}(S^+-S^-)\) quadriert sich zu \(-\tfrac14\). Dazu kommen Minuszeichen innerhalb der Klammer. Je nach Konfiguration bleibt ein Vorzeichen \(s\) übrig.</p>
+  </div>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.2 S. 8</span></span>
+    \[J^y_{pq}S^y_pS^y_q|n\rangle = -\tfrac14 J^y_{pq}\left(S^+_pS^+_q - S^+_pS^-_q - S^-_pS^+_q + S^-_pS^-_q\right)|n\rangle = s\cdot\tfrac14 J^y_{pq}\,|l\rangle\]
+    \[s = \begin{cases} +1 & z_p \neq z_q\\ -1 & z_p = z_q\end{cases}\qquad\Rightarrow\qquad \boxed{\,s = -(2z_p-1)(2z_q-1)\,}\]
+  </div>
+  <div class="blk ask"><span class="lab">Selbst rechnen</span>
+    <p>Leite \(s\) selbst her: Welcher der vier Terme überlebt bei \(z_p\neq z_q\), welcher bei \(z_p=z_q\)? Welches Vorzeichen hat er in der Klammer? Multipliziere mit dem \(-\tfrac14\) davor.</p>
+  </div>
+  <details class="hint"><summary>Hinweis</summary><div><p>Bei antiparallelen Spins überlebt ein „gemischter“ Term \(S^+S^-\) oder \(S^-S^+\), bei parallelen ein „gleicher“ Term \(S^+S^+\) oder \(S^-S^-\).</p></div></details>
+  <details><summary>Lösung</summary><div>
+    \[\begin{aligned}
+    z_p\neq z_q:&\quad \text{gemischter Term, Klammer } (-1)\ \Rightarrow\ \left(-\tfrac14\right)(-1) = +\tfrac14\ \Rightarrow\ s=+1\\
+    z_p = z_q:&\quad \text{gleicher Term, Klammer } (+1)\ \Rightarrow\ -\tfrac14\ \Rightarrow\ s=-1
+    \end{aligned}\]
+    <p>Prüfung: \(z_p=z_q \Rightarrow (2z_p-1)(2z_q-1)=+1 \Rightarrow s=-1\) ✓. \(z_p\neq z_q \Rightarrow\) Produkt \(-1 \Rightarrow s=+1\) ✓.</p>
+  </div></details>
+  <div class="blk err"><span class="lab">Gegenprobe: was passiert, wenn s fehlt?</span>
+    <p>Beim Heisenberg-Modell stehen x- und y-Link mit gleichem \(J\) nebeneinander. Mit \(s\) heben sie sich bei parallelen Spins auf (\(\tfrac14-\tfrac14=0\)), also gibt es kein \(|{\uparrow\uparrow}\rangle\to|{\downarrow\downarrow}\rangle\). Bei antiparallelen Spins addieren sie sich zu \(\tfrac12 J\), das ist der Spin-Austausch \(\tfrac12 J(S^+_pS^-_q + S^-_pS^+_q)\). Ohne \(s\) würde fälschlich \(|{\uparrow\uparrow}\rangle\leftrightarrow|{\downarrow\downarrow}\rangle\) gekoppelt. Die Matrix wäre zwar noch symmetrisch, aber das Spektrum falsch, und \(S^z_\text{tot}\) wäre nicht mehr erhalten. Vergleiche <span class="ref">2.2 S. 10, XXZ-Modell</span>.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <span class="time">Szene 5</span>
+  <h2>Der z-Link: nur die Diagonale</h2>
+  <div class="blk do"><span class="lab">Erklärung, anschaulich</span>
+    <p>\(S^z\) kippt nichts, es misst nur. Die Basiszustände sind Eigenzustände von \(S^z_p\) und \(S^z_q\), also bleibt \(|n\rangle\) stehen. Es kommt nur eine Zahl heraus: \(+\tfrac14\) bei parallelen, \(-\tfrac14\) bei antiparallelen Spins.</p>
+  </div>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.2 S. 8</span></span>
+    \[\begin{aligned}
+    S^z_p|n\rangle &= \tfrac12(2z_p-1)\,|n\rangle\\
+    J^z_{pq}S^z_pS^z_q|n\rangle &= \tfrac14 J^z_{pq}\,(2z_p-1)(2z_q-1)\,|n\rangle\\
+    \langle m|J^z_{pq}S^z_pS^z_q|n\rangle &= \tfrac14 J^z_{pq}\,(2z_p-1)(2z_q-1)\,\delta_{mn}
+    \end{aligned}\]
+    \[\Rightarrow\ \text{z-Links geben nur Diagonalelemente } (\bar H)_{nn}\]
+  </div>
+  <div class="blk ask"><span class="lab">Frage</span>
+    <ol><li>Warum gilt \(2z_p-1 = \pm1\) genau für \(\uparrow\) bzw. \(\downarrow\)?</li><li>Welche Links gibt es beim Ising-Modell, und welche Form hat seine Matrix deshalb?</li></ol>
+  </div>
+  <details><summary>Lösung</summary><div>
+    <ol><li>\(z_p=1 \to 2\cdot1-1=+1\) (also \(S^z=+\tfrac12\)), \(z_p=0\to-1\) (also \(S^z=-\tfrac12\)).</li><li>Nur z-Links, also ist die Matrix diagonal. Die Eigenwerte stehen direkt auf der Diagonale. Das ist Aufgabe 1b, dort stellst du diese Diagonalmatrix von Hand auf.</li></ol>
+  </div></details>
+</section>
+
+<section id="s6">
+  <span class="time">Szene 6</span>
+  <h2>Der Code: Schleife über n, Schleife über Links</h2>
+  <div class="tafel"><span class="lab">Codestruktur · <span class="ref">2.2 S. 9</span></span>
+    \[\begin{aligned}
+    &\textbf{for } n = 0 \dots 2^N-1 &&\text{(Basiszustände)}\\
+    &\quad [n]_{10}\to[z_N\dots z_1]_2\\
+    &\quad \textbf{for } j = 1\dots L &&\text{(Links)}\\
+    &\qquad \textbf{if } \alpha = x \text{ oder } y: && l \text{ nach (*)},\ \ \bar H_{ln} \mathrel{+}= \tfrac14 J^x_{pq}\ \text{bzw.}\ s\,\tfrac14 J^y_{pq}\\
+    &\qquad \textbf{else } (\alpha=z): && \bar H_{nn} \mathrel{+}= \tfrac14 J^z_{pq}(2z_p-1)(2z_q-1)
+    \end{aligned}\]
+    <p>Keine Doppelschleife über \(n\) und \(m\) nötig!</p>
+  </div>
+  <div class="blk err"><span class="lab">Achte auf: das Minus aus H = −Σ … (vermutete Ungenauigkeit im Skript)</span>
+    <p>Der Kasten auf S. 9 nennt die Matrixelemente des Terms \(J^\alpha_{pq}S^\alpha_pS^\alpha_q\). Der Hamiltonian ist aber \(H = -\sum J^\alpha_{ij}S^\alpha_iS^\alpha_j\). Es muss also \(-\tfrac14 J\) addiert werden, nicht \(+\tfrac14 J\). Die Musterlösung macht es richtig (<code>H[...] -= 0.25*J</code>), die Python-Vergleichsbearbeitung auch. Wer den Kasten wörtlich abtippt, bekommt \(-\bar H\), also ein gespiegeltes Spektrum: Grundzustand und höchster Zustand vertauscht.</p>
+  </div>
+  <div class="blk ask"><span class="lab">Selbst programmieren</span>
+    <p>Schreibe <code>hamilton_matrix(N, links)</code>. Jeder Link ist ein Tupel <code>(alpha, p, q, J)</code> mit <code>alpha</code> \(\in\{x,y,z\}\) und Plätzen \(p,q\in\{1,\dots,N\}\) wie im Skript. Rückgabe: die \(2^N\times2^N\)-Matrix als <code>numpy</code>-Array.</p>
+  </div>
+  <details class="hint"><summary>Hinweis 1 · Gerüst</summary><div>
+<pre class="code">import numpy as np
+
+def hamilton_matrix(N, links):
+    dim = 2**N
+    H = np.zeros((dim, dim))
+    for n in range(dim):
+        z = ...              <span class="c"># z[i-1] = z_i  (Szene 2)</span>
+        for alpha, p, q, J in links:
+            zp, zq = z[p-1], z[q-1]
+            if alpha in 'xy':
+                l = ...      <span class="c"># Gl. (*)</span>
+                s = ...      <span class="c"># 1 für x, sonst Szene 4</span>
+                H[l, n] += ...
+            else:
+                H[n, n] += ...
+    return H</pre>
+  </div></details>
+  <details class="hint"><summary>Hinweis 2 · Vorzeichen</summary><div>
+    <p>Jeder Beitrag bekommt ein Minus aus \(H=-\sum\dots\):</p>
+    \[\text{x: } -\tfrac14 J,\qquad \text{y: } -s\,\tfrac14 J,\qquad \text{z: } -\tfrac14 J\,(2z_p-1)(2z_q-1)\]
+    <p>Und <code>+=</code>, nicht <code>=</code>, weil mehrere Links auf dasselbe Element schreiben können.</p>
+  </div></details>
+  <details class="hint"><summary>Hinweis 3 · Links für das Heisenberg-Modell</summary><div><p>Jedes Paar \(\langle ij\rangle\) bekommt drei Links: x, y und z mit demselben \(J\). Beim Dreieck also \(3\times3 = 9\) Links, wie <code>L = 9</code> in der Musterlösung.</p></div></details>
+  <details><summary>Lösung · Referenzcode (getestet)</summary><div>
+<pre class="code">import numpy as np
+
+def hamilton_matrix(N, links):
+    """Hamilton-Matrix für H = -sum J^a_pq S^a_p S^a_q.
+    links: Liste von (alpha, p, q, J), alpha in 'xyz', Plätze p, q = 1..N."""
+    dim = 2**N
+    H = np.zeros((dim, dim))
+    for n in range(dim):                                  <span class="c"># Schleife über Basiszustände</span>
+        z = [(n &gt;&gt; (i-1)) &amp; 1 for i in range(1, N+1)]     <span class="c"># z[i-1] = z_i</span>
+        for alpha, p, q, J in links:                      <span class="c"># Schleife über Links</span>
+            zp, zq = z[p-1], z[q-1]
+            if alpha in 'xy':
+                l = n + (1-2*zp)*2**(p-1) + (1-2*zq)*2**(q-1)   <span class="c"># Gl. (*), S. 7</span>
+                s = 1 if alpha == 'x' else -(2*zp-1)*(2*zq-1)    <span class="c"># Vorzeichen, S. 8</span>
+                H[l, n] += -0.25 * J * s                  <span class="c"># Minus aus H = -sum ...</span>
+            else:                                         <span class="c"># z-Link: diagonal</span>
+                H[n, n] += -0.25 * J * (2*zp-1) * (2*zq-1)
+    return H
+
+def heisenberg_links(pairs, J=1.0):
+    """isotropes Heisenberg-Modell: je Paar ein x-, y- und z-Link"""
+    return [(a, p, q, J) for p, q in pairs for a in 'xyz']</pre>
+  </div></details>
+</section>
+
+<section id="s7">
+  <span class="time">Szene 7</span>
+  <h2>Teil b: Eigenenergien</h2>
+  <div class="blk ask"><span class="lab">Selbst rechnen, erst von Hand: N = 2</span>
+    <p>\(H = -J\,\vec S_1\cdot\vec S_2\). Stelle die \(4\times4\)-Matrix in der Basis \(n=0,1,2,3\) auf und bestimme die Eigenwerte. Dann mit dem Code prüfen.</p>
+  </div>
+  <details class="hint"><summary>Hinweis</summary><div>
+    \[\vec S_1\cdot\vec S_2 = \tfrac12\left(S^+_1S^-_2 + S^-_1S^+_2\right) + S^z_1S^z_2\]
+    <p>Die Zustände \(0=|{\downarrow\downarrow}\rangle\) und \(3=|{\uparrow\uparrow}\rangle\) werden nicht gekippt. Der mittlere \(2\times2\)-Block hat die Eigenvektoren \(\tfrac{1}{\sqrt2}(1,\pm1)\).</p>
+  </div></details>
+  <details><summary>Lösung</summary><div>
+    <div class="tafel">
+    \[\bar H = \frac{J}{4}\begin{pmatrix} -1 & 0 & 0 & 0\\ 0 & 1 & -2 & 0\\ 0 & -2 & 1 & 0\\ 0 & 0 & 0 & -1\end{pmatrix}
+    \qquad \begin{matrix} \leftarrow |{\downarrow\downarrow}\rangle,\ n=0\\ \leftarrow |{\uparrow\downarrow}\rangle,\ n=1\\ \leftarrow |{\downarrow\uparrow}\rangle,\ n=2\\ \leftarrow |{\uparrow\uparrow}\rangle,\ n=3\end{matrix}\]
+    </div>
+    <p>Mittlerer Block: Eigenwerte \(\tfrac J4(1\mp2)\).</p>
+    \[\begin{aligned}
+    \text{Singulett } \tfrac{1}{\sqrt2}\big(|{\uparrow\downarrow}\rangle - |{\downarrow\uparrow}\rangle\big):&\quad E = \boxed{\tfrac34 J}\\
+    \text{Triplett } |{\downarrow\downarrow}\rangle,\ \tfrac{1}{\sqrt2}\big(|{\uparrow\downarrow}\rangle + |{\downarrow\uparrow}\rangle\big),\ |{\uparrow\uparrow}\rangle:&\quad E = \boxed{-\tfrac14 J}\ \ \text{(dreifach)}
+    \end{aligned}\]
+    <p>Für \(J>0\) (ferromagnetisch) ist das Triplett der Grundzustand, für \(J<0\) das Singulett.</p>
+  </div></details>
+  <div class="blk do"><span class="lab">Dann numerisch, alle drei Cluster aus Aufgabe 1</span>
+<pre class="code">tri = [(1,2), (2,3), (3,1)]
+models = {
+    'Ising':      [('z', p, q, 1.0) for p, q in tri],
+    'Heisenberg': heisenberg_links(tri),
+    'Modell d':   [('x',1,2,1.0), ('y',2,3,1.0), ('z',3,1,1.0)],
+}
+for name, links in models.items():
+    H = hamilton_matrix(3, links)
+    assert np.allclose(H, H.T)              <span class="c"># reell-symmetrisch?</span>
+    E = np.linalg.eigvalsh(H)               <span class="c"># &lt;- fehlte in der Vergleichsbearbeitung</span>
+    print(name, np.round(E, 4))</pre>
+  </div>
+  <details><summary>Lösung · erwartete Eigenenergien (J = 1)</summary><div>
+    <div class="tw"><table>
+      <tr><th>Modell</th><th>Energie</th><th>Entartung</th><th>Deutung</th></tr>
+      <tr><td>Ising</td><td>\(-\tfrac34\ \cdot\ +\tfrac14\)</td><td class="mono">2 · 6</td><td>alle parallel (\(|{\uparrow\uparrow\uparrow}\rangle, |{\downarrow\downarrow\downarrow}\rangle\)) gegen „ein Spin anders“</td></tr>
+      <tr><td>Heisenberg</td><td>\(-\tfrac34\ \cdot\ +\tfrac34\)</td><td class="mono">4 · 4</td><td>Gesamtspin \(S=\tfrac32\) gegen zweimal \(S=\tfrac12\)</td></tr>
+      <tr><td>Modell d</td><td>\(\mp\tfrac{\sqrt3}{4}\approx\mp0{,}433\)</td><td class="mono">4 · 4</td><td>Kitaev-artig: jeder Platz hat x, y und z genau einmal</td></tr>
+    </table></div>
+    <p>Heisenberg analytisch:</p>
+    \[\sum_{i\lt j}\vec S_i\cdot\vec S_j = \tfrac12\Big[S(S+1) - 3\cdot\tfrac34\Big] = \begin{cases} +\tfrac34 & S=\tfrac32\ \Rightarrow\ E=-\tfrac34 J\\ -\tfrac34 & S=\tfrac12\ \Rightarrow\ E=+\tfrac34 J\end{cases}\]
+  </div></details>
+  <div class="blk err"><span class="lab">Achte auf: Einheiten in der Musterlösung</span>
+    <p><code>three-site_cluster.jl</code> gibt <code>E = 4*eigvals(H)</code> aus, also Energien in Einheiten von \(J/4\): Heisenberg \(-3\) und \(+3\) statt \(-0{,}75\) und \(+0{,}75\). Beim Vergleich nicht verwirren lassen.</p>
+  </div>
+  <div class="blk do"><span class="lab">Zweiter Test: Kronecker-Produkt</span>
+    <p>Unabhängige Kontrolle über den Weg i aus <span class="ref">2.2 S. 6</span>: Spinoperatoren als Matrizen,</p>
+    \[\bar H = -\sum_{ij\alpha} J^\alpha_{ij}\,\bar S^\alpha_i\bar S^\alpha_j,\qquad \bar S^\alpha_i = \mathbf{1}\otimes\cdots\otimes \underbrace{S^\alpha}_{\text{Platz } i}\otimes\cdots\otimes\mathbf{1}\]
+    <p>Hier steckt die Lesefalle aus Szene 2: Platz 1 ist das niedrigste Bit und gehört deshalb im Kronecker-Produkt <b>ganz nach rechts</b>. In der Basis \((|{\downarrow}\rangle, |{\uparrow}\rangle)\) gilt</p>
+    \[S^z = \begin{pmatrix}-\tfrac12 & 0\\ 0 & \tfrac12\end{pmatrix},\quad S^+ = \begin{pmatrix}0&0\\1&0\end{pmatrix},\quad S^x = \begin{pmatrix}0&\tfrac12\\ \tfrac12&0\end{pmatrix},\quad S^y = \begin{pmatrix}0&\tfrac i2\\ -\tfrac i2&0\end{pmatrix}\]
+  </div>
+  <details><summary>Lösung · Kronecker-Test</summary><div>
+<pre class="code"><span class="c"># Basis pro Platz: Index 0 = |↓&gt; (z=0), Index 1 = |↑&gt; (z=1)</span>
+Sz = np.diag([-0.5, 0.5])
+Sx = np.array([[0, 0.5], [0.5, 0]])
+Sy = np.array([[0, 0.5j], [-0.5j, 0]])       <span class="c"># aus S^+ = [[0,0],[1,0]]</span>
+
+def op(S, i, N):
+    """S auf Platz i; Platz 1 steht ganz rechts im kron"""
+    M = np.array([[1.0]])
+    for k in range(N, 0, -1):
+        M = np.kron(M, S if k == i else np.eye(2))
+    return M
+
+def H_kron(N, links):
+    S = {'x': Sx, 'y': Sy, 'z': Sz}
+    return -sum(J * op(S[a], p, N) @ op(S[a], q, N) for a, p, q, J in links)
+
+<span class="c"># zufällige Kopplungen, alle Paare, N = 4</span>
+rng = np.random.default_rng(0)
+L = [(a, p, q, rng.normal()) for a in 'xyz' for p in range(1,5) for q in range(p+1,5)]
+print(np.allclose(hamilton_matrix(4, L), H_kron(4, L)))   <span class="c"># True</span></pre>
+  </div></details>
+</section>
+
+<section id="s8">
+  <span class="time">Szene 8</span>
+  <h2>Ausblick: Wie voll ist die Matrix?</h2>
+  <div class="tafel"><span class="lab">Tafel · <span class="ref">2.2 S. 9–10</span></span>
+    \[\begin{aligned}
+    &\text{höchstens}\quad \boxed{Z = L\cdot 2^N}\quad \text{Nicht-Null-Elemente}\\
+    &\text{Anteil}\quad \boxed{\gamma = \frac{Z}{2^N\cdot 2^N} = \frac{L}{2^N}}\\
+    &\text{Kitaev-Cluster: } L = \tfrac32 N\ \Rightarrow\ \gamma = \frac32\,\frac{N}{2^N}\ \to\ \text{„sparse matrix“}\\
+    &\text{volle Diagonalisierung: } T \sim \text{dim}^3 = 2^{3N}
+    \end{aligned}\]
+  </div>
+  <div class="blk ask"><span class="lab">Frage</span>
+    <ol><li>Heisenberg-Dreieck: \(L=9,\ N=3\). Dann wäre \(\gamma = 9/8 > 1\). Wie passt das zusammen?</li><li>Um welchen Faktor wächst die Rechenzeit, wenn du von \(N=10\) auf \(N=12\) gehst?</li></ol>
+  </div>
+  <details><summary>Lösung</summary><div>
+    <ol><li>\(Z = L\cdot2^N\) ist nur eine obere Schranke (Skript: „the actual number … is lower“). Alle z-Links schreiben auf dieselben Diagonalelemente, und x- und y-Link landen auf demselben \((l,n)\) und heben sich teilweise auf. Tatsächlich sind es \(8+12 = 20\) von \(64\) Elementen.</li><li>\(2^{3\cdot2} = 64\)-mal länger.</li></ol>
+  </div></details>
+</section>
+
+<section id="notation">
+  <h2>Notation und Glossar</h2>
+  <div class="tw"><table>
+    <tr><th>Symbol</th><th>Bedeutung</th><th>Hinweis</th></tr>
+    <tr><td>\(H = -\sum_{ij\alpha} J^\alpha_{ij}S^\alpha_iS^\alpha_j\)</td><td>allgemeines Spinmodell</td><td>\(J>0\) ferromagnetisch, \(J<0\) antiferromagnetisch</td></tr>
+    <tr><td>\(z_i\in\{0,1\}\)</td><td>Spin auf Platz \(i\)</td><td>\(1\mathrel{\hat=}\uparrow,\ 0\mathrel{\hat=}\downarrow\)</td></tr>
+    <tr><td>\(n = \sum_i z_i 2^{i-1}\)</td><td>Basislabel</td><td>Platz 1 rechts in der Binärzahl</td></tr>
+    <tr><td>\(l\)</td><td>Label nach dem Kippen von \(p\) und \(q\)</td><td>Gl. (*), S. 7</td></tr>
+    <tr><td>\(s = -(2z_p-1)(2z_q-1)\)</td><td>Vorzeichen des y-Links</td><td>S. 8</td></tr>
+    <tr><td>\(L\)</td><td>Zahl der Links (Terme)</td><td>Heisenberg: 3 pro Paar</td></tr>
+    <tr><td>Link / <i>link</i></td><td>ein Term \(J^\alpha_{pq}S^\alpha_pS^\alpha_q\)</td><td>x-, y-, z-Link</td></tr>
+    <tr><td>Leiteroperator / <i>ladder operator</i></td><td>\(S^\pm = S^x \pm iS^y\)</td><td>kippt einen Spin oder gibt 0</td></tr>
+    <tr><td>Entartung / <i>degeneracy</i></td><td>Zahl der Eigenzustände zur gleichen Energie</td><td>Teil b</td></tr>
+    <tr><td>dünnbesetzt / <i>sparse</i></td><td>fast alle Matrixelemente sind 0</td><td>→ <code>scipy.sparse</code></td></tr>
+    <tr><td>exakte Diagonalisierung / <i>exact diagonalization (ED)</i></td><td>alle Eigenwerte der vollen Matrix numerisch</td><td>\(T\sim\text{dim}^3\)</td></tr>
+  </table></div>
+</section>
+
+<section id="stand">
+  <h2>Was ich schon kann</h2>
+  <p class="cut">Zum Abhaken, nur auf deinem Gerät gespeichert.</p>
+  <ul class="tick">
+    <li><label><input type="checkbox" id="k1a" checked><span>1a: \(S^x, S^y\) durch \(S^\pm\) ausgedrückt, ausmultipliziert (Vorfaktor \(\tfrac{1}{2i}\cdot\tfrac{1}{2i} = -\tfrac14\)) und nach Operatoren sortiert.</span></label></li>
+    <li><label><input type="checkbox" id="k1b" checked><span>1b: Kronecker-Delta eingesetzt, \(H_\text{Ising} = -J\sum_{i<j}S^z_iS^z_j\) aufgestellt.</span></label></li>
+    <li><label><input type="checkbox" id="k1c"><span>1b: Warum ist die Ising-Matrix diagonal? \(\langle 0|H|0\rangle\) und alle 8 Diagonalelemente berechnet.</span></label></li>
+    <li><label><input type="checkbox" id="k1d"><span>1c: Heisenberg-Matrix von Hand (\(8\times8\)).</span></label></li>
+    <li><label><input type="checkbox" id="k1e"><span>1d: Modell d von Hand.</span></label></li>
+    <li><label><input type="checkbox" id="k1"><span>Ich kann \((\bar H)_{mn} = \langle m|H|n\rangle\) aus der Schrödinger-Gleichung herleiten.</span></label></li>
+    <li><label><input type="checkbox" id="k2"><span>Ich übersetze Ket \(\leftrightarrow n\) ohne die Lesefalle.</span></label></li>
+    <li><label><input type="checkbox" id="k3"><span>Ich kann die Flip-Regel für \(l\) herleiten, nicht nur anwenden.</span></label></li>
+    <li><label><input type="checkbox" id="k4"><span>Ich kann das Vorzeichen \(s\) des y-Links begründen.</span></label></li>
+    <li><label><input type="checkbox" id="k5"><span>\(N=2\) von Hand: Singulett \(\tfrac34J\), Triplett \(-\tfrac14J\).</span></label></li>
+    <li><label><input type="checkbox" id="k6"><span><code>hamilton_matrix</code> selbst geschrieben.</span></label></li>
+    <li><label><input type="checkbox" id="k7"><span>Eigenenergien der drei Cluster berechnet und mit der Tabelle verglichen.</span></label></li>
+    <li><label><input type="checkbox" id="k8"><span>Kronecker-Test bestanden.</span></label></li>
+    <li><label><input type="checkbox" id="k9"><span>Ich kann erklären, warum \(\bar H\) dünnbesetzt ist und wie \(\gamma\) mit \(N\) skaliert.</span></label></li>
+  </ul>
+</section>
+
+<section id="weiter">
+  <h2>Wie es weitergeht</h2>
+  <div class="blk do"><span class="lab">Ausbaustufe 1 · dünnbesetzt</span><p><code>scipy.sparse</code> (z. B. <code>lil_matrix</code>, dann <code>.tocsr()</code>) und <code>scipy.sparse.linalg.eigsh</code> für die tiefsten Eigenwerte. Über das Skript hinaus: Das Skript nennt nur „nur die Nicht-Null-Elemente speichern“ (S. 10), nicht die konkreten Bibliotheken.</p></div>
+  <div class="blk do"><span class="lab">Ausbaustufe 2 · XXZ-Modell</span><p>\(J^x=J^y\): \(\tfrac12J^x(S^+_iS^-_j + S^-_iS^+_j)\) als <b>ein</b> Link, nur für \(z_p+z_q=1\) <span class="ref">2.2 S. 10</span>.</p></div>
+  <div class="blk do"><span class="lab">Ausbaustufe 3 · S<sup>z</sup><sub>tot</sub>-Blöcke</span><p>\([H, S^z_\text{tot}] = 0\ \Rightarrow\) Blockstruktur, jeder Block wird einzeln diagonalisiert <span class="ref">2.2 S. 11–12</span>.</p></div>
+  <div class="blk do"><span class="lab">Danach</span><p>Blatt 5 (Spinkorrelationen der Heisenberg-Kette), Blatt 6 (Kitaev-Cluster, Verschränkungsentropie), dann Kapitel 4.2, iterative Diagonalisierung.</p></div>
+</section>
+
+<section id="offen">
+  <h2>Offen</h2>
+  <ul class="tick">
+    <li><label><input type="checkbox" id="o1"><span>Beim Prof klären: Ist genau diese Aufgabe (Blatt 4, Aufgabe 2) gemeint, oder ein anderer Heisenberg-Cluster?</span></label></li>
+    <li><label><input type="checkbox" id="o2"><span>Python oder Julia für die Arbeit? Die Musterlösungen sind in Julia, die Vergleichsbearbeitung in Python.</span></label></li>
+    <li><label><input type="checkbox" id="o3"><span>Deine Antworten auf die drei Vorwissensfragen aus dem Chat schicken, dann passe ich den Einstieg an.</span></label></li>
+  </ul>
+  <footer>Quelle: Vorlesungsskript „Computational Many-Body Physics“, apl. Prof. Dr. R. Bulla, SS 2022, Kap. 2.1–2.2 · Übungsblatt 4 · Musterlösung three-site_cluster.jl · Vergleichsbearbeitung Exercise 4 (C. Riesop) mit Korrektur. Den Referenzcode habe ich gegen die Kronecker-Konstruktion getestet. Formelsatz: MathJax.</footer>
+</section>
+</div>
+<a class="up" href="#top">↑ Zum Anfang</a>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+(function(){
+  var toast=document.getElementById('toast'),tt;
+  function say(t){toast.textContent=t;toast.hidden=false;clearTimeout(tt);tt=setTimeout(function(){toast.hidden=true;},3200);}
+  var dlP=null;
+  function dl(){if(!dlP){dlP=(window.claude&&claude.use)?claude.use('downloads'):Promise.resolve(null);}return dlP;}
+  document.querySelectorAll('button[data-f],button[data-a]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      var src=b.getAttribute('data-a')||('files/'+b.getAttribute('data-f'));
+      var name=b.getAttribute('data-n')||b.getAttribute('data-f'),label=b.textContent;
+      b.disabled=true;b.textContent='Lädt …';
+      try{
+        var d=await dl();
+        if(!d){say('Herunterladen geht in dieser Ansicht nicht.');return;}
+        var r=await fetch(src);
+        if(!r.ok)throw{code:'missing'};
+        var blob=await r.blob();
+        await d.save({filename:name,data:blob});
+        say('Gespeichert: '+name);
+      }catch(e){
+        var c=e&&e.code;
+        if(c==='declined')say('Abgebrochen.');
+        else if(c==='rate_limited')say('Bitte kurz warten, ein Fenster ist noch offen.');
+        else if(c==='missing')say('Datei nicht gefunden.');
+        else say('Herunterladen geht hier gerade nicht.');
+      }finally{b.disabled=false;b.textContent=label;}
+    });
+  });
+})();
+</script>
+<script>
+(function(){
+  var KEY = 'drehbuch-hamilton-haken', saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }catch(e){ saved = {}; }
+  document.querySelectorAll('ul.tick input[type=checkbox]').forEach(function(cb){
+    if(saved[cb.id]) cb.checked = true;
+    cb.addEventListener('change', function(){
+      saved[cb.id] = cb.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>
