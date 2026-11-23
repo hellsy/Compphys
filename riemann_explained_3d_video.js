@@ -414,8 +414,8 @@ function setup() {
 
   // ---- (c) the zeta mountains: height = size of ζ, colour = angle of ζ
   const MTN = new THREE.Scene(); MTN.fog = new THREE.Fog(0x060914, 18, 55); addLights(MTN);
-  const s0 = -4.6, s1 = 2.6, t0 = -3, t1 = 40, NS = 144, NT = 690;
-  const mG = new THREE.PlaneGeometry(s1 - s0, t1 - t0, NS, NT); mG.rotateX(-Math.PI / 2);
+  const s0 = -6.6, s1 = 3.0, t0 = -3, t1 = 40, NS = 192, NT = 690;
+  const mG = new THREE.PlaneGeometry(s1 - s0, t1 - t0, NS, NT); mG.rotateX(-Math.PI / 2); mG.translate((s0 + s1) / 2, 0, 0);   // x = Re(s) from s0 to s1
   { const P = mG.attributes.position, cols = [];
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i), z = P.getZ(i); const sg = x, tt = (t1 + t0) / 2 - z;   // z runs from -(t1-t0)/2 .. +(t1-t0)/2
@@ -433,16 +433,16 @@ function setup() {
   const critLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(critPts), critPts.length, 0.035, 6, false), new THREE.MeshBasicMaterial({ color: 0xffd166 }));
   MTN.add(critLine);
   const mZeros = ZEROS.filter(g => g < t1).map(g => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff })); m.add(new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }))); m.position.set(0.5, 0.06, tz(g)); MTN.add(m); return m; });
-  const trivial = [-2, -4].map(r => { const m = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: 0xf72585 })); m.rotation.x = Math.PI / 2; m.position.set(r, 0.08, tz(0)); MTN.add(m); return m; });
+  const trivial = [-2, -4, -6].map(r => { const m = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: 0xf72585 })); m.rotation.x = Math.PI / 2; m.position.set(r, 0.08, tz(0)); MTN.add(m); return m; });
   function drawMountains(st) {
     let pos, tgt;
-    if (st.beat === 0) { const a = lerp(-0.3, 0.3, ease(st.since / 12)); pos = V3(-0.8 + 6.5 * Math.sin(a), 3.6, tz(-2) + 6.5 * Math.cos(a)); tgt = V3(-1, 0.4, tz(2.5)); }
+    if (st.beat === 0) { const a = lerp(-0.3, 0.3, ease(st.since / 12)); pos = V3(-2.4 + 8.5 * Math.sin(a), 4.6, tz(-3) + 8.5 * Math.cos(a)); tgt = V3(-2.5, 0.4, tz(2)); }
     else { const tc = lerp(4, 32, ease(st.since / 12)); pos = V3(5.8, 5.2, tz(tc - 5)); tgt = V3(0.3, 0, tz(tc + 3)); }
     strip.material.opacity = st.beat >= 1 ? 0.06 + 0.06 * st.ap(1, 1) : 0.03;
     shot(MTN, pos, tgt, 46);
     if (st.beat === 0) {
       [[-2, '−2'], [1, 'pole at s = 1']].forEach(([r, l]) => { const [x, y, z] = proj(V3(r, r === 1 ? 3.1 : 0.1, tz(0))); if (z < 1) T(l, x, y - 22, F.sans(24, 600), r === 1 ? N.white : N.pink, 'center'); });
-      const [x, y, z] = proj(V3(-4, 0.1, tz(0))); if (z < 1) T('−4', x, y - 22, F.sans(24, 600), N.pink, 'center');
+      [[-4, '−4'], [-6, '−6']].forEach(([r, l]) => { const [x, y, z] = proj(V3(r, 0.1, tz(0))); if (z < 1) T(l, x, y - 22, F.sans(24, 600), N.pink, 'center'); });
     } else {
       ZEROS.slice(0, 8).forEach(g => { const [x, y, z] = proj(V3(0.5, 0.1, tz(g))); if (z < 1 && y > 200 && y < SH - 170) T('½ + ' + g.toFixed(2) + ' i', x + 22, y + 6, F.sans(20, 600), N.gold); });
       card(ctx, 1080, 110, 420, 70); T('critical strip 0 < Re(s) < 1', 1105, 155, F.sans(22, 600), N.white);
@@ -635,7 +635,7 @@ function setup() {
   const mPos = mG.attributes.position, mCol = mG.attributes.color, NV = mPos.count;
   const H0 = new Float32Array(NV), C0 = new Float32Array(NV * 3), XV = new Float32Array(NV);
   for (let i = 0; i < NV; i++) { H0[i] = mPos.getY(i); XV[i] = mPos.getX(i); C0[3 * i] = mCol.getX(i); C0[3 * i + 1] = mCol.getY(i); C0[3 * i + 2] = mCol.getZ(i); }
-  const XMIN = -(s1 - s0) / 2;
+  const XMIN = s0;
   let grownTo = null;
   function growFrom(edge) {
     if (grownTo === edge) return; grownTo = edge;
@@ -673,7 +673,7 @@ function setup() {
       pos = V3(-0.3, 2.3, tz(t - 6)); tgt = V3(1.3, 0.6, tz(t + 4));
     } else if (st.beat === 1) {              // rise and watch the front sweep to the left
       const e = ease(since1 / 6);
-      pos = lerpV(V3(-0.3, 2.3, tz(3)), V3(6.5, 11, tz(-11)), e); tgt = lerpV(V3(1.3, 0.6, tz(13)), V3(-1.2, 0.3, tz(5)), e);
+      pos = lerpV(V3(-0.3, 2.3, tz(3)), V3(5.5, 12.5, tz(-12)), e); tgt = lerpV(V3(1.3, 0.6, tz(13)), V3(-2, 0.3, tz(5)), e);
     } else {                                 // orbit the pole
       const a = lerp(0.6, -0.9, ease(st.since / 10));
       pos = V3(1 + 5.2 * Math.sin(a), 3.4, tz(0) + 5.2 * Math.cos(a)); tgt = V3(0.6, 1.2, tz(0.5));
@@ -855,7 +855,7 @@ function setup() {
     arrowG.rotation.y = ang;
     const seg = t < 6 ? [0, Math.min(ang, Math.PI / 2)] : t < 11 ? [Math.PI / 2, ang] : [Math.PI, Math.max(Math.PI, ang)];
     setArc(seg[0], seg[1]);
-    const a = 0.5 + t * 0.03; shot(CPX, V3(Math.sin(a) * 6.2, 6.4, Math.cos(a) * 6.2 + 1.2), V3(0, 0, -0.3), 44);
+    shot(CPX, V3(2.6, 6.6, 6.4), V3(0, 0, -0.3), 44);   // fixed camera: only the arrow turns
     [['1', 1, 0], ['i', 0, 1], ['−1', -1, 0], ['−i', 0, -1]].forEach(([l, r, i]) => { const [x, y, z] = proj(cpPt(r * 1.22, i * 1.22)); if (z < 1) { glow(N.white, 10); T(l, x, y + 12, F.disp(40), N.white, 'center'); noGlow(); } });
     const [rx, ry] = proj(V3(5.6, 0, 0)), [ix, iy] = proj(V3(0, 0, -5.6));
     T('real', rx, ry + 30, F.mono(20), N.dim, 'center'); T('imaginary', ix + 14, iy, F.mono(20), N.dim);
