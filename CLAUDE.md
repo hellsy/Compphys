@@ -16,3 +16,14 @@
 - Everything shown is computed (state the integrator in the docstring); prefer visual, animated scenes
   over text cards.
 - Commit the script together with the rendered `.mp4`.
+
+---
+
+# Lernvideos im Stil „visual journey“ (Standard für neue Videos)
+
+- Neue Lernvideos mit dem privaten Baukasten **`hellsy/video-baukasten`** bauen: das Repo selbst hinzufügen
+  (mit Schreibrechten) und dessen `CLAUDE.md` und `README.md` folgen. Fertige Videos kommen hierher.
+- Zu jedem neuen Lernvideo gehört immer auch eine **interaktive Lernsimulation** (eine HTML-Datei, läuft im Browser):
+  Regler und Parameter zum Ausprobieren, Kapitel passend zum Video, kurzes Quiz. Vorbild:
+  `riemann/interaktiv/riemann_lernvideo_en.html` in `hellsy/Compphys`. Ablage im Themenordner unter `interaktiv/`,
+  Sprache Englisch, ohne Nachfrage mit dem Video committen.

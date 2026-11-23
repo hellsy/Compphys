@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
 
 const VORSCHAU = process.env.VORSCHAU === '1';
 const FPS = VORSCHAU ? 10 : 30;
-const BREITE = 1280, HOEHE = 720;
+const BREITE = 1920, HOEHE = 1080;
 const HTML = path.join(__dirname, '..', 'interaktiv', 'riemann_lernvideo_en.html');
 const AUS = path.join(__dirname, 'riemann_explained_3d.mp4');
 const THREE_JS = path.join(__dirname, 'node_modules', 'three', 'build', 'three.min.js');
@@ -402,7 +402,7 @@ function setup() {
       const rise = st.beat === 0 ? clamp(st.since * 6 - (t.n - 2) * 0.35, 0, 1) : 1;
       t.grp.scale.set(1, Math.max(0.001, ease(rise)), 1);
       const op = st.beat >= 1 && !t.prime ? lerp(1, 0.16, st.ap(1, 1.2)) : 1;
-      t.grp.children.forEach(m => { m.material.opacity = op; m.material.emissiveIntensity = t.prime ? (st.beat >= 1 ? 0.9 : 0.55) : 0.12; });
+      t.grp.children.forEach(m => { m.material.opacity = op; m.material.emissiveIntensity = t.prime ? (st.beat >= 1 ? 0.55 : 0.3) : 0.06; });
     });
     let pos, tgt;
     if (st.beat === 0) { const x = lerp(2, 18, ease(st.since / 14)); pos = V3(x - 6, 3.2, 9); tgt = V3(x + 3, 1.4, 0); }
@@ -893,7 +893,7 @@ function setup() {
     }
     sGeo.attributes.position.needsUpdate = true;
     cam.fov = 70 + t * 6; cam.updateProjectionMatrix(); cam.position.set(Math.sin(t * 0.7) * 0.3, Math.cos(t * 0.6) * 0.3, 0); cam.lookAt(0, 0, -50);
-    R3.render(TUN, cam); ctx.drawImage(GL, 0, 0, SW, SH);
+    fxFor(TUN).comp.render(); ctx.drawImage(GL, 0, 0, SW, SH);
     const vg = ctx.createRadialGradient(SW / 2, SH / 2, 120, SW / 2, SH / 2, SW * 0.7); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.75)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, SW, SH);
   }
   const prev6 = S[6].draw;
@@ -924,6 +924,107 @@ function setup() {
       glow(N.white, 26); formula([['t', 'ζ(s)  ≈'], ['f', '1', 's − 1'], ['t', '→  ∞']], 800, 200, 66, N.white); noGlow();
       ctx.globalAlpha = 1;
     }
+  };
+
+  // ================================================================ real lighting: bloom, depth of field, environment reflections, soft shadows
+  const PP = window.PP;
+  R3.shadowMap.enabled = true; R3.shadowMap.type = THREE.PCFSoftShadowMap;
+  const ENV = new THREE.PMREMGenerator(R3).fromScene(new PP.RoomEnvironment(), 0.04).texture;
+  const FX = new Map(), FXCONF = new Map();
+  function fxFor(scene) {
+    let f = FX.get(scene); if (f) return f;
+    const conf = FXCONF.get(scene) || {};
+    const comp = new PP.EffectComposer(R3); comp.setSize(GL.width, GL.height);
+    comp.addPass(new PP.RenderPass(scene, cam));
+    let bokeh = null;
+    if (conf.bokeh) { bokeh = new PP.BokehPass(scene, cam, { focus: 10, aperture: conf.bokeh, maxblur: 0.008, width: GL.width, height: GL.height }); comp.addPass(bokeh); }
+    const [s, r, th] = conf.bloom || [0.5, 0.45, 0.75];
+    comp.addPass(new PP.UnrealBloomPass(new THREE.Vector2(GL.width, GL.height), s, r, th));
+    f = { comp, bokeh }; FX.set(scene, f); return f;
+  }
+  function sunFollow(scene, target) {          // the shadow-casting light follows the camera target
+    const sun = scene.userData.sun; if (!sun) return;
+    sun.position.set(target.x + 6, target.y + 14, target.z + 9); sun.target.position.copy(target); sun.target.updateMatrixWorld();
+  }
+  shot = function (scene, pos, target, fov = 40) {
+    cam.fov = fov; cam.updateProjectionMatrix(); cam.position.copy(pos); cam.lookAt(target);
+    sunFollow(scene, target);
+    const f = fxFor(scene);
+    if (f.bokeh) f.bokeh.uniforms.focus.value = pos.distanceTo(target);
+    f.comp.render(); ctx.drawImage(GL, 0, 0, SW, SH);
+  };
+  function addSun(scene, half, intensity = 0.9) {
+    const sun = new THREE.DirectionalLight(0xffffff, intensity); sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048); const c = sun.shadow.camera; c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.near = 1; c.far = 60;
+    sun.shadow.bias = -0.0008; sun.shadow.radius = 4;
+    scene.add(sun, sun.target); scene.userData.sun = sun;
+  }
+  // towers: reflective blocks, soft shadows, depth of field
+  TOW.environment = ENV; addSun(TOW, 18, 0.6);
+  towers.forEach(t => t.grp.children.forEach(m => { m.castShadow = m.receiveShadow = true; m.material.roughness = 0.35; m.material.metalness = 0.2; m.material.envMapIntensity = 0.45; m.material.emissiveIntensity *= 0.55; }));
+  floor.receiveShadow = true; floor.material.envMapIntensity = 0.3;
+  FXCONF.set(TOW, { bloom: [0.32, 0.4, 0.86], bokeh: 0.0012 });
+  // mountains: soft shadows over the terrain, a hint of reflection
+  MTN.environment = ENV; addSun(MTN, 16, 0.55); mtn.castShadow = mtn.receiveShadow = true; mtn.material.envMapIntensity = 0.12; mtn.material.roughness = 0.6;
+  FXCONF.set(MTN, { bloom: [0.22, 0.4, 0.93] });
+  // complex plane: reflective arrow
+  CPX.environment = ENV; FXCONF.set(CPX, { bloom: [0.7, 0.45, 0.6] });
+  shaft.material.metalness = head.material.metalness = 0.6; shaft.material.roughness = head.material.roughness = 0.25;
+  FXCONF.set(SPI, { bloom: [1.0, 0.55, 0.5] });
+  FXCONF.set(RID, { bloom: [0.85, 0.5, 0.5] });
+  FXCONF.set(WAV, { bloom: [0.85, 0.5, 0.5] });
+  FXCONF.set(TUN, { bloom: [1.1, 0.6, 0.45] });
+  // golden title: real metal with environment reflections (own renderer, own environment)
+  TIT.environment = new THREE.PMREMGenerator(R4).fromScene(new PP.RoomEnvironment(), 0.04).texture;
+  letters.forEach(it => { const o = it.m.material; it.m.material = new THREE.MeshStandardMaterial({ color: 0xf0c05a, metalness: 1.0, roughness: 0.22, emissive: 0x2a1800, transparent: true, opacity: o.opacity }); });
+
+  // ================================================================ LaTeX formulas (MathJax → vector paths on the canvas)
+  const MJ = window.MathJax, texCache = new Map();
+  const mjHost = document.createElement('div'); mjHost.style.cssText = 'position:absolute;left:-99999px;top:0;'; document.body.appendChild(mjHost);
+  function uni2tex(s) {
+    s = String(s);
+    const i = s.indexOf('^'); if (i >= 0) return uni2tex(s.slice(0, i)) + '^{' + uni2tex(s.slice(i + 1)) + '}';
+    const map = [['ln', '\\ln '], ['ζ', '\\zeta '], ['π', '\\pi '], ['ρ', '\\rho '], ['ψ', '\\psi '], ['σ', '\\sigma '], ['−', '-'], ['·', '\\cdot '],
+      ['…', '\\dots '], ['∞', '\\infty '], ['≈', '\\approx '], ['→', '\\to '], ['½', '\\tfrac{1}{2}'], ['²', '^{2}'], ['⁴', '^{4}']];
+    s = s.replace(/[A-Za-z]{3,}(?: [A-Za-z]{3,})*/g, w => w === 'ln' ? w : '\\text{' + w + '}');
+    for (const [a, b] of map) s = s.split(a).join(b);
+    return s.replace(/ {2,}/g, ' ');
+  }
+  function pieceTex(p) {
+    if (p[0] === 't') return uni2tex(p[1]);
+    if (p[0] === 'f') return `\\frac{${uni2tex(p[1])}}{${uni2tex(p[2])}}`;
+    const op = p[1] === '∏' ? '\\prod' : '\\sum';
+    return `\\color{#ffd166}{${op}${p[3] ? '_{' + uni2tex(p[3]) + '}' : ''}${p[2] ? '^{' + uni2tex(p[2]) + '}' : ''}}`;
+  }
+  function texShape(tex) {
+    let sh = texCache.get(tex); if (sh) return sh;
+    const svg = MJ.tex2svg('\\displaystyle ' + tex, { display: false }).querySelector('svg');
+    const vb = svg.viewBox.baseVal; svg.setAttribute('width', vb.width); svg.setAttribute('height', vb.height);
+    mjHost.appendChild(svg);
+    const items = [];
+    svg.querySelectorAll('path, rect').forEach(el => {
+      const m = el.getCTM(); if (!m) return;
+      const fillEl = el.closest('[fill]'); let col = fillEl ? fillEl.getAttribute('fill') : null; if (col === 'currentColor') col = null;
+      const mm = [m.a, m.b, m.c, m.d, m.e, m.f];
+      if (el.tagName === 'path') { const d = el.getAttribute('d'); if (d) items.push({ m: mm, p: new Path2D(d), col }); }
+      else items.push({ m: mm, r: [+el.getAttribute('x') || 0, +el.getAttribute('y') || 0, +el.getAttribute('width') || 0, +el.getAttribute('height') || 0], col });
+    });
+    mjHost.removeChild(svg);
+    sh = { w: vb.width, h: vb.height, base: -vb.y, items }; texCache.set(tex, sh); return sh;
+  }
+  function drawShape(sh, x, yBase, sc, col) {
+    ctx.save(); ctx.translate(x, yBase - sh.base * sc); ctx.scale(sc, sc);
+    for (const it of sh.items) { ctx.save(); ctx.transform(...it.m); ctx.fillStyle = it.col || col; if (it.col) { ctx.shadowColor = it.col; ctx.shadowBlur = 14 / sc; } if (it.p) ctx.fill(it.p); else ctx.fillRect(...it.r); ctx.restore(); }
+    ctx.restore();
+  }
+  formula = function (pieces, cx, y, size, col, reveal = 99) {
+    const texs = pieces.map(pieceTex), sc = size / 1000 * 1.15;
+    const full = texShape(texs.join(' '));
+    const x0 = cx - full.w * sc / 2, yBase = y - full.h * sc / 2 + full.base * sc + size * 0.1;
+    const n = pieces.length, k = Math.max(0, Math.min(n, Math.floor(reveal))), fr = Math.min(1, Math.max(0, reveal - k));
+    if (k >= n) return drawShape(full, x0, yBase, sc, col);
+    if (k > 0) drawShape(texShape(texs.slice(0, k).join(' ')), x0, yBase, sc, col);
+    if (fr > 0) { ctx.save(); ctx.globalAlpha *= fr; drawShape(texShape(texs.slice(0, k + 1).join(' ')), x0, yBase, sc, col); ctx.restore(); }
   };
 
   let TT = 0; const B = [];
@@ -962,6 +1063,27 @@ function setup() {
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(([w, h]) => { window.removeEventListener('resize', resize); S.playing = false; cv.width = w; cv.height = h; window.requestAnimationFrame = () => 0; }, [BREITE, HOEHE]);
   await page.addScriptTag({ path: THREE_JS });
+  // three.js post-processing (bloom, depth of field) and RoomEnvironment: ES modules turned into one classic script
+  {
+    const ex = path.join(__dirname, 'node_modules', 'three', 'examples', 'jsm');
+    const teile = ['postprocessing/Pass.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'shaders/BokehShader.js',
+      'postprocessing/ShaderPass.js', 'postprocessing/MaskPass.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js',
+      'postprocessing/UnrealBloomPass.js', 'postprocessing/BokehPass.js', 'environments/RoomEnvironment.js'];
+    let js = 'window.PP = {};\n';
+    for (const t of teile) {
+      let c = require('fs').readFileSync(path.join(ex, t), 'utf8');
+      c = c.replace(/import\s*\{([^}]*)\}\s*from\s*'three';/g, 'const {$1} = THREE;')
+           .replace(/import\s*\{([^}]*)\}\s*from\s*'[.][^']*';/g, 'const {$1} = PP;')
+           .replace(/export\s*\{([^}]*)\};?/g, 'Object.assign(PP, {$1});');
+      js += '{\n' + c + '\n}\n';
+    }
+    await page.addScriptTag({ content: js });
+  }
+  // MathJax for LaTeX formulas
+  await page.addScriptTag({ content: "window.MathJax = { svg: { fontCache: 'none' }, startup: { typeset: false } };" });
+  await page.addScriptTag({ path: path.join(__dirname, 'node_modules', 'mathjax', 'es5', 'tex-svg-full.js') });
+  await page.waitForFunction(() => window.MathJax && MathJax.startup && MathJax.startup.promise, null, { timeout: 60000 });
+  await page.evaluate(() => MathJax.startup.promise);
   // 3-D font support: FontLoader from three/examples (ES module) turned into a classic script
   const fs = require('fs');
   const ex = path.join(__dirname, 'node_modules', 'three', 'examples');
@@ -981,16 +1103,18 @@ function setup() {
     for (const t of process.env.STILLS.split(',').map(Number)) { const u = await page.evaluate(t => EXPL.frame(t), t); fs.writeFileSync(path.join(process.env.STILLDIR || '.', `still_${t}.jpg`), Buffer.from(u.split(',')[1], 'base64')); }
     console.log(await page.evaluate(() => JSON.stringify(EXPL.scenes)), total); await browser.close(); return;
   }
-  const n = Math.round(total * FPS);
+  // RANGE="t0,t1" renders only this time span (e.g. to patch one scene into an existing video)
+  const [r0, r1] = process.env.RANGE ? process.env.RANGE.split(',').map(Number) : [0, total];
+  const f0 = Math.round(r0 * FPS), n = Math.round(r1 * FPS) - f0;
   console.log(`${n} frames (${(total / 60).toFixed(1)} min) at ${FPS} fps`);
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', String(FPS), '-i', '-',
-    '-c:v', 'libx264', '-crf', '24', '-preset', VORSCHAU ? 'veryfast' : 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', AUS],
+    '-c:v', 'libx264', '-crf', '24', '-preset', VORSCHAU ? 'veryfast' : 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', process.env.RANGE_OUT || AUS],
     { stdio: ['pipe', 'inherit', 'inherit'] });
   const done = new Promise((ok, err) => ff.on('close', c => c === 0 ? ok() : err(new Error('ffmpeg exit ' + c))));
   const write = buf => new Promise(ok => ff.stdin.write(buf) ? ok() : ff.stdin.once('drain', ok));
   const BATCH = 8;
   for (let i = 0; i < n; i += BATCH) {
-    const ts = []; for (let j = i; j < Math.min(n, i + BATCH); j++) ts.push(j / FPS);
+    const ts = []; for (let j = i; j < Math.min(n, i + BATCH); j++) ts.push((f0 + j) / FPS);
     const urls = await page.evaluate(ts => ts.map(t => EXPL.frame(t)), ts);
     for (const u of urls) await write(Buffer.from(u.slice(u.indexOf(',') + 1), 'base64'));
     if (i % (FPS * 30) < BATCH) process.stdout.write(`\r${Math.round(100 * i / n)} %`);

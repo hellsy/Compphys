@@ -1,4 +1,5 @@
+*_audio/
+__pycache__/
+audio_cache/
 node_modules/
 voices/
-audio_cache/
-__pycache__/
