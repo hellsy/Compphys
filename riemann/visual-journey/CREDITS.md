@@ -2,7 +2,7 @@
 
 **Music** by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0
 (https://creativecommons.org/licenses/by/4.0/):
-Egmont Overture (Beethoven, mix by Kevin MacLeod from MusOpen recordings) · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age.
+Rynos Theme · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age.
 The pieces were cut and crossfaded to the scenes; levels were changed (riemann_audio.py).
 
 **Voice:** Piper TTS, voice en_US-ryan-high (rhasspy/piper-voices).
