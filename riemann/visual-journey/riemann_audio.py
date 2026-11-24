@@ -333,7 +333,7 @@ def musik(zeitplan):
 # ------------------------------------------------------------------ Filmmusik aus echten Stücken (Kevin MacLeod, CC BY 4.0)
 TRACK_URL = "https://incompetech.com/music/royalty-free/mp3-royaltyfree/"
 TRACKS = os.path.join(CACHE, "tracks")
-CREDIT = ("Music: Kevin MacLeod (incompetech.com) – Echoes of Time v2, Floating Cities, Interloper, "
+CREDIT = ("Music: Kevin MacLeod (incompetech.com) – Egmont Overture (Beethoven), Floating Cities, Interloper, "
           "Volatile Reaction, Lost Frontier, Long Note Two, Heroic Age – licensed under CC BY 4.0")
 
 
@@ -369,7 +369,7 @@ def lade_score(zp=None):
     t_dive = start(6, 3); t_flash = t_dive + 2.6
     # (Stück, Versatz im Stück [s], von, bis, Ziel-Lautstärke dB, Einblendung s, Ausblendung s)
     plan = [
-        ("Echoes of Time v2", 0.0, 0.0, start(3), -21, 0.5, 2.0),
+        ("Egmont Overture", None, 0.0, start(3), -20, 1.5, 2.0),
         ("Floating Cities", 2.0, start(3) - 1.0, start(6) + 1.0, -22, 2.0, 2.0),
         ("Interloper", 0.0, start(6) - 1.0, t_dive + 0.4, -20, 2.0, 0.4),
         ("Volatile Reaction", None, t_dive, start(7) + 1.0, -14, 0.05, 1.8),
@@ -380,6 +380,8 @@ def lade_score(zp=None):
     n = int((total + 1) * SR); out = np.zeros((n, 2), np.float32)
     for name, off, a, e, ziel, ein, aus in plan:
         x = track(name)
+        if name == "Egmont Overture":                    # der große Tutti-Einsatz (Beethoven) fällt genau auf den Titel
+            off = einsatz(x, 41.4, 0.8) - start(0, 1)
         if name == "Volatile Reaction":                  # ein starker Schlag des Stücks fällt genau auf den Blitz
             off = einsatz(x, 40.0, 2.0) - (t_flash - t_dive)
         if name == "Heroic Age":                         # das Ende des Stücks fällt auf das Ende des Videos
@@ -473,7 +475,7 @@ def schritt_mix():
     t_end = zp["total"] - 4.2
     font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     zeilen = ["Music: Kevin MacLeod (incompetech.com), licensed under CC BY 4.0",
-              "Echoes of Time v2 · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age",
+              "Egmont Overture · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age",
               "Voice: Piper TTS (en_US-ryan-high)"]
     # Farbabstimmung: dämpft knallige, gesättigte Farben und weiche Spitzlichter (angenehmer auf Handys)
     GRADE = "vibrance=intensity=-0.4,curves=all='0/0 0.55/0.55 0.85/0.75 1/0.85'"
