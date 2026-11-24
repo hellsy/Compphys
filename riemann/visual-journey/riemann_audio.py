@@ -369,8 +369,11 @@ def lade_score(zp=None):
     t_dive = start(6, 3); t_flash = t_dive + 2.6
     # (Stück, Versatz im Stück [s], von, bis, Ziel-Lautstärke dB, Einblendung s, Ausblendung s)
     plan = [
-        ("Rynos Theme", None, 0.0, start(3), -20, 1.5, 2.0),
-        ("Floating Cities", 2.0, start(3) - 1.0, start(6) + 1.0, -22, 2.0, 2.0),
+        # Rynos Theme als Leitmotiv: leiser Beginn, Höhepunkt 1 auf dem Titel, ruhiger Mittelteil ...
+        ("Rynos Theme", None, 0.0, 89.0, -20, 1.5, 3.0),
+        ("Floating Cities", 2.0, 86.0, start(5) - 14.0, -22, 3.0, 2.5),
+        # ... und Rückkehr: Steigerung, der große Höhepunkt 2 fällt auf Riemanns Auftritt (1859)
+        ("Rynos Theme 2", None, start(5) - 16.0, start(6) + 1.0, -18, 2.5, 1.5),
         ("Interloper", 0.0, start(6) - 1.0, t_dive + 0.4, -20, 2.0, 0.4),
         ("Volatile Reaction", None, t_dive, start(7) + 1.0, -14, 0.05, 1.8),
         ("Lost Frontier", 0.0, start(7) - 0.5, start(8) + 1.0, -23, 2.5, 2.0),
@@ -379,7 +382,9 @@ def lade_score(zp=None):
     ]
     n = int((total + 1) * SR); out = np.zeros((n, 2), np.float32)
     for name, off, a, e, ziel, ein, aus in plan:
-        x = track(name)
+        x = track(name.replace(" 2", "") if name == "Rynos Theme 2" else name)
+        if name == "Rynos Theme 2":                      # Höhepunkt 2 des Stücks (ab 2:00) genau auf Riemanns ersten Satz
+            off = einsatz(x, 120.0, 0.8) - (start(5) - a)
         if name == "Rynos Theme":                        # der große Orchestereinsatz fällt genau auf den Titel
             off = einsatz(x, 30.0, 0.8) - start(0, 1)
         if name == "Volatile Reaction":                  # ein starker Schlag des Stücks fällt genau auf den Blitz
@@ -389,6 +394,8 @@ def lade_score(zp=None):
         seg = x[int(off * SR): int(off * SR) + int((e - a) * SR)]
         seg = seg * 10 ** ((ziel - db_rms(seg)) / 20)
         k = len(seg); env = huelle(k, int(ein * SR), int(aus * SR))
+        if name == "Floating Cities":                    # wird zum Ende hin lauter und leitet in die Steigerung über
+            env = env * np.interp(np.arange(k) / SR, [0, k / SR - 22, k / SR], [0.85, 0.85, 1.35]).astype(np.float32)
         if name == "Interloper":                         # Crescendo bis zum Sturzflug
             env = env * np.linspace(0.55, 1.25, k, dtype=np.float32)
         seg = seg * env[:, None]
