@@ -47,7 +47,8 @@
       "videos": [
         {"datei": "heisenberg/videos/heisenberg-spin-operators.mp4", "titel": "Was die Operatoren mit den Spins machen", "sprache": "de"},
         {"datei": "heisenberg/videos/heisenberg-spin-operators-en.mp4", "titel": "What the operators do to the spins", "sprache": "en"},
-        {"datei": "heisenberg/videos/heisenberg-physical-picture-en.mp4", "titel": "The physical picture", "sprache": "en"}
+        {"datei": "heisenberg/videos/heisenberg-physical-picture-en.mp4", "titel": "The physical picture", "sprache": "en"},
+        {"datei": "heisenberg/videos/heisenberg-hilbert-space-en.mp4", "titel": "Real space vs. Hilbert space", "sprache": "en"}
       ]
     },
     {

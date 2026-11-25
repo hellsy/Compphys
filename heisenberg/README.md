@@ -20,6 +20,7 @@ Lernmaterial zur exakten Diagonalisierung von Quanten-Spinmodellen, begleitend z
 | `heisenberg-spin-operators.mp4` | Was die Operatoren mit den Spins machen (deutsch) | 73 s |
 | `heisenberg-spin-operators-en.mp4` | dasselbe auf Englisch | 73 s |
 | `heisenberg-physical-picture-en.mp4` | Physikalisches Bild: Isolator vs. Metall, Herkunft von J, Ferro-/Antiferromagnet, Magnon, Singulett/Triplett (englisch) | 64 s |
+| `heisenberg-hilbert-space-en.mp4` | Ortsraum vs. Hilbertraum, Dimension, orthogonale Zustände, Bloch-Kugel (englisch) | 59 s |
 
 Neu rendern (Python mit numpy, matplotlib; ffmpeg):
 
@@ -28,6 +29,7 @@ cd videos
 python3 render.py    s1 s2 s3 s4 s5 s6 s7 s8   # deutsch,  Szenen s1.mp4 … s8.mp4
 python3 render_en.py s1 s2 s3 s4 s5 s6 s7 s8   # englisch, Szenen en_s1.mp4 …
 python3 render2.py   b1 b2 b3 b4 b5 b6         # Video 2,  Szenen b1.mp4 …
+python3 render3.py   c1 c2 c3 c4 c5 c6         # Video 3,  Szenen c1.mp4 …
 # danach mit ffmpeg -f concat … -c copy zusammenfügen
 ```
 
@@ -40,7 +42,9 @@ cd lernskript
 xelatex lecture.tex && xelatex lecture.tex
 ```
 
-## Stand
+## Stand (25.11.2026)
 
 - Blatt 4, Aufgabe 1a: erledigt
-- Blatt 4, Aufgabe 1b (Ising): Hamiltonian aufgestellt, Matrixelemente offen
+- Blatt 4, Aufgabe 1b (Ising): erledigt
+- Blatt 4, Aufgabe 1c (Heisenberg): in Arbeit
+- Blatt 4, Aufgabe 1d (Modell d): in Arbeit
