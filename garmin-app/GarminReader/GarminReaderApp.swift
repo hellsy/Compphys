@@ -2,15 +2,22 @@ import SwiftUI
 
 @main
 struct GarminReaderApp: App {
+    init() {
+        WatchLink.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             TabView {
+                WatchView()
+                    .tabItem { Label("Uhr", systemImage: "applewatch.radiowaves.left.and.right") }
                 HealthView()
                     .tabItem { Label("Health", systemImage: "heart.fill") }
                 FITView()
                     .tabItem { Label("FIT-Datei", systemImage: "doc.text.magnifyingglass") }
             }
             .tint(.teal)
+            .onOpenURL { WatchLink.shared.handle(url: $0) }
         }
     }
 }
