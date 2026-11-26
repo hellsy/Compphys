@@ -421,7 +421,7 @@ function setup() {
       const x = P.getX(i), z = P.getZ(i); const sg = x, tt = (t1 + t0) / 2 - z;   // z runs from -(t1-t0)/2 .. +(t1-t0)/2
       const v = M.zeta([sg, tt]); const m = Math.hypot(v[0], v[1]);
       const h = isFinite(m) ? Math.min(3.0, 0.9 * Math.log(1 + m)) : 3.0; P.setY(i, h);
-      const hue = ((Math.atan2(v[1], v[0]) / (2 * Math.PI)) + 1) % 1; const c = hsvRGB(hue, 0.75, 0.32 + 0.12 * Math.min(h, 2)); cols.push(c.r, c.g, c.b);
+      const hue = ((Math.atan2(v[1], v[0]) / (2 * Math.PI)) + 1) % 1; const c = hsvRGB(hue, 0.88, 0.27 + 0.07 * Math.min(h, 2)); cols.push(c.r, c.g, c.b);
     }
     mG.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); mG.computeVertexNormals(); }
   const mtn = new THREE.Mesh(mG, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide }));
@@ -749,10 +749,10 @@ function setup() {
     } else {
       mZeros.forEach(m => m.scale.setScalar(1));
       const fl = 0.55 + 0.45 * Math.sin(st.since * 8), a = st.ap(1, 1);
-      ghosts.forEach(g => { g.visible = st.since > 1.2; g.scale.setScalar(0.8 + 0.4 * fl); });
+      ghosts.forEach(g => { g.visible = false; });   // drawn as 2-D markers below (visible on every colour)
       const ang = lerp(-0.4, 0.4, ease(st.since / 12));
       shot(MTN, V3(0.5 + 2.5 * Math.sin(ang), 6.5, tz(19.5)), V3(0.5, 0, tz(24.5)), 46);
-      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z >= 1) return; const lab = i ? 'mirror twin' : 'a zero off the line?', lx = x + (i ? -110 : 110), ly = y + (i ? 70 : -70); ctx.font = F.sans(24, 600); const w = ctx.measureText(lab).width; ctx.strokeStyle = 'rgba(247,37,133,0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + (i ? -22 : 22), y + (i ? 14 : -14)); ctx.lineTo(lx, ly - 8); ctx.stroke(); ctx.fillStyle = 'rgba(6,9,20,0.85)'; ctx.beginPath(); ctx.roundRect(i ? lx - w - 14 : lx - 4, ly - 30, w + 18, 42, 8); ctx.fill(); T(lab, i ? lx - 5 : lx + 5, ly, F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
+      if (st.since > 1.2) ghosts.forEach((g, i) => { const [x, y, z] = proj(g.position); if (z >= 1) return; { const ph = (st.since * 1.2) % 1, pr = 22 + 14 * ph; ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,230,0,${(1 - ph).toFixed(2)})`; ctx.beginPath(); ctx.arc(x, y, pr, 0, 7); ctx.stroke(); ctx.shadowColor = '#ffe600'; ctx.shadowBlur = 18; ctx.fillStyle = '#fff36b'; ctx.beginPath(); ctx.arc(x, y, 13, 0, 7); ctx.fill(); ctx.shadowBlur = 0; ctx.lineWidth = 4; ctx.strokeStyle = '#0a0f25'; ctx.stroke(); ctx.restore(); } const lab = i ? 'mirror twin' : 'a zero off the line?', lx = x + (i ? -110 : 110), ly = y + (i ? 70 : -70); ctx.font = F.sans(24, 600); const w = ctx.measureText(lab).width; ctx.strokeStyle = 'rgba(255,230,0,0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + (i ? -22 : 22), y + (i ? 14 : -14)); ctx.lineTo(lx, ly - 8); ctx.stroke(); ctx.fillStyle = 'rgba(6,9,20,0.85)'; ctx.beginPath(); ctx.roundRect(i ? lx - w - 14 : lx - 4, ly - 30, w + 18, 42, 8); ctx.fill(); T(lab, i ? lx - 5 : lx + 5, ly, F.sans(24, 600), N.pink, i ? 'right' : 'left'); });
       ctx.globalAlpha = a; card(ctx, 60, 120, 600, 120); T('one zero off the line', 90, 172, F.sans(28, 600), N.pink); T('(they would come in mirror pairs) would break it', 90, 212, F.sans(21, 400), N.dim); ctx.globalAlpha = 1;
     }
   };
