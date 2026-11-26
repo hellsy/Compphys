@@ -35,3 +35,5 @@
   Die Seite läuft über GitHub Pages aus `main`.
 - Änderungen an einem fertigen Video (Musik, Szenen, Farben) erst als kurze Probe (Ausschnitt oder Hörprobe) zeigen
   und erst nach Freigabe ins Video übernehmen.
+- Die Webseite zeigt nur das Aktuelle: pro Thema nur die neueste Fassung des Videos und die englische Lernsimulation,
+  keine älteren Versionen. Ältere Videos bleiben im Repo, werden aber nicht in `website/themen.json` eingetragen.
