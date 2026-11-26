@@ -27,6 +27,9 @@
   Regler und Parameter zum Ausprobieren, Kapitel passend zum Video, kurzes Quiz. Vorbild:
   `riemann/interaktiv/riemann_lernvideo_en.html` in `hellsy/Compphys`. Ablage im Themenordner unter `interaktiv/`,
   Sprache Englisch, ohne Nachfrage mit dem Video committen.
+- Zu jedem Video gehört immer auch eine **Fassung ohne Untertitel** (`<name>_nosub.mp4`) mit abschaltbarer Untertitelspur
+  und eine **SRT-Datei** zum Laden (`<name>.en.srt`): `NOSUB=1 node baukasten.js …`, dann `NOSUB=1 python3 audio.py mix …`.
+  Beide Fassungen, die SRT und den Code ohne Nachfrage committen.
 - Jedes neue Video und jede Lernsimulation auf der Webseite eintragen: Eintrag in `website/themen.json`
   (Thema, Videos, `interaktiv`), dann `python3 website/build.py` (schreibt `index.html` und `themen/*.html`) und mitcommitten.
   Die Seite läuft über GitHub Pages aus `main`.
