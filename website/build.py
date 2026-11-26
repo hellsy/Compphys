@@ -110,7 +110,7 @@ def index():
     labore = "".join(f"""<a class="lab" href="{E(l['link'])}"><h3>{E(l['titel'])}</h3><p>{E(l['kurz'])}</p></a>""" for l in CFG["labore"])
     inhalt = f"""<section class="hero"><h1>{E(CFG['titel'])}</h1><p class="lead">{E(CFG['untertitel'])}</p></section>
 <h2>Themen</h2><div class="grid">{karten}</div>
-<h2>Interaktive Labore</h2><div class="grid">{labore}</div>"""
+""" + (f'<h2>Interaktive Labore</h2><div class="grid">{labore}</div>' if labore else "")
     open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8").write(seite(CFG["titel"], CFG["untertitel"], inhalt, 0))
 
 

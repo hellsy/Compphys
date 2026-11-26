@@ -1,0 +1,124 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#000}</style>
+<script type="importmap">{"imports":{"three":"./three/build/three.module.js","three/addons/":"./three/examples/jsm/"}}</script></head><body>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+const P=new URLSearchParams(location.search); const W=+(P.get('w')||2560), H=+(P.get('h')||1440);
+const G=await (await fetch('zgrid.json')).json(); const ZEROS=await (await fetch('zeros.json')).json();
+const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); r.setSize(W,H); r.toneMapping=THREE.ACESFilmicToneMapping; r.toneMappingExposure=1.0; r.outputEncoding=THREE.sRGBEncoding;
+document.body.appendChild(r.domElement);
+const sc=new THREE.Scene(); sc.fog=new THREE.FogExp2(new THREE.Color(0x0c0d1c),0.0030);
+const cam=new THREE.PerspectiveCamera(40,W/H,0.1,9000); cam.position.set(-22,52,80); cam.lookAt(0,W===H?46:81,-320);
+// sky dome
+const skyM=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,vertexShader:`varying vec3 vd;void main(){vd=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+fragmentShader:`varying vec3 vd;
+float h(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm(vec3 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n3(p);p*=2.03;a*=.5;}return s;}
+void main(){vec3 d=normalize(vd);float y=d.y;
+vec3 sun=normalize(vec3(0.0,0.02,-1.));float sd=max(dot(d,sun),0.);
+vec3 top=vec3(.006,.01,.03), hor=vec3(.10,.07,.12);
+vec3 c=mix(hor,top,smoothstep(-.02,.45,y));
+c+=vec3(1.0,.45,.15)*pow(sd,8.)*0.9*smoothstep(.35,-.02,y);
+c+=vec3(1.0,.6,.3)*pow(sd,60.)*1.5;
+float neb=fbm(d*3.5+vec3(3.,1.,0.)); neb=smoothstep(.55,.85,neb)*smoothstep(.05,.4,y);
+c+=neb*mix(vec3(.10,.18,.45),vec3(.35,.12,.40),fbm(d*2.))*.6;
+gl_FragColor=vec4(c*.22,1.);}`});
+sc.add(new THREE.Mesh(new THREE.SphereGeometry(6000,64,32),skyM));
+// stars
+{const n=6000,p=new Float32Array(n*3),c=new Float32Array(n*3);for(let i=0;i<n;i++){let v=new THREE.Vector3().randomDirection();if(v.y<0.03)v.y=Math.abs(v.y)+0.03;v.normalize().multiplyScalar(2800);p.set([v.x,v.y,v.z],i*3);const b=Math.pow(Math.random(),3)*1.4+0.15;c.set([b*0.9,b*0.95,b],i*3);}
+const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+sc.add(new THREE.Points(g,new THREE.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,fog:false})));}
+// Riemann sphere (the "planet") with the stereographic grid of the complex plane
+const RS=new THREE.Group(); const AV=W===H; RS.position.set(60,AV?560:0,-2700); sc.add(RS); const R=AV?430:520;
+RS.add(new THREE.Mesh(new THREE.SphereGeometry(R,128,64),new THREE.ShaderMaterial({fog:false,vertexShader:`varying vec3 n;varying vec3 vp;varying vec3 op;void main(){op=normalize(position);n=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vp=mv.xyz;gl_Position=projectionMatrix*mv;}`,
+fragmentShader:`varying vec3 n;varying vec3 vp;varying vec3 op;float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){vec3 v=normalize(-vp);float f=pow(1.-max(dot(n,v),0.),3.);float lit=max(dot(n,normalize(vec3(0.,-.3,1.))),0.);
+float lit2=max(dot(n,normalize(vec3(-.6,.2,.8))),0.);vec3 c=vec3(.012,.013,.018)+vec3(.10,.105,.12)*pow(lit2,1.5)+vec3(.15,.35,.8)*f*1.3;
+float lat=asin(op.y), lon=atan(op.z,op.x);
+vec2 g=vec2(lon*40./6.2832, lat*24./3.1416); vec2 cell=floor(g), fr=fract(g);
+float seam=1.-smoothstep(.0,.06,min(min(fr.x,1.-fr.x),min(fr.y,1.-fr.y)));
+c*=1.+.25*hs(cell)-.12; c+=seam*vec3(.02,.03,.05);
+vec2 g2=g*vec2(6.,5.); float win=step(.975,hs(floor(g2)))*step(.2,fract(g2.x))*step(.3,fract(g2.y));
+c+=win*vec3(1.,.82,.55)*.55*(1.-f);
+float tr=abs(lat-.08); c*=mix(.25,1.,smoothstep(.0,.025,tr)); c+=(1.-smoothstep(.0,.006,abs(tr-.025)))*vec3(.4,.8,1.)*.9;
+gl_FragColor=vec4(c,1.);}`})));
+{const pts=[];const L=(a)=>{for(let i=0;i<a.length-1;i++)pts.push(a[i],a[i+1]);};
+ for(const rr of [0.25,0.5,1,2,4]){const th=2*Math.atan(1/rr);const a=[];for(let k=0;k<=128;k++){const ph=k/128*2*Math.PI;a.push(new THREE.Vector3(Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph)).multiplyScalar(R*1.002));}L(a);}
+ for(let m=0;m<12;m++){const ph=m/12*Math.PI*2;const a=[];for(let k=0;k<=64;k++){const th=k/64*Math.PI;a.push(new THREE.Vector3(Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph)).multiplyScalar(R*1.002));}L(a);}
+ RS.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x3a7cff,transparent:true,opacity:.18,fog:false})));
+ // critical line Re(s)=1/2 is a circle through infinity on the Riemann sphere (gold)
+ const a=[];for(let k=0;k<=400;k++){const t=Math.tan((k/400-0.5)*Math.PI*0.999)*3;const x=0.5,y=t,d=1+x*x+y*y;a.push(new THREE.Vector3(2*x/d,(x*x+y*y-1)/d,2*y/d).multiplyScalar(R*1.004));}
+ RS.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(a),new THREE.LineBasicMaterial({color:0xffc860,fog:false})));
+ RS.rotation.set(0.55,0.6,0.15);}
+// terrain: log|zeta(sigma+it)|
+const S=G.sig, T=G.t, NX=S.length, NZ=T.length, XS=12, ZS=6.5;
+const geo=new THREE.PlaneGeometry(1,1,NX-1,NZ-1); const pos=geo.attributes.position;
+for(let i=0;i<NZ;i++)for(let j=0;j<NX;j++){const k=i*NX+j;const s=S[j],t=T[i];let y=Math.max(-2.2,Math.min(G.h[i][j],4.5))*5.0; const a=Math.abs(s-0.5); y+= a>2.2? Math.pow(a-2.2,1.5)*4.2*(0.75+0.25*Math.sin(t*0.37+s)) :0;
+  pos.setXYZ(k,(s-0.5)*XS,y,-t*ZS+30);}
+geo.computeVertexNormals();
+const terrM=new THREE.ShaderMaterial({fog:true,uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog]),
+vertexShader:`#include <fog_pars_vertex>
+varying vec3 wn;varying vec3 wp;void main(){wn=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.);wp=w.xyz;vec4 mvPosition=viewMatrix*w;gl_Position=projectionMatrix*mvPosition;
+#include <fog_vertex>
+}`,
+fragmentShader:`#include <fog_pars_fragment>
+varying vec3 wn;varying vec3 wp;void main(){vec3 N=wn.y<0.?-wn:wn;vec3 L=normalize(vec3(0.,.35,-1.));float d=max(dot(N,L),0.);float amb=.5+.5*N.y;
+vec3 c=vec3(.012,.014,.024)*amb+vec3(.55,.25,.10)*pow(d,3.)*.45;
+float hgt=wp.y/4.2; float cl=abs(fract(hgt*0.9)-.5)/fwidth(hgt*0.9); c+=(1.-min(cl,1.))*vec3(.15,.55,1.)*.35;
+float gx=abs(fract(wp.z/26.)-.5)/fwidth(wp.z/26.); c+=(1.-min(gx,1.))*vec3(.1,.3,.7)*.08;
+gl_FragColor=vec4(c,1.);
+#include <fog_fragment>
+}`});
+terrM.extensions={derivatives:true}; terrM.side=THREE.DoubleSide;
+sc.add(new THREE.Mesh(geo,terrM));
+// road = the critical line, as a floating bridge
+const RY=7.5, RW=5.2, Z0=40, Z1=-T[NZ-1]*ZS+30;
+const road=new THREE.Mesh(new THREE.BoxGeometry(RW,0.6,Z0-Z1),new THREE.MeshStandardMaterial({color:0x040507,metalness:.2,roughness:.9,envMapIntensity:.15}));
+road.position.set(0,RY,(Z0+Z1)/2); sc.add(road);
+for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.25,Z0-Z1),new THREE.MeshBasicMaterial({color:0x1d4a6e}));e.position.set(sx*RW/2,RY+.35,(Z0+Z1)/2);sc.add(e);}
+for(let z=Z0;z>Z1;z-=9){const d=new THREE.Mesh(new THREE.BoxGeometry(.14,.05,3.0),new THREE.MeshBasicMaterial({color:0x6a5428}));d.position.set(0,RY+.32,z);sc.add(d);}
+for(let z=Z0-10;z>Z1;z-=34){const p=new THREE.Mesh(new THREE.CylinderGeometry(.5,.7,40,12),new THREE.MeshStandardMaterial({color:0x151925,metalness:.6,roughness:.5}));p.position.set(0,RY-20.3,z);sc.add(p);}
+// the zeros of zeta: golden beacons along the road
+for(const t of ZEROS){const z=-t*ZS+30;if(z<Z1)continue;
+  for(const sx of [-1,1]){const b=new THREE.Mesh(new THREE.SphereGeometry(.35,16,12),new THREE.MeshBasicMaterial({color:0xb89a50}));b.position.set(sx*(RW/2+.9),RY+1.2,z);sc.add(b);}
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,60,8,1,true),new THREE.MeshBasicMaterial({color:0xffb040,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false}));beam.position.set(0,RY+30,z);sc.add(beam);
+  const l=new THREE.PointLight(0xffb050,.4,20,2);l.position.set(0,RY+3,z);sc.add(l);}
+sc.add(new THREE.HemisphereLight(0x5070c0,0x201010,.5));
+const sunL=new THREE.DirectionalLight(0xffa060,1.6);sunL.position.set(0,40,-400);sc.add(sunL);
+const pm=new THREE.PMREMGenerator(r); const envS=new THREE.Scene(); envS.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),skyM));
+sc.environment=pm.fromScene(envS,0.02).texture;
+{const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');const gr=x.createRadialGradient(128,128,0,128,128,128);gr.addColorStop(0,'rgba(255,240,210,1)');gr.addColorStop(.15,'rgba(255,170,80,.8)');gr.addColorStop(1,'rgba(255,90,20,0)');x.fillStyle=gr;x.fillRect(0,0,256,256);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sp.position.set(0,40,-4200);sp.scale.set(2200,700,1);sp.material.opacity=.6;sc.add(sp);}
+
+// original spaceships (own design): arrow fuselage, swept wings, twin engines with glow and trail
+function ship(sc_){const g=new THREE.Group();const hull=new THREE.MeshStandardMaterial({color:0x5a6070,metalness:.9,roughness:.35});
+ const fus=new THREE.Mesh(new THREE.ConeGeometry(1.1,9,8),hull);fus.rotation.x=-Math.PI/2;g.add(fus);
+ const sh=new THREE.Shape();sh.moveTo(0,2.5);sh.lineTo(6,-2.2);sh.lineTo(5.2,-3);sh.lineTo(0,-1.2);sh.lineTo(-5.2,-3);sh.lineTo(-6,-2.2);sh.closePath();
+ const wing=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.25,bevelEnabled:false}),hull);wing.rotation.x=-Math.PI/2;wing.position.y=-.2;g.add(wing);
+ const fin=new THREE.Mesh(new THREE.BoxGeometry(.15,1.6,2.4),hull);fin.position.set(0,1,2.6);g.add(fin);
+ const cp=new THREE.Mesh(new THREE.SphereGeometry(.55,12,8,0,Math.PI*2,0,Math.PI/2),new THREE.MeshBasicMaterial({color:0x7fd8ff}));cp.scale.set(1,.6,2);cp.position.set(0,.5,-1.2);g.add(cp);
+ for(const sx of [-1.6,1.6]){const e=new THREE.Mesh(new THREE.CylinderGeometry(.45,.55,3,12),hull);e.rotation.x=Math.PI/2;e.position.set(sx,0,3.6);g.add(e);
+  const fl=new THREE.Mesh(new THREE.CircleGeometry(.42,16),new THREE.MeshBasicMaterial({color:0xffb060}));fl.position.set(sx,0,5.11);g.add(fl);
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(.03,.25,5,10,1,true),new THREE.MeshBasicMaterial({color:0x66b8ff,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false}));tr.rotation.x=Math.PI/2;tr.position.set(sx,0,7.6);g.add(tr);}
+ for(const sx of [-6,6]){const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),new THREE.MeshBasicMaterial({color:sx<0?0xff4040:0x40ff80}));l.position.set(sx*.95,-.1,-2.3);g.add(l);}
+ sc_.add(g);return g;}
+{const a=ship(sc);a.position.set(-62,AV?86:72,-70);a.rotation.set(-.05,-1.05,-.25);a.scale.setScalar(2.4);
+ 
+ }
+
+// shooting star: tapered tail (violet -> blue -> white), glow pass, sparkling head
+{const Wc=2048,Hc=128,cv=document.createElement('canvas');cv.width=Wc;cv.height=Hc;const x=cv.getContext('2d');const cy=Hc/2,hx=Wc-90;
+ const tail=(w,blur,alpha)=>{x.save();x.filter=`blur(${blur}px)`;const gr=x.createLinearGradient(0,0,hx,0);
+  gr.addColorStop(0,'rgba(140,90,255,0)');gr.addColorStop(.45,`rgba(110,150,255,${.35*alpha})`);gr.addColorStop(.85,`rgba(190,225,255,${.8*alpha})`);gr.addColorStop(1,`rgba(255,255,255,${alpha})`);
+  x.fillStyle=gr;x.beginPath();x.moveTo(0,cy);x.quadraticCurveTo(hx*.7,cy-w*.55,hx,cy-w);x.lineTo(hx,cy+w);x.quadraticCurveTo(hx*.7,cy+w*.55,0,cy);x.fill();x.restore();};
+ tail(26,14,.55); tail(9,3,.9); tail(3,0,1);
+ for(let i=0;i<40;i++){const px=hx*(.35+.6*Math.random()),py=cy+(Math.random()-.5)*18*(px/hx),r=Math.random()*2+.6;x.fillStyle=`rgba(200,225,255,${.3+.6*Math.random()*(px/hx)})`;x.beginPath();x.arc(px,py,r,0,7);x.fill();}
+ const hd=x.createRadialGradient(hx,cy,0,hx,cy,60);hd.addColorStop(0,'rgba(255,255,255,1)');hd.addColorStop(.15,'rgba(230,240,255,.9)');hd.addColorStop(1,'rgba(120,170,255,0)');x.fillStyle=hd;x.fillRect(hx-60,0,120,Hc);
+ x.strokeStyle='rgba(255,255,255,.8)';x.lineWidth=2;x.beginPath();x.moveTo(hx-55,cy);x.lineTo(hx+55,cy);x.moveTo(hx,cy-40);x.lineTo(hx,cy+40);x.stroke();
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),blending:THREE.AdditiveBlending,depthWrite:false,fog:false,rotation:-0.36}));
+ sp.position.set(AV?820:1150,AV?1180:560,-3600);sp.scale.set(1000,62,1);sp.material.opacity=.55;sc.add(sp);}
+const comp=new EffectComposer(r);comp.addPass(new RenderPass(sc,cam));comp.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),0.9,0.6,0.55));
+comp.render(); window.DONE=true;
+</script></body></html>
