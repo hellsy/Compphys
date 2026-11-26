@@ -17,9 +17,9 @@ def put(im,mask,y0,h,dark=0.85,blur=16,grow=11):
     return Image.composite(metal(W,H,y0,h),ImageChops.add(im,gl),mask)
 # banner
 im=Image.open(D+"/scene_2560.png").convert("RGB"); W,H=im.size
-band=Image.new("L",(W,H)); ImageDraw.Draw(band).ellipse((W/2-760,600,W/2+760,920),fill=110); im=Image.composite(Image.new("RGB",(W,H),(10,8,16)),im,band.filter(ImageFilter.GaussianBlur(70)))
+band=Image.new("L",(W,H)); ImageDraw.Draw(band).ellipse((W/2-760,560,W/2+760,880),fill=110); im=Image.composite(Image.new("RGB",(W,H),(10,8,16)),im,band.filter(ImageFilter.GaussianBlur(70)))
 font=ImageFont.truetype(F+"Tektur-Medium.ttf",118); small=ImageFont.truetype(F+"IBMPlexMono-Bold.ttf",38)
-title="ROAD TO REALITY"; sp=20; y=690
+title="ROAD TO REALITY"; sp=20; y=650
 ws=[ImageDraw.Draw(im).textlength(c,font=font) for c in title]; tw=sum(ws)+sp*(len(title)-1); x0=(W-tw)/2
 mask=Image.new("L",(W,H)); md=ImageDraw.Draw(mask); x=x0
 for c,w in zip(title,ws): md.text((x,y),c,font=font,fill=255,anchor="lm"); x+=w+sp
