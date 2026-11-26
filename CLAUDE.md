@@ -30,3 +30,5 @@
 - Jedes neue Video und jede Lernsimulation auf der Webseite eintragen: Eintrag in `website/themen.json`
   (Thema, Videos, `interaktiv`), dann `python3 website/build.py` (schreibt `index.html` und `themen/*.html`) und mitcommitten.
   Die Seite läuft über GitHub Pages aus `main`.
+- Änderungen an einem fertigen Video (Musik, Szenen, Farben) erst als kurze Probe (Ausschnitt oder Hörprobe) zeigen
+  und erst nach Freigabe ins Video übernehmen.
