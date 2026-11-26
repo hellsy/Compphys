@@ -105,15 +105,20 @@ function ship(sc_){const g=new THREE.Group();const hull=new THREE.MeshStandardMa
  for(const sx of [-6,6]){const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),new THREE.MeshBasicMaterial({color:sx<0?0xff4040:0x40ff80}));l.position.set(sx*.95,-.1,-2.3);g.add(l);}
  sc_.add(g);return g;}
 {const a=ship(sc);a.position.set(-62,86,-70);a.rotation.set(-.05,-1.05,-.25);a.scale.setScalar(2.4);
- const b=ship(sc);b.position.set(78,104,-230);b.rotation.set(-.05,1.15,.2);b.scale.setScalar(2.2);
+ 
  }
 
-// shooting star: elongated additive sprite with a bright head
-{const cv=document.createElement('canvas');cv.width=1024;cv.height=32;const x=cv.getContext('2d');
- const gr=x.createLinearGradient(0,0,1024,0);gr.addColorStop(0,'rgba(120,170,255,0)');gr.addColorStop(.75,'rgba(190,215,255,.55)');gr.addColorStop(.97,'rgba(255,255,255,1)');gr.addColorStop(1,'rgba(255,255,255,0)');
- x.fillStyle=gr;x.fillRect(0,10,1024,12);const hd=x.createRadialGradient(990,16,0,990,16,16);hd.addColorStop(0,'rgba(255,255,255,1)');hd.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=hd;x.fillRect(958,0,64,32);
+// shooting star: tapered tail (violet -> blue -> white), glow pass, sparkling head
+{const Wc=2048,Hc=128,cv=document.createElement('canvas');cv.width=Wc;cv.height=Hc;const x=cv.getContext('2d');const cy=Hc/2,hx=Wc-90;
+ const tail=(w,blur,alpha)=>{x.save();x.filter=`blur(${blur}px)`;const gr=x.createLinearGradient(0,0,hx,0);
+  gr.addColorStop(0,'rgba(140,90,255,0)');gr.addColorStop(.45,`rgba(110,150,255,${.35*alpha})`);gr.addColorStop(.85,`rgba(190,225,255,${.8*alpha})`);gr.addColorStop(1,`rgba(255,255,255,${alpha})`);
+  x.fillStyle=gr;x.beginPath();x.moveTo(0,cy);x.quadraticCurveTo(hx*.7,cy-w*.55,hx,cy-w);x.lineTo(hx,cy+w);x.quadraticCurveTo(hx*.7,cy+w*.55,0,cy);x.fill();x.restore();};
+ tail(26,14,.55); tail(9,3,.9); tail(3,0,1);
+ for(let i=0;i<40;i++){const px=hx*(.35+.6*Math.random()),py=cy+(Math.random()-.5)*18*(px/hx),r=Math.random()*2+.6;x.fillStyle=`rgba(200,225,255,${.3+.6*Math.random()*(px/hx)})`;x.beginPath();x.arc(px,py,r,0,7);x.fill();}
+ const hd=x.createRadialGradient(hx,cy,0,hx,cy,60);hd.addColorStop(0,'rgba(255,255,255,1)');hd.addColorStop(.15,'rgba(230,240,255,.9)');hd.addColorStop(1,'rgba(120,170,255,0)');x.fillStyle=hd;x.fillRect(hx-60,0,120,Hc);
+ x.strokeStyle='rgba(255,255,255,.8)';x.lineWidth=2;x.beginPath();x.moveTo(hx-55,cy);x.lineTo(hx+55,cy);x.moveTo(hx,cy-40);x.lineTo(hx,cy+40);x.stroke();
  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),blending:THREE.AdditiveBlending,depthWrite:false,fog:false,rotation:-0.36}));
- sp.position.set(760,1120,-3600);sp.scale.set(1700,44,1);sc.add(sp);}
+ sp.position.set(760,1120,-3600);sp.scale.set(1800,112,1);sc.add(sp);}
 const comp=new EffectComposer(r);comp.addPass(new RenderPass(sc,cam));comp.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),0.9,0.6,0.55));
 comp.render(); window.DONE=true;
 </script></body></html>
