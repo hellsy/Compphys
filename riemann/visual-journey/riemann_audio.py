@@ -485,7 +485,10 @@ def schritt_mix():
               "Rynos Theme · Floating Cities · Interloper · Volatile Reaction · Lost Frontier · Long Note Two · Heroic Age",
               "Voice: Piper TTS (en_US-ryan-high)"]
     # Farbabstimmung: dämpft knallige, gesättigte Farben und weiche Spitzlichter (angenehmer auf Handys)
-    GRADE = "vibrance=intensity=-0.15,curves=all='0/0 0.6/0.6 0.88/0.83 1/0.92'"
+    # bis vor die Regenbogenflächen (Szene 06) etwas satter (Türme, Kurven, Summen), danach leicht gedämpft
+    t6 = next(b["start"] for b in beats if b["si"] == 6)
+    GRADE = (f"curves=all='0/0 0.6/0.6 0.88/0.83 1/0.92',vibrance=intensity=0.25:enable='lt(t,{t6:.2f})',"
+             f"vibrance=intensity=-0.15:enable='gte(t,{t6:.2f})'")
     filt = GRADE + "," + ",".join(f"drawtext=fontfile={font}:text='{z.replace(':', chr(92) + ':')}':fontcolor=0xB8C0E0:fontsize={27 if i else 30}:x=(w-text_w)/2:y=h-{180 - 45 * i}:enable='gte(t,{t_end:.2f})':alpha='min(1,(t-{t_end:.2f})/0.8)'"
                     for i, z in enumerate(zeilen))
     tmp = VIDEO.replace(".mp4", "_tmp.mp4")
