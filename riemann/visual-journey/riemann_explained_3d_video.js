@@ -1047,7 +1047,7 @@ function setup() {
     const st = { beat: b.bi, lt, since: t - b.start, bs: s.bs, ap: (j, d = 0.8) => ease((lt - s.bs[j]) / d) };
     ctx.save(); s.draw(st); ctx.restore(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; noGlow();
     if (s.tag) { ctx.globalAlpha = ease(lt / 0.8); T(s.tag.toUpperCase(), 80, 70, F.mono(20, 500), N.gold); ctx.globalAlpha = 1; }
-    subtitle(b.text);
+    if (!window.NOSUB) subtitle(b.text);   // NOSUB=1: clean picture, subtitles come as an SRT file
     const edge = Math.min(lt, s.end - t);
     if (edge < 0.5) { ctx.globalAlpha = 1 - ease(edge / 0.5); ctx.fillStyle = '#03050c'; ctx.fillRect(0, 0, SW, SH); ctx.globalAlpha = 1; }
     return cv.toDataURL('image/jpeg', 0.95);
@@ -1095,6 +1095,7 @@ function setup() {
   if (fs.existsSync(NARR_FILE)) await page.evaluate(n => { window.NARR = n; }, JSON.parse(fs.readFileSync(NARR_FILE, 'utf8')).durations);
   await page.evaluate('(' + setup.toString() + ')()');
   const beats = await page.evaluate(() => EXPL.beats);
+  if (process.env.NOSUB) await page.evaluate(() => { window.NOSUB = true; });
   if (process.env.DUMP_BEATS) { fs.writeFileSync(process.env.DUMP_BEATS, JSON.stringify(beats, null, 1)); console.log('beats written'); await browser.close(); return; }
   fs.writeFileSync(path.join(__dirname, 'riemann_explained_3d_timeline.json'), JSON.stringify({ total: await page.evaluate(() => EXPL.total), beats }, null, 1));
   const total = await page.evaluate(() => EXPL.total);
