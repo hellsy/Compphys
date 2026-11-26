@@ -17,7 +17,7 @@ worth one million dollars.
 Everything you see is computed: the zeta landscape, its zeros and the "music of the primes" built from them.
 
 ▶ Try it yourself – interactive learning simulation with sliders and a quiz:
-https://hellsy.github.io/Compphys/themen/riemann.html
+https://hellsy.github.io/Compphys/riemann/interaktiv/riemann_lernvideo_en.html
 
 Chapters
 0:00 The Riemann Hypothesis

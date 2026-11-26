@@ -12,7 +12,7 @@ Each video comes with a free interactive learning simulation: sliders to explore
 ideas yourself, chapters that follow the video, and a short quiz.
 
 ▶ Start here: The Riemann Hypothesis – a visual journey through primes, the zeta function and the critical line.
-▶ Interactive simulations: https://hellsy.github.io/Compphys/
+▶ Interactive simulation: https://hellsy.github.io/Compphys/riemann/interaktiv/riemann_lernvideo_en.html
 
 New journeys through number theory, analysis and physics are on the way.
 Subscribe and come along on the road to reality.
