@@ -1,0 +1,477 @@
+1
+00:00:00,350 --> 00:00:05,302
+These swirling curls are traced by a single
+function as it moves along one line.
+
+2
+00:00:05,352 --> 00:00:10,804
+For more than 160 years, curves like them have
+fascinated and frustrated mathematicians.
+
+3
+00:00:14,869 --> 00:00:17,150
+Behind them hides the Riemann hypothesis:
+
+4
+00:00:17,200 --> 00:00:20,506
+perhaps the most important unsolved
+problem in mathematics,
+
+5
+00:00:20,556 --> 00:00:24,374
+and one of the seven Millennium Problems,
+worth one million dollars.
+
+6
+00:00:29,461 --> 00:00:33,341
+If it is true, it reveals the deepest
+pattern of the prime numbers.
+
+7
+00:00:33,391 --> 00:00:35,218
+Let us build it up step by step:
+
+8
+00:00:35,268 --> 00:00:39,265
+from counting, through infinite sums, all
+the way to complex numbers.
+
+9
+00:00:44,054 --> 00:00:46,567
+Every whole number is built from primes.
+
+10
+00:00:46,617 --> 00:00:50,541
+Picture each number as a tower stacked
+from its prime factors:
+
+11
+00:00:50,591 --> 00:00:52,848
+twelve is two times two times three.
+
+12
+00:00:56,424 --> 00:00:58,978
+The primes are the towers made
+of a single block.
+
+13
+00:00:59,028 --> 00:01:02,803
+More than two thousand years ago, Euclid
+proved that they never run out.
+
+14
+00:01:07,461 --> 00:01:08,814
+But where do they appear?
+
+15
+00:01:08,864 --> 00:01:10,498
+They seem to pop up at random.
+
+16
+00:01:10,548 --> 00:01:15,045
+Walking along the numbers, how many
+single-block towers should you expect to see?
+
+17
+00:01:19,683 --> 00:01:23,916
+As a teenager, Carl Friedrich Gauss
+counted primes obsessively,
+
+18
+00:01:23,966 --> 00:01:26,023
+eventually up to three million.
+
+19
+00:01:26,073 --> 00:01:28,810
+Let π(x) be the number of primes up to x.
+
+20
+00:01:28,860 --> 00:01:31,121
+It climbs one step at every prime.
+
+21
+00:01:34,424 --> 00:01:35,349
+Now zoom out.
+
+22
+00:01:35,399 --> 00:01:38,873
+Ten, a hundred, a thousand, a
+hundred thousand:
+
+23
+00:01:38,923 --> 00:01:42,022
+the jagged steps melt into a smooth curve.
+
+24
+00:01:44,128 --> 00:01:48,395
+Gauss guessed that near x, roughly one
+number in ln x is prime.
+
+25
+00:01:48,445 --> 00:01:52,506
+Adding up that density gives the
+logarithmic integral li(x).
+
+26
+00:01:52,556 --> 00:01:57,029
+At this scale, the two curves are almost
+impossible to tell apart.
+
+27
+00:02:00,276 --> 00:02:02,491
+To go further we need infinite sums.
+
+28
+00:02:02,541 --> 00:02:05,512
+One, plus one half, plus one
+quarter, and so on:
+
+29
+00:02:05,562 --> 00:02:10,986
+each new piece fills half of the remaining gap,
+and the total converges to exactly two.
+
+30
+00:02:15,091 --> 00:02:18,831
+The harmonic series also has shrinking terms:
+
+31
+00:02:18,881 --> 00:02:21,526
+one, a half, a third, a quarter.
+
+32
+00:02:21,576 --> 00:02:24,137
+Yet it creeps past every bound.
+
+33
+00:02:24,187 --> 00:02:27,675
+To pass ten you already need 12,367 terms.
+
+34
+00:02:27,725 --> 00:02:28,686
+It diverges.
+
+35
+00:02:30,136 --> 00:02:37,002
+In 1735, Leonhard Euler cracked the sum of one over
+the squares and found π squared over
+
+36
+00:02:37,052 --> 00:02:37,316
+six.
+
+37
+00:02:37,366 --> 00:02:41,403
+Squares on one side, the circle
+number on the other.
+
+38
+00:02:42,951 --> 00:02:44,608
+Now let the exponent vary.
+
+39
+00:02:44,658 --> 00:02:47,300
+Call it s, and you get the zeta function:
+
+40
+00:02:47,350 --> 00:02:50,189
+zeta of s is the sum of one over n to the s.
+
+41
+00:02:50,239 --> 00:02:53,275
+For every s greater than one
+the sum converges.
+
+42
+00:02:56,876 --> 00:03:00,360
+Euler then found that the very same
+function is a product,
+
+43
+00:03:00,410 --> 00:03:02,309
+with one factor for every prime.
+
+44
+00:03:02,359 --> 00:03:06,574
+Multiply the factors out, and every whole
+number appears exactly once,
+
+45
+00:03:06,624 --> 00:03:08,584
+assembled from its prime factors.
+
+46
+00:03:13,395 --> 00:03:14,922
+This product is the bridge.
+
+47
+00:03:14,972 --> 00:03:18,718
+Whatever the zeta function does, the
+primes are hidden inside it.
+
+48
+00:03:22,284 --> 00:03:27,767
+In 1859, Gauss’s former student Bernhard
+Riemann had a radical idea:
+
+49
+00:03:27,817 --> 00:03:30,941
+feed the zeta function complex numbers.
+
+50
+00:03:32,391 --> 00:03:35,898
+A complex number has a real part
+and an imaginary part,
+
+51
+00:03:35,948 --> 00:03:38,809
+so it lives in a plane rather than on a line.
+
+52
+00:03:38,859 --> 00:03:42,042
+Multiplying by i turns every
+point a quarter turn:
+
+53
+00:03:42,092 --> 00:03:43,530
+i squared is minus one.
+
+54
+00:03:47,428 --> 00:03:52,749
+With a complex exponent, every term of the sum
+becomes a small rotating arrow.
+
+55
+00:03:52,799 --> 00:03:58,533
+Placed tip to tail, the arrows for s equal to two
+plus three i spiral in towards one
+
+56
+00:03:58,583 --> 00:03:58,946
+point:
+
+57
+00:03:58,996 --> 00:04:01,563
+the value of zeta at two plus three i.
+
+58
+00:04:04,909 --> 00:04:09,156
+But push the real part below one and the
+spiral never settles down.
+
+59
+00:04:09,206 --> 00:04:10,760
+It curls outward forever.
+
+60
+00:04:10,810 --> 00:04:13,004
+Here the sum simply makes no sense.
+
+61
+00:04:16,465 --> 00:04:18,404
+Riemann found a way around this.
+
+62
+00:04:18,454 --> 00:04:23,562
+Analytic continuation extends a function beyond
+the region where its formula works,
+
+63
+00:04:23,612 --> 00:04:26,048
+and it can do so in only one smooth way.
+
+64
+00:04:30,095 --> 00:04:33,605
+Here every point of the plane is
+coloured by the value of zeta:
+
+65
+00:04:33,655 --> 00:04:36,317
+the hue shows its direction,
+the rings its size.
+
+66
+00:04:36,367 --> 00:04:39,708
+Where the sum converges, on the
+right, the picture is fixed.
+
+67
+00:04:39,758 --> 00:04:42,590
+Riemann’s extension fills in the
+rest of the plane.
+
+68
+00:04:48,761 --> 00:04:50,778
+Only one point stays forbidden.
+
+69
+00:04:50,828 --> 00:04:54,444
+At s equal to one, the function
+shoots off to infinity.
+
+70
+00:04:57,206 --> 00:05:00,313
+Dive in, and the values grow
+beyond every bound:
+
+71
+00:05:00,363 --> 00:05:04,259
+near s equal to one, zeta behaves
+like one over s minus one.
+
+72
+00:05:04,309 --> 00:05:08,403
+The pole is not a place you can reach,
+only a road to infinity.
+
+73
+00:05:12,021 --> 00:05:15,458
+In this new territory, zeta can
+take the value zero.
+
+74
+00:05:15,508 --> 00:05:20,018
+At minus two, minus four, minus six and
+so on lie the trivial zeros.
+
+75
+00:05:20,068 --> 00:05:21,695
+They are easy to explain.
+
+76
+00:05:24,909 --> 00:05:27,078
+The other zeros are far more mysterious.
+
+77
+00:05:27,128 --> 00:05:31,683
+All of them lie in the critical strip, where the
+real part is between zero and one,
+
+78
+00:05:31,733 --> 00:05:34,179
+and Riemann showed there are infinitely many.
+
+79
+00:05:39,502 --> 00:05:41,504
+Lift the strip into a landscape.
+
+80
+00:05:41,554 --> 00:05:46,121
+Each ridge traces the size of zeta along
+one vertical line in the strip.
+
+81
+00:05:46,171 --> 00:05:47,211
+Watch the ground:
+
+82
+00:05:47,261 --> 00:05:49,199
+only one ridge ever touches it.
+
+83
+00:05:52,983 --> 00:05:55,810
+It is the line with real part
+exactly one half.
+
+84
+00:05:55,860 --> 00:06:00,400
+Riemann conjectured that every non-trivial
+zero lies on this critical line.
+
+85
+00:06:00,450 --> 00:06:02,297
+That is the Riemann hypothesis.
+
+86
+00:06:06,465 --> 00:06:09,185
+Why should the zeros matter for the primes?
+
+87
+00:06:09,235 --> 00:06:12,278
+Take the prime staircase and
+change it slightly:
+
+88
+00:06:12,328 --> 00:06:16,466
+step up by log p at every prime p, and
+at every power of a prime.
+
+89
+00:06:20,169 --> 00:06:23,055
+Riemann’s explicit formula
+rebuilds this staircase.
+
+90
+00:06:23,105 --> 00:06:26,107
+It starts with a smooth straight
+line, the main term.
+
+91
+00:06:29,946 --> 00:06:35,442
+Then every zero adds a wave, a harmonic whose
+frequency is the zero’s height on the
+
+92
+00:06:35,492 --> 00:06:36,377
+critical line.
+
+93
+00:06:36,427 --> 00:06:38,515
+One zero, two, five, ten, forty:
+
+94
+00:06:38,565 --> 00:06:41,120
+the waves begin to carve out the steps.
+
+95
+00:06:44,613 --> 00:06:47,601
+With all infinitely many zeros
+the match is exact.
+
+96
+00:06:47,651 --> 00:06:50,577
+The primes are the sum of the
+music of the zeros,
+
+97
+00:06:50,627 --> 00:06:54,951
+and the hypothesis says this music is as
+balanced as it can possibly be.
+
+98
+00:06:59,428 --> 00:07:02,814
+Computers have now checked more
+than ten trillion zeros.
+
+99
+00:07:02,864 --> 00:07:06,434
+Every single one of them sits
+exactly on the critical line.
+
+100
+00:07:10,021 --> 00:07:12,370
+But no finite search can reach infinity.
+
+101
+00:07:12,420 --> 00:07:15,728
+A single zero off the line would
+destroy the hypothesis,
+
+102
+00:07:15,778 --> 00:07:17,828
+and only a proof can rule that out.
+
+103
+00:07:21,872 --> 00:07:25,884
+So the question Riemann raised in
+1859 is still open.
+
+104
+00:07:25,934 --> 00:07:28,413
+Do all the zeros lie on one line?
+
+105
+00:07:28,463 --> 00:07:32,474
+Whoever proves it will finally
+understand the primes.
+

@@ -476,7 +476,11 @@ def schritt_mix():
     wav = os.path.join(CACHE, "mix.wav"); schreib_wav(wav, np.stack([links, rechts], 1))
     # Bild-Master ohne Ton und ohne Einblendung sichern (nach jedem neuen Rendern löschen!)
     master = os.path.join(CACHE, "video_master.mp4")
-    if not os.path.exists(master) or os.path.getmtime(master) < os.path.getmtime(ZEITPLAN):
+    # NOSUB=1: Fassung ohne eingebrannte Untertitel (Bild aus video_master_nosub.mp4), Untertitel als SRT-Spur im MP4
+    nosub = os.environ.get("NOSUB") == "1"; ziel = VIDEO.replace(".mp4", "_nosub.mp4") if nosub else VIDEO
+    srt = os.path.join(HIER, "riemann_explained_3d.en.srt")
+    if nosub: master = os.path.join(CACHE, "video_master_nosub.mp4")
+    elif not os.path.exists(master) or os.path.getmtime(master) < os.path.getmtime(ZEITPLAN):
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", VIDEO, "-map", "0:v", "-c:v", "copy", master], check=True)
     # Namensnennung (CC BY 4.0) in den letzten Sekunden einblenden
     t_end = zp["total"] - 4.2
@@ -491,12 +495,13 @@ def schritt_mix():
              f"vibrance=intensity=-0.15:enable='gte(t,{t6:.2f})'")
     filt = GRADE + "," + ",".join(f"drawtext=fontfile={font}:text='{z.replace(':', chr(92) + ':')}':fontcolor=0xB8C0E0:fontsize={27 if i else 30}:x=(w-text_w)/2:y=h-{180 - 45 * i}:enable='gte(t,{t_end:.2f})':alpha='min(1,(t-{t_end:.2f})/0.8)'"
                     for i, z in enumerate(zeilen))
-    tmp = VIDEO.replace(".mp4", "_tmp.mp4")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", master, "-i", wav, "-map", "0:v", "-map", "1:a", "-vf", filt,
-                    "-c:v", "libx264", "-crf", "24", "-preset", "medium", "-pix_fmt", "yuv420p",
+    tmp = ziel.replace(".mp4", "_tmp.mp4")
+    unter = ["-i", srt, "-map", "2:s", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng"] if nosub else []
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", master, "-i", wav] + unter[:2] + ["-map", "0:v", "-map", "1:a"] + unter[2:] +
+                   ["-vf", filt, "-c:v", "libx264", "-crf", "24", "-preset", "medium", "-pix_fmt", "yuv420p",
                     "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-shortest", "-movflags", "+faststart", tmp], check=True)
-    os.replace(tmp, VIDEO)
-    print("fertig:", VIDEO)
+    os.replace(tmp, ziel)
+    print("fertig:", ziel)
 
 
 if __name__ == "__main__":
