@@ -75,16 +75,16 @@ terrM.extensions={derivatives:true}; terrM.side=THREE.DoubleSide;
 sc.add(new THREE.Mesh(geo,terrM));
 // road = the critical line, as a floating bridge
 const RY=7.5, RW=5.2, Z0=40, Z1=-T[NZ-1]*ZS+30;
-const road=new THREE.Mesh(new THREE.BoxGeometry(RW,0.6,Z0-Z1),new THREE.MeshStandardMaterial({color:0x0a0c14,metalness:.7,roughness:.45}));
+const road=new THREE.Mesh(new THREE.BoxGeometry(RW,0.6,Z0-Z1),new THREE.MeshStandardMaterial({color:0x040507,metalness:.2,roughness:.9,envMapIntensity:.15}));
 road.position.set(0,RY,(Z0+Z1)/2); sc.add(road);
-for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.25,Z0-Z1),new THREE.MeshBasicMaterial({color:0x4aa8e8}));e.position.set(sx*RW/2,RY+.35,(Z0+Z1)/2);sc.add(e);}
-for(let z=Z0;z>Z1;z-=9){const d=new THREE.Mesh(new THREE.BoxGeometry(.18,.05,3.6),new THREE.MeshBasicMaterial({color:0xffc860}));d.position.set(0,RY+.32,z);sc.add(d);}
+for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.25,Z0-Z1),new THREE.MeshBasicMaterial({color:0x1d4a6e}));e.position.set(sx*RW/2,RY+.35,(Z0+Z1)/2);sc.add(e);}
+for(let z=Z0;z>Z1;z-=9){const d=new THREE.Mesh(new THREE.BoxGeometry(.14,.05,3.0),new THREE.MeshBasicMaterial({color:0x6a5428}));d.position.set(0,RY+.32,z);sc.add(d);}
 for(let z=Z0-10;z>Z1;z-=34){const p=new THREE.Mesh(new THREE.CylinderGeometry(.5,.7,40,12),new THREE.MeshStandardMaterial({color:0x151925,metalness:.6,roughness:.5}));p.position.set(0,RY-20.3,z);sc.add(p);}
 // the zeros of zeta: golden beacons along the road
 for(const t of ZEROS){const z=-t*ZS+30;if(z<Z1)continue;
-  for(const sx of [-1,1]){const b=new THREE.Mesh(new THREE.SphereGeometry(.55,16,12),new THREE.MeshBasicMaterial({color:0xffe08a}));b.position.set(sx*(RW/2+.9),RY+1.2,z);sc.add(b);}
+  for(const sx of [-1,1]){const b=new THREE.Mesh(new THREE.SphereGeometry(.35,16,12),new THREE.MeshBasicMaterial({color:0xb89a50}));b.position.set(sx*(RW/2+.9),RY+1.2,z);sc.add(b);}
   const beam=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,60,8,1,true),new THREE.MeshBasicMaterial({color:0xffb040,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false}));beam.position.set(0,RY+30,z);sc.add(beam);
-  const l=new THREE.PointLight(0xffb050,1.2,30,2);l.position.set(0,RY+3,z);sc.add(l);}
+  const l=new THREE.PointLight(0xffb050,.4,20,2);l.position.set(0,RY+3,z);sc.add(l);}
 sc.add(new THREE.HemisphereLight(0x5070c0,0x201010,.5));
 const sunL=new THREE.DirectionalLight(0xffa060,1.6);sunL.position.set(0,40,-400);sc.add(sunL);
 const pm=new THREE.PMREMGenerator(r); const envS=new THREE.Scene(); envS.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),skyM));
@@ -101,7 +101,7 @@ function ship(sc_){const g=new THREE.Group();const hull=new THREE.MeshStandardMa
  const cp=new THREE.Mesh(new THREE.SphereGeometry(.55,12,8,0,Math.PI*2,0,Math.PI/2),new THREE.MeshBasicMaterial({color:0x7fd8ff}));cp.scale.set(1,.6,2);cp.position.set(0,.5,-1.2);g.add(cp);
  for(const sx of [-1.6,1.6]){const e=new THREE.Mesh(new THREE.CylinderGeometry(.45,.55,3,12),hull);e.rotation.x=Math.PI/2;e.position.set(sx,0,3.6);g.add(e);
   const fl=new THREE.Mesh(new THREE.CircleGeometry(.42,16),new THREE.MeshBasicMaterial({color:0xffb060}));fl.position.set(sx,0,5.11);g.add(fl);
-  const tr=new THREE.Mesh(new THREE.CylinderGeometry(.03,.3,16,10,1,true),new THREE.MeshBasicMaterial({color:0x66b8ff,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false}));tr.rotation.x=Math.PI/2;tr.position.set(sx,0,13.2);g.add(tr);}
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(.03,.25,5,10,1,true),new THREE.MeshBasicMaterial({color:0x66b8ff,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false}));tr.rotation.x=Math.PI/2;tr.position.set(sx,0,7.6);g.add(tr);}
  for(const sx of [-6,6]){const l=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),new THREE.MeshBasicMaterial({color:sx<0?0xff4040:0x40ff80}));l.position.set(sx*.95,-.1,-2.3);g.add(l);}
  sc_.add(g);return g;}
 {const a=ship(sc);a.position.set(-62,86,-70);a.rotation.set(-.05,-1.05,-.25);a.scale.setScalar(2.4);
@@ -118,7 +118,7 @@ function ship(sc_){const g=new THREE.Group();const hull=new THREE.MeshStandardMa
  const hd=x.createRadialGradient(hx,cy,0,hx,cy,60);hd.addColorStop(0,'rgba(255,255,255,1)');hd.addColorStop(.15,'rgba(230,240,255,.9)');hd.addColorStop(1,'rgba(120,170,255,0)');x.fillStyle=hd;x.fillRect(hx-60,0,120,Hc);
  x.strokeStyle='rgba(255,255,255,.8)';x.lineWidth=2;x.beginPath();x.moveTo(hx-55,cy);x.lineTo(hx+55,cy);x.moveTo(hx,cy-40);x.lineTo(hx,cy+40);x.stroke();
  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),blending:THREE.AdditiveBlending,depthWrite:false,fog:false,rotation:-0.36}));
- sp.position.set(760,1120,-3600);sp.scale.set(1800,112,1);sc.add(sp);}
+ sp.position.set(820,1180,-3600);sp.scale.set(1000,62,1);sp.material.opacity=.55;sc.add(sp);}
 const comp=new EffectComposer(r);comp.addPass(new RenderPass(sc,cam));comp.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),0.9,0.6,0.55));
 comp.render(); window.DONE=true;
 </script></body></html>
