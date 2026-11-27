@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python-Werkstatt Blatt 4</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --ink:#1f2328; --muted:#5d6570; --line:#e3e0d8;
+  --accent:#2f5fb3; --accent-soft:#e8eefb; --ok:#1d7a46; --ok-soft:#e3f4ea;
+  --bad:#b3362f; --bad-soft:#fbe9e7; --warn:#8a5a00; --warn-soft:#fff3d6;
+  --code-bg:#f4f2ec; --kw:#8b2fb3; --num:#b35a00; --str:#1d7a46; --com:#7a8089; --fn:#2f5fb3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16181c; --panel:#1f2228; --ink:#e7e9ec; --muted:#a2a9b3; --line:#343841;
+    --accent:#7ea6ef; --accent-soft:#243150; --ok:#5fcf8f; --ok-soft:#1c3427;
+    --bad:#f08a82; --bad-soft:#3d2321; --warn:#f0c46a; --warn-soft:#3a3020;
+    --code-bg:#262a31; --kw:#d39bf0; --num:#f0a868; --str:#7fd8a2; --com:#8c939d; --fn:#8fb4f5;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16181c; --panel:#1f2228; --ink:#e7e9ec; --muted:#a2a9b3; --line:#343841;
+  --accent:#7ea6ef; --accent-soft:#243150; --ok:#5fcf8f; --ok-soft:#1c3427;
+  --bad:#f08a82; --bad-soft:#3d2321; --warn:#f0c46a; --warn-soft:#3a3020;
+  --code-bg:#262a31; --kw:#d39bf0; --num:#f0a868; --str:#7fd8a2; --com:#8c939d; --fn:#8fb4f5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 80px}
+h1{font-size:1.6rem;margin:.2em 0 .1em}
+.sub{color:var(--muted);margin:0 0 18px}
+.map{display:flex;flex-direction:column;gap:14px;margin-bottom:22px}
+.world{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.world h3{margin:0 0 8px;font-size:1rem}
+.world h3 span{color:var(--muted);font-weight:400}
+.dots{display:flex;flex-wrap:wrap;gap:8px}
+.dot{min-width:46px;height:46px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:1rem;font-weight:600;cursor:pointer}
+.dot.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.dot.cur{outline:3px solid var(--accent);outline-offset:1px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px}
+.tag{display:inline-block;font-size:.78rem;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-right:6px}
+.tag.type{background:var(--code-bg);color:var(--muted)}
+.card h2{margin:.35em 0 .4em;font-size:1.3rem}
+.intro{margin:0 0 12px}
+.intro p{margin:.4em 0}
+.box{border-left:4px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:6px;margin:10px 0}
+.box.trap{border-color:var(--warn);background:var(--warn-soft)}
+code,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+p code,li code,.box code{background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre.code{background:var(--code-bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;font-size:.95rem;line-height:1.6}
+.k{color:var(--kw);font-weight:600}.n{color:var(--num)}.s{color:var(--str)}.c{color:var(--com);font-style:italic}.f{color:var(--fn)}
+.q{font-weight:600;margin:14px 0 8px}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:1rem;cursor:pointer}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.blank{display:inline-block;min-width:80px;padding:0 8px;border-bottom:2px dashed var(--accent);color:var(--accent);cursor:pointer;text-align:center}
+.blank.active{background:var(--accent-soft);border-bottom-style:solid}
+.blank.filled{color:var(--ink);border-bottom-style:solid}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{padding:9px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.95rem}
+.pzone{min-height:52px;border:1.5px dashed var(--line);border-radius:10px;padding:6px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.pline{padding:9px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--code-bg);white-space:pre;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.93rem;cursor:pointer;overflow-x:auto}
+.plabel{font-size:.85rem;color:var(--muted);margin-top:10px}
+.bugline{display:block;padding:2px 8px;margin:0 -8px;border-radius:6px;cursor:pointer;white-space:pre}
+.bugline:hover{background:var(--accent-soft)}
+.bugline.sel{background:var(--accent-soft);outline:1.5px solid var(--accent)}
+.bugline.right{background:var(--ok-soft)}
+.bugline.wrong{background:var(--bad-soft)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.btn{padding:11px 16px;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-weight:600;font-size:1rem;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.fb{margin-top:12px;padding:10px 12px;border-radius:10px;display:none}
+.fb.ok{display:block;background:var(--ok-soft);border:1px solid var(--ok)}
+.fb.bad{display:block;background:var(--bad-soft);border:1px solid var(--bad)}
+.hint{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);border:1px solid var(--warn)}
+.expl{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--accent-soft)}
+.widget{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0}
+.bits{display:flex;gap:10px;justify-content:center;margin:10px 0;flex-wrap:wrap}
+.bit{width:72px;text-align:center;border:1.5px solid var(--line);border-radius:10px;padding:6px 0;background:var(--panel)}
+.bit b{display:block;font-size:1.6rem}
+.bit small{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:center}
+input[type=range]{width:min(320px,100%);accent-color:var(--accent)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);color:var(--ink);padding:9px 14px;font-size:.95rem;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.mat{border-collapse:collapse;margin:10px auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem}
+.mat td,.mat th{border:1px solid var(--line);width:44px;height:34px;text-align:center}
+.mat th{color:var(--muted);font-weight:500;background:var(--code-bg)}
+.mat td.nz{background:var(--accent-soft);font-weight:600}
+.matwrap{overflow-x:auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.score{font-weight:600;color:var(--ok)}
+.small{font-size:.88rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>Python-Werkstatt Blatt 4</h1>
+      <p class="sub">Schritt für Schritt zum Programm aus Aufgabe 2: Hamilton-Matrix für beliebige N und Kopplungen. Ohne Tastatur spielbar.</p>
+    </div>
+    <div class="score" id="score"></div>
+  </div>
+  <div class="map" id="map"></div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+/* ---------- tiny Python highlighter ---------- */
+const KW = new Set(["for","in","range","if","elif","else","def","return","import","as","print","and","or","not","True","False","None"]);
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function hl(src){
+  const re = /(#[^\n]*)|('[^']*'|"[^"]*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|(\s+)|(.)/g;
+  let out="",m;
+  while((m=re.exec(src))){
+    if(m[1]) out+=`<span class="c">${esc(m[1])}</span>`;
+    else if(m[2]) out+=`<span class="s">${esc(m[2])}</span>`;
+    else if(m[3]) out+=`<span class="n">${m[3]}</span>`;
+    else if(m[4]) out+= KW.has(m[4])?`<span class="k">${m[4]}</span>`:(src[re.lastIndex]==="("?`<span class="f">${m[4]}</span>`:m[4]);
+    else out+=esc(m[0]);
+  }
+  return out;
+}
+
+/* ---------- levels ---------- */
+const WORLDS = [
+  {name:"Welt 1", title:"Python-Grundlagen"},
+  {name:"Welt 2", title:"Spins als Bits"},
+  {name:"Welt 3", title:"numpy und die Matrix"},
+  {name:"Welt 4", title:"Das Programm aus dem Skript"},
+];
+
+const LEVELS = [
+/* ===== Welt 1 ===== */
+{w:0, title:"Rechnen in Python", type:"mc",
+ intro:`<p>Drei Rechenzeichen brauchst du immer wieder:</p>
+ <div class="box"><code>**</code> Potenz: <code>2**3</code> ist 2³.<br>
+ <code>//</code> ganzzahlige Division: das Ergebnis wird abgerundet.<br>
+ <code>%</code> Rest der Division („modulo“).</div>
+ <p>Mit <code>//</code> und <code>%</code> kannst du eine Zahl im Binärsystem zerlegen, genau wie beim wiederholten Teilen durch 2.</p>`,
+ code:`print(2**3, 7 // 2, 7 % 2)`,
+ q:"Was gibt Python aus?",
+ opts:["8 3 1","6 3.5 1","8 3.5 1","9 3 1"], ans:0,
+ hints:["2**3 ist nicht 2·3.","7 = 2·3 + 1. Welche Zahl ist der Quotient, welche der Rest?"],
+ expl:`2³ = 8, 7 // 2 = 3 (abgerundet), 7 % 2 = 1 (Rest). Mit <code>n % 2</code> bekommst du das letzte Bit von n.`},
+
+{w:0, title:"range zählt ab 0", type:"mc",
+ intro:`<p><code>range(k)</code> liefert die ganzen Zahlen von 0 bis k−1, also genau k Zahlen. <code>list(...)</code> macht daraus eine Liste, damit man sie sehen kann.</p>
+ <p>Für N = 3 Spins gibt es 2³ = 8 Basiszustände. Wir nummerieren sie von 0 an.</p>`,
+ code:`N = 3
+print(list(range(2**N)))`,
+ q:"Was gibt Python aus?",
+ opts:["[1, 2, 3, 4, 5, 6, 7, 8]","[0, 1, 2, 3, 4, 5, 6, 7]","[0, 1, 2, 3, 4, 5, 6, 7, 8]","[0, 1, 2, 3]"], ans:1,
+ hints:["range(k) enthält k Zahlen.","Die erste Zahl ist 0, die Endzahl k selbst ist nicht dabei."],
+ expl:`range(8) = 0, 1, …, 7. Das passt zur Nummerierung n = Σ zᵢ 2^(i−1): |↓↓↓⟩ hat n = 0, |↑↑↑⟩ hat n = 7.`},
+
+{w:0, title:"Schleife über alle Basiszustände", type:"parsons",
+ intro:`<p>Eine <code>for</code>-Schleife führt den eingerückten Block für jeden Wert einmal aus. Die Einrückung (4 Leerzeichen) zeigt Python, was zur Schleife gehört.</p>
+ <p>Das Programm in Aufgabe 2 beginnt mit einer Schleife über alle Basiszustände n.</p>`,
+ task:"Tippe die Zeilen in der richtigen Reihenfolge an, sodass alle Nummern n = 0, …, 7 ausgegeben werden. Eine Zeile gehört nicht dazu.",
+ lines:["N = 3","for n in range(2**N):","    print(n)"],
+ distract:["for n in range(1, 2**N + 1):"],
+ hints:["Zuerst muss N einen Wert haben, sonst kennt Python N in der Schleife nicht.","Die falsche Zeile zählt von 1 bis 8. Wir zählen von 0 an."],
+ expl:`Erst N festlegen, dann die Schleife, dann der eingerückte Rumpf. <code>range(1, 2**N + 1)</code> würde 1 bis 8 liefern; den Zustand 0 = |↓↓↓⟩ gäbe es dann nicht.`},
+
+/* ===== Welt 2 ===== */
+{w:1, title:"Ein Bit herausziehen", type:"mc", widget:"bits",
+ intro:`<p>Zwei Bit-Operationen ersetzen das Teilen durch 2:</p>
+ <div class="box"><code>n &gt;&gt; k</code> schiebt die Binärzahl um k Stellen nach rechts (wie k-mal <code>// 2</code>).<br>
+ <code>x &amp; 1</code> behält nur das letzte Bit (wie <code>% 2</code>).</div>
+ <p>Damit bekommt man den Spin am Platz i: <code>z = (n &gt;&gt; (i-1)) &amp; 1</code>. Platz 1 sitzt im niedrigsten Bit, deshalb wird um i−1 geschoben.</p>
+ <div class="box trap"><b>Lesefalle:</b> Im Ket steht Platz 1 links, in der Binärzahl rechts. Probier es mit dem Regler aus.</div>`,
+ code:`n = 6
+z = [(n >> (i-1)) & 1 for i in range(1, 4)]   # i = 1, 2, 3
+print(z)`,
+ q:"Was gibt Python aus, und welcher Ket ist das?",
+ opts:["[1, 1, 0], also |↑↑↓⟩","[0, 1, 1], also |↓↑↑⟩","[0, 1, 1], also |↑↑↓⟩","[1, 1, 0], also |↓↑↑⟩"], ans:1,
+ hints:["Schreib 6 binär: 6 = 4 + 2 = [110]₂.","Das rechte Bit gehört zu Platz 1. Die Liste z beginnt mit Platz 1, der Ket auch."],
+ expl:`6 = [110]₂ = [z₃ z₂ z₁]₂, also z₁ = 0, z₂ = 1, z₃ = 1. Liste und Ket beginnen beide mit Platz 1: [0, 1, 1] und |↓↑↑⟩. Nur die Binärzahl steht „verkehrt herum“.`},
+
+{w:1, title:"Fehler finden: Spins auslesen", type:"bug",
+ intro:`<p>Mit <code>def</code> schreibt man eine Funktion: Sie bekommt Werte (hier n und N) und gibt mit <code>return</code> ein Ergebnis zurück. <code>z.append(x)</code> hängt x hinten an die Liste z an.</p>`,
+ task:"Die Funktion soll die Liste [z₁, …, z_N] liefern. Für n = 1 kommt aber [0, 0, 0] heraus. Tippe auf die fehlerhafte Zeile.",
+ code:`def spins(n, N):
+    z = []
+    for i in range(1, N + 1):
+        z.append((n >> i) & 1)
+    return z`,
+ ans:3,
+ hints:["n = 1 ist |↑↓↓⟩, also müsste z₁ = 1 sein.","Um wie viele Stellen muss man für Platz 1 schieben?"],
+ expl:`Richtig ist <code>(n &gt;&gt; (i-1)) &amp; 1</code>. Für Platz 1 schiebt man um 0 Stellen. Mit <code>n &gt;&gt; i</code> fällt das Bit von Platz 1 weg und alles rutscht um einen Platz.`},
+
+{w:1, title:"Die Flip-Regel als Code", type:"cloze",
+ intro:`<p>Ein x- oder y-Link dreht die Spins an den Plätzen p und q um. Die neue Nummer l steht im Skript (Kap. 2.2):</p>
+ <div class="box">l = n + (1 − 2z_p)·2^(p−1) + (1 − 2z_q)·2^(q−1)</div>
+ <p>Ist z_p = 0, kommt 2^(p−1) dazu (↓ wird ↑). Ist z_p = 1, geht 2^(p−1) weg.</p>`,
+ task:"Tippe zuerst auf eine Lücke, dann auf den passenden Baustein.",
+ code:`def flip(n, p, q, z):
+    zp, zq = z[p-1], z[q-1]     # list index starts at 0
+    l = n + {0} * {1} + (1 - 2*zq) * 2**(q-1)
+    return l`,
+ chips:["(1 - 2*zp)","(2*zp - 1)","2**(p-1)","2**p","zp"],
+ ans:["(1 - 2*zp)","2**(p-1)"],
+ hints:["Der zweite Summand muss genauso gebaut sein wie der dritte.","Platz p entspricht dem Bit mit dem Wert 2^(p−1)."],
+ expl:`<code>(1 - 2*zp) * 2**(p-1)</code>, genau wie im Skript. Achtung: Die Liste z beginnt bei Index 0, deshalb <code>z[p-1]</code> für Platz p.<br><span class="small">Über das Skript hinaus: Dasselbe leistet <code>n ^ (1 &lt;&lt; (p-1)) ^ (1 &lt;&lt; (q-1))</code> (XOR schaltet ein Bit um).</span>`},
+
+{w:1, title:"Flip vorhersagen", type:"mc",
+ intro:`<p>Jetzt rechnest du mit der Flip-Regel eine Nummer aus. Das ist dieselbe Rechnung, die du in 1c von Hand machst.</p>`,
+ code:`n = 5            # |↑↓↑⟩
+z = spins(n, 3)  # [1, 0, 1]
+print(flip(n, 1, 2, z))`,
+ q:"Welche Zahl l kommt heraus?",
+ opts:["4","6","7","3"], ans:1,
+ hints:["z₁ = 1, also (1 − 2·1)·2⁰ = −1. Und Platz 2?","z₂ = 0, also (1 − 0)·2¹ = +2. Jetzt 5 − 1 + 2."],
+ expl:`l = 5 − 1 + 2 = 6. Probe: |↑↓↑⟩ mit Plätzen 1 und 2 gedreht ist |↓↑↑⟩ = 0·1 + 1·2 + 1·4 = 6.`},
+
+/* ===== Welt 3 ===== */
+{w:2, title:"Matrix anlegen und lesen", type:"mc",
+ intro:`<p>numpy ist die Bibliothek für Matrizen. <code>import numpy as np</code> lädt sie unter dem Kurznamen np.</p>
+ <div class="box"><code>np.zeros((8, 8))</code> ist eine 8×8-Matrix voller Nullen.<br>
+ <code>H[m, n]</code> ist der Eintrag in Zeile m, Spalte n, also ⟨m|H|n⟩.<br>
+ <code>H[:, n]</code> ist die ganze Spalte n (der Doppelpunkt heißt „alle Zeilen“).</div>
+ <p>Aus 1b weißt du: Spalte n enthält die Koeffizienten von H|n⟩.</p>`,
+ code:`import numpy as np
+H = np.zeros((3, 3))
+H[2, 0] = 5
+print(H[:, 0])`,
+ q:"Was gibt Python aus?",
+ opts:["[5. 0. 0.]","[0. 0. 5.]","[0. 0. 0.]","Fehlermeldung"], ans:1,
+ hints:["H[2, 0] ist Zeile 2, Spalte 0. Zählen ab 0!","H[:, 0] ist Spalte 0, von oben nach unten gelesen."],
+ expl:`Spalte 0 lautet von oben nach unten (0, 0, 5). numpy schreibt Gleitkommazahlen als <code>0.</code> und <code>5.</code>`},
+
+{w:2, title:"Fehler finden: Diagonale", type:"bug",
+ intro:`<p>Mehrere z-Links tragen zum selben Diagonaleintrag H[n, n] bei. <code>a = x</code> überschreibt a, <code>a += x</code> addiert x dazu.</p>
+ <p>Ein Tupel <code>(p, q, J)</code> fasst einen Link zusammen. <code>for (p, q, J) in zlinks</code> geht alle Links durch.</p>`,
+ task:"Für das Ising-Dreieck (3 z-Links) soll H[0, 0] = −¾J herauskommen. Das Programm liefert aber −¼J. Tippe auf die fehlerhafte Zeile.",
+ code:`zlinks = [(1, 2, J), (1, 3, J), (2, 3, J)]
+H = np.zeros((2**N, 2**N))
+for n in range(2**N):
+    z = spins(n, N)
+    for (p, q, J) in zlinks:
+        H[n, n] = -0.25 * J * (2*z[p-1] - 1) * (2*z[q-1] - 1)`,
+ ans:5,
+ hints:["Wie viele Links tragen zu H[0, 0] bei, und wie viele kommen am Ende an?","Jeder Link setzt H[n, n] neu, statt zu addieren."],
+ expl:`Richtig ist <code>H[n, n] += …</code>. Mit <code>=</code> bleibt nur der Beitrag des letzten Links übrig: −¼J statt 3·(−¼J).`},
+
+{w:2, title:"Eigenwerte der Ising-Matrix", type:"mc",
+ intro:`<p><code>np.linalg.eigvalsh(H)</code> berechnet die Eigenwerte einer hermiteschen (hier reellen, symmetrischen) Matrix und gibt sie aufsteigend sortiert zurück.</p>
+ <p>Die Ising-Matrix aus 1b hast du schon von Hand. Sie ist diagonal.</p>`,
+ code:`E = np.linalg.eigvalsh(H_ising)   # triangle, J = 1
+print(E)`,
+ q:"Was gibt Python aus?",
+ opts:["[-0.75 -0.75  0.25  0.25  0.25  0.25  0.25  0.25]","[-0.25 -0.25 -0.25 -0.25 -0.25 -0.25  0.75  0.75]","[-0.75 -0.25 -0.25 -0.25  0.25  0.25  0.25  0.75]","[ 0.25  0.25  0.25  0.25  0.25  0.25 -0.75 -0.75]"], ans:0,
+ hints:["Bei einer Diagonalmatrix sind die Eigenwerte die Diagonaleinträge.","|↓↓↓⟩ und |↑↑↑⟩ haben −¾J, alle anderen +¼J. Und eigvalsh sortiert."],
+ expl:`Zwei Zustände (alle parallel) mit −¾J, sechs mit +¼J, aufsteigend sortiert. Für J &gt; 0 (ferromagnetisch) liegen die parallelen Zustände unten.`},
+
+/* ===== Welt 4 ===== */
+{w:3, title:"Gerüst des Programms", type:"parsons",
+ intro:`<p>Die Codestruktur im Skript: äußere Schleife über alle Basiszustände n, innere Schleife über alle Links. Jeder Link ist ein Tupel <code>(alpha, p, q, J)</code> mit alpha = 'x', 'y' oder 'z'.</p>`,
+ task:"Bring die Zeilen in die richtige Reihenfolge. Eine Zeile gehört nicht dazu.",
+ lines:["H = np.zeros((2**N, 2**N))","for n in range(2**N):","    z = spins(n, N)","    for (alpha, p, q, J) in links:","        zp, zq = z[p-1], z[q-1]","        if alpha == 'z':"],
+ distract:["    for n in range(2**N):"],
+ hints:["Die Matrix wird einmal vor allen Schleifen angelegt.","Die Spins hängen nur von n ab, nicht vom Link. Also gehören sie zwischen die beiden Schleifen."],
+ expl:`Matrix anlegen, Schleife über n, Spins von n bestimmen, Schleife über Links, zp und zq holen, nach alpha unterscheiden. Eine zweite Schleife über n hat im Rumpf nichts zu suchen.`},
+
+{w:3, title:"Der x-Link", type:"cloze",
+ intro:`<p>Aus dem Skript: J S^x_p S^x_q |n⟩ = ¼J |l⟩. Der Term im Hamiltonian ist aber −J S^x S^x, wegen H = −Σ …</p>
+ <p>Der Beitrag landet in Zeile l, Spalte n, denn er ist ⟨l|H|n⟩.</p>`,
+ task:"Fülle die beiden Lücken.",
+ code:`        elif alpha == 'x':
+            l = flip(n, p, q, z)
+            H[{0}] += {1}`,
+ chips:["l, n","n, n","-0.25 * J","0.25 * J","-0.25 * J * (2*zp-1) * (2*zq-1)"],
+ ans:["l, n","-0.25 * J"],
+ hints:["Der x-Link ändert den Zustand. Landet der Beitrag dann auf der Diagonalen?","Vergiss das Minus vor der Summe in H nicht."],
+ expl:`<code>H[l, n] += -0.25 * J</code>. Der x-Link liefert keinen Vorzeichenfaktor aus den Spins, nur ¼J, und das Minus kommt aus H = −Σ …`},
+
+{w:3, title:"Fehler finden: y-Link", type:"bug",
+ intro:`<p>Beim y-Link kommt ein Vorzeichen dazu: S^y S^y |n⟩ = −¼ (2z_p−1)(2z_q−1) |l⟩, wegen i·i = −1.</p>
+ <p>Im Code heißt der Faktor s = −(2z_p−1)(2z_q−1).</p>`,
+ task:"Ein Element ist falsch. Tippe auf die fehlerhafte Zeile.",
+ code:`        elif alpha == 'y':
+            l = flip(n, p, q, z)
+            s = -(2*zp - 1) * (2*zq - 1)
+            H[l, n] += 0.25 * J * s`,
+ ans:3,
+ hints:["Das Vorzeichen s ist richtig. Vergleiche mit dem x-Link.","Welches Minus aus dem Hamiltonian fehlt?"],
+ expl:`Richtig ist <code>H[l, n] += -0.25 * J * s</code>. Das Minus aus H = −Σ … fehlt. Genau diese Stelle fehlt auch im Pseudocode im Skript auf S. 9, deshalb lohnt sich der Test.`},
+
+{w:3, title:"Dein Programm läuft", type:"run",
+ intro:`<p>Hier läuft das fertige Programm aus den Bausteinen dieser Welt (in JavaScript nachgebaut, gleiche Schleifen, gleiche Regeln). Wähle ein Modell aus Aufgabe 1 und vergleiche mit deiner Handrechnung.</p>`,
+ hints:[], expl:""},
+];
+
+/* ---------- state ---------- */
+let done = {};
+try{ done = JSON.parse(localStorage.getItem("pyw4_done")||"{}"); }catch(e){ done = {}; }
+function save(){ try{ localStorage.setItem("pyw4_done", JSON.stringify(done)); }catch(e){} }
+let cur = 0;
+try{ const c = parseInt(localStorage.getItem("pyw4_cur")); if(!isNaN(c) && c < LEVELS.length) cur = c; }catch(e){}
+let unlockCD = false;
+
+function renderMap(){
+  const map = document.getElementById("map"); map.innerHTML="";
+  WORLDS.forEach((w,wi)=>{
+    const d = document.createElement("div"); d.className="world";
+    d.innerHTML = `<h3>${w.name} <span>· ${w.title}</span></h3>`;
+    const dots = document.createElement("div"); dots.className="dots";
+    LEVELS.forEach((L,i)=>{ if(L.w!==wi) return;
+      const b=document.createElement("button");
+      b.className="dot"+(done[i]?" done":"")+(i===cur?" cur":"");
+      b.textContent = done[i] ? "✓" : (i+1);
+      b.title = L.title;
+      b.onclick=()=>{cur=i; go();};
+      dots.appendChild(b);
+    });
+    d.appendChild(dots); map.appendChild(d);
+  });
+  const n = Object.keys(done).length;
+  document.getElementById("score").textContent = `${n} / ${LEVELS.length} Level`;
+}
+
+function go(){
+  try{ localStorage.setItem("pyw4_cur", cur); }catch(e){}
+  renderMap(); renderLevel();
+  document.getElementById("card").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+const TYPE_NAME = {mc:"Ausgabe vorhersagen", parsons:"Code-Puzzle", cloze:"Lückentext", bug:"Fehler finden", run:"Ausprobieren"};
+
+function renderLevel(){
+  const L = LEVELS[cur], card = document.getElementById("card");
+  let tries = 0, hintsShown = 0, solved = !!done[cur];
+  card.innerHTML = `<span class="tag">${WORLDS[L.w].name} · Level ${cur+1}</span><span class="tag type">${TYPE_NAME[L.type]}</span>
+    <h2>${L.title}</h2><div class="intro">${L.intro}</div><div id="wid"></div><div id="task"></div>
+    <div class="actions" id="acts"></div><div class="fb" id="fb"></div><div id="hintbox"></div><div id="explbox"></div>`;
+  if(L.widget==="bits") bitsWidget(document.getElementById("wid"));
+  const task = document.getElementById("task"), acts = document.getElementById("acts");
+  let check;
+
+  if(L.type==="mc"){
+    task.innerHTML = `<pre class="code">${hl(L.code)}</pre><div class="q">${L.q}</div><div class="opts"></div>`;
+    let sel=-1; const box=task.querySelector(".opts");
+    L.opts.forEach((o,i)=>{ const b=document.createElement("button"); b.className="opt mono"; b.textContent=o;
+      b.onclick=()=>{ if(solved) return; sel=i; box.querySelectorAll(".opt").forEach(x=>x.classList.remove("sel","wrong")); b.classList.add("sel"); };
+      box.appendChild(b); });
+    check=()=>{ if(sel<0) return null; const btn=box.children[sel];
+      if(sel===L.ans){ btn.classList.add("right"); return true;} btn.classList.add("wrong"); return false; };
+  }
+
+  if(L.type==="bug"){
+    task.innerHTML = `<p>${L.task}</p><pre class="code"></pre>`;
+    const pre=task.querySelector("pre"); let sel=-1;
+    L.code.split("\n").forEach((ln,i)=>{ const s=document.createElement("span"); s.className="bugline"; s.innerHTML=hl(ln)||" ";
+      s.onclick=()=>{ if(solved) return; sel=i; pre.querySelectorAll(".bugline").forEach(x=>x.classList.remove("sel","wrong")); s.classList.add("sel"); };
+      pre.appendChild(s); });
+    check=()=>{ if(sel<0) return null; const s=pre.children[sel];
+      if(sel===L.ans){ s.classList.add("right"); return true;} s.classList.add("wrong"); return false; };
+  }
+
+  if(L.type==="cloze"){
+    task.innerHTML = `<p>${L.task}</p><pre class="code" id="cz"></pre><div class="chips" id="chips"></div>`;
+    const fill = L.ans.map(()=>null); let active=0;
+    const draw=()=>{
+      let h = hl(L.code).replace(/\{(\d)\}/g,(m,k)=>{
+        const v=fill[k]; return `<span class="blank${v?" filled":""}${+k===active?" active":""}" data-k="${k}">${v?hl(v):"&nbsp;?&nbsp;"}</span>`; });
+      const cz=document.getElementById("cz"); cz.innerHTML=h;
+      cz.querySelectorAll(".blank").forEach(b=>b.onclick=()=>{ if(solved) return; active=+b.dataset.k; draw(); });
+    };
+    const chips=document.getElementById("chips");
+    shuffle(L.chips.slice()).forEach(c=>{ const b=document.createElement("button"); b.className="chip"; b.textContent=c;
+      b.onclick=()=>{ if(solved) return; fill[active]=c; const nxt=fill.findIndex(v=>!v); active = nxt<0?active:nxt; draw(); };
+      chips.appendChild(b); });
+    draw();
+    check=()=>{ if(fill.some(v=>!v)) return null; return fill.every((v,i)=>v===L.ans[i]); };
+  }
+
+  if(L.type==="parsons"){
+    task.innerHTML = `<p>${L.task}</p><div class="plabel">Dein Programm (antippen entfernt eine Zeile):</div><div class="pzone" id="pa"></div>
+      <div class="plabel">Bausteine:</div><div class="pzone" id="pp"></div>`;
+    const pool = shuffle([...L.lines, ...L.distract]); const answer=[];
+    const draw=()=>{
+      const pa=document.getElementById("pa"), pp=document.getElementById("pp"); pa.innerHTML=""; pp.innerHTML="";
+      answer.forEach((ln,i)=>{ const d=document.createElement("div"); d.className="pline"; d.innerHTML=hl(ln);
+        d.onclick=()=>{ if(solved) return; answer.splice(i,1); draw(); }; pa.appendChild(d); });
+      pool.filter(ln=>!answer.includes(ln)).forEach(ln=>{ const d=document.createElement("div"); d.className="pline"; d.innerHTML=hl(ln);
+        d.onclick=()=>{ if(solved) return; answer.push(ln); draw(); }; pp.appendChild(d); });
+    };
+    draw();
+    check=()=>{ if(!answer.length) return null; return answer.length===L.lines.length && answer.every((v,i)=>v===L.lines[i]); };
+  }
+
+  if(L.type==="run"){ runWidget(task); acts.innerHTML=""; navButtons(acts); if(!done[cur]){done[cur]=1; save(); renderMap();} return; }
+
+  const fb=document.getElementById("fb"), hb=document.getElementById("hintbox"), eb=document.getElementById("explbox");
+  const cbtn=btn("Prüfen"), hbtn=btn("Hinweis",true), sbtn=btn("Lösung zeigen",true);
+  hbtn.style.display="none"; sbtn.style.display="none";
+  acts.append(cbtn,hbtn,sbtn);
+  const showExpl=()=>{ eb.innerHTML=`<div class="expl"><b>Erklärung.</b> ${L.expl}</div>`; };
+  const win=()=>{ solved=true; done[cur]=1; save(); renderMap();
+    fb.className="fb ok"; fb.innerHTML="Richtig!"; showExpl(); cbtn.style.display="none"; hbtn.style.display="none"; sbtn.style.display="none";
+    navButtons(acts); };
+  cbtn.onclick=()=>{ const r=check(); if(r===null){ fb.className="fb bad"; fb.textContent="Erst eine Antwort wählen."; return; }
+    if(r) return win();
+    tries++; fb.className="fb bad"; fb.textContent = tries===1 ? "Noch nicht. Probier es nochmal oder hol dir einen Hinweis." : "Noch nicht.";
+    if(hintsShown<L.hints.length) hbtn.style.display="";
+    if(tries>=2) sbtn.style.display=""; };
+  hbtn.onclick=()=>{ if(hintsShown<L.hints.length){ hb.innerHTML+=`<div class="hint"><b>Hinweis ${hintsShown+1}.</b> ${L.hints[hintsShown]}</div>`; hintsShown++; }
+    if(hintsShown>=L.hints.length) hbtn.style.display="none"; };
+  sbtn.onclick=()=>{ showExpl(); sbtn.style.display="none"; fb.className="fb bad"; fb.textContent="Lösung angesehen. Das Level zählt erst, wenn du es selbst richtig hast."; };
+  if(solved){ fb.className="fb ok"; fb.textContent="Schon geschafft. Du kannst es nochmal spielen."; solved=false; }
+}
+
+function btn(t,ghost){ const b=document.createElement("button"); b.className="btn"+(ghost?" ghost":""); b.textContent=t; return b; }
+function navButtons(acts){
+  if(cur<LEVELS.length-1){ const n=btn("Weiter →"); n.onclick=()=>{cur++; go();}; acts.appendChild(n); }
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* ---------- widget: bits ---------- */
+function bitsWidget(el){
+  el.innerHTML = `<div class="widget"><div class="row"><label>n = <b id="bn">5</b></label><input type="range" min="0" max="7" value="5" id="br"></div>
+    <div class="row" style="margin-top:8px"><div>Binärzahl [z₃ z₂ z₁]₂ = <b class="mono" id="bb"></b></div><div>Ket |z₁ z₂ z₃⟩ = <b id="bk"></b></div></div>
+    <div class="bits" id="bv"></div><div class="small" style="text-align:center">Jede Karte: <code>(n &gt;&gt; (i-1)) &amp; 1</code></div></div>`;
+  const r=el.querySelector("#br");
+  const upd=()=>{ const n=+r.value; el.querySelector("#bn").textContent=n;
+    const z=[1,2,3].map(i=>(n>>(i-1))&1);
+    el.querySelector("#bb").textContent = `${z[2]}${z[1]}${z[0]}`;
+    el.querySelector("#bk").textContent = "|"+z.map(v=>v?"↑":"↓").join("")+"⟩";
+    el.querySelector("#bv").innerHTML = z.map((v,k)=>`<div class="bit"><small>Platz ${k+1}</small><b>${v?"↑":"↓"}</b><small>z${"₁₂₃"[k]} = ${v} · 2${"⁰¹²"[k]}</small></div>`).join(""); };
+  r.oninput=upd; upd();
+}
+
+/* ---------- the program, rebuilt in JS (same loops as the Python code) ---------- */
+function spinsJS(n,N){ const z=[]; for(let i=1;i<=N;i++) z.push((n>>(i-1))&1); return z; }
+function flipJS(n,p,q,z){ return n + (1-2*z[p-1])*2**(p-1) + (1-2*z[q-1])*2**(q-1); }
+function buildH(N,links){
+  const D=2**N, H=Array.from({length:D},()=>Array(D).fill(0));
+  for(let n=0;n<D;n++){ const z=spinsJS(n,N);
+    for(const [a,p,q,J] of links){ const zp=z[p-1], zq=z[q-1];
+      if(a==="z") H[n][n] += -0.25*J*(2*zp-1)*(2*zq-1);
+      else if(a==="x"){ const l=flipJS(n,p,q,z); H[l][n] += -0.25*J; }
+      else if(a==="y"){ const l=flipJS(n,p,q,z); const s=-(2*zp-1)*(2*zq-1); H[l][n] += -0.25*J*s; } } }
+  return H;
+}
+function eigSym(A){ // Jacobi rotation for real symmetric matrices
+  const n=A.length, a=A.map(r=>r.slice());
+  for(let sweep=0;sweep<100;sweep++){
+    let off=0; for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) off+=a[i][j]**2;
+    if(off<1e-20) break;
+    for(let p=0;p<n;p++) for(let q=p+1;q<n;q++){ if(Math.abs(a[p][q])<1e-15) continue;
+      const th=(a[q][q]-a[p][p])/(2*a[p][q]); const t=Math.sign(th||1)/(Math.abs(th)+Math.sqrt(th*th+1));
+      const c=1/Math.sqrt(t*t+1), s=t*c;
+      for(let k=0;k<n;k++){ const akp=a[k][p], akq=a[k][q]; a[k][p]=c*akp-s*akq; a[k][q]=s*akp+c*akq; }
+      for(let k=0;k<n;k++){ const apk=a[p][k], aqk=a[q][k]; a[p][k]=c*apk-s*aqk; a[q][k]=s*apk+c*aqk; } } }
+  return a.map((r,i)=>r[i]).sort((x,y)=>x-y);
+}
+function frac(v){ if(Math.abs(v)<1e-12) return "0"; const k=Math.round(v*4), sg=k<0?"−":"", m=Math.abs(k);
+  if(Math.abs(v*4-k)>1e-9){ if(Math.abs((v*4)**2-3)<1e-9) return (v<0?"−":"")+"√3/4"; return v.toFixed(3); }
+  const map={1:"¼",2:"½",3:"¾",4:"1",5:"5/4",6:"3/2",7:"7/4",8:"2"}; return sg+(map[m]||(m/4)); }
+
+const MODELS = {
+  ising:{name:"1b Ising", links:[["z",1,2,1],["z",1,3,1],["z",2,3,1]], gate:false},
+  heis:{name:"1c Heisenberg", links:["x","y","z"].flatMap(a=>[[a,1,2,1],[a,1,3,1],[a,2,3,1]]), gate:true},
+  d:{name:"1d Modell d", links:[["x",1,2,1],["y",2,3,1],["z",1,3,1]], gate:true},
+};
+
+function runWidget(el){
+  let m="ising";
+  el.innerHTML = `<pre class="code">${hl(`links = [('z', 1, 2, J), ('z', 1, 3, J), ('z', 2, 3, J)]   # e.g. Ising
+H = build_H(3, links)
+print(np.linalg.eigvalsh(H))`)}</pre>
+  <div class="seg" id="mseg"></div>
+  <div id="gate"></div><div id="out"></div>`;
+  const seg=el.querySelector("#mseg");
+  Object.entries(MODELS).forEach(([k,M])=>{ const b=document.createElement("button"); b.textContent=M.name; b.onclick=()=>{m=k; draw();}; b.dataset.k=k; seg.appendChild(b); });
+  const draw=()=>{
+    seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.k===m));
+    const M=MODELS[m], out=el.querySelector("#out"), gate=el.querySelector("#gate");
+    if(M.gate && !unlockCD){
+      out.innerHTML=""; gate.innerHTML=`<div class="box trap" style="margin-top:12px">Die Matrix für ${M.name} zeige ich erst, wenn du sie von Hand fertig hast. So bleibt sie eine echte Kontrolle.<div class="actions"><button class="btn" id="unl">Ich habe 1c und 1d von Hand fertig</button></div></div>`;
+      gate.querySelector("#unl").onclick=()=>{unlockCD=true; draw();}; return; }
+    gate.innerHTML="";
+    const H=buildH(3,M.links), E=eigSym(H);
+    let t=`<div class="matwrap"><table class="mat"><tr><th>m\\n</th>${[...Array(8).keys()].map(j=>`<th>${j}</th>`).join("")}</tr>`;
+    H.forEach((r,i)=>{ t+=`<tr><th>${i}</th>`+r.map(v=>`<td class="${Math.abs(v)>1e-12?"nz":""}">${frac(v)}</td>`).join("")+"</tr>"; });
+    t+="</table></div>";
+    out.innerHTML = `<p class="small" style="text-align:center">Einträge in Einheiten von J. Spalte n = H|n⟩.</p>${t}
+      <p><b>Eigenwerte</b> (aufsteigend, in J): <span class="mono">${E.map(frac).join(",  ")}</span></p>
+      <p class="small">Vergleiche Eintrag für Eintrag mit deiner Matrix. Wo es nicht passt: Welche Spalte n, welcher Link?</p>`;
+  };
+  draw();
+}
+
+renderMap(); renderLevel();
+</script>
+</body>
+</html>
