@@ -12,6 +12,7 @@ Lernmaterial zur exakten Diagonalisierung von Quanten-Spinmodellen, begleitend z
 | `drehbuch/` | Lern-Drehbuch zu Blatt 4, Aufgabe 2 als HTML (Szenen, Hinweise, aufklappbare Lösungen) |
 | `code/` | Python-Referenzcode für die Hamilton-Matrix mit Kronecker-Test (erst nach eigenem Versuch ansehen) |
 | `videos/` | Lernvideos und die Skripte, mit denen sie gerendert werden |
+| `interaktiv/` | `python-werkstatt.html`: 14 Level ohne Tastatur zum Programm aus Blatt 4, Aufgabe 2 (im Browser öffnen) |
 
 ## Videos
 
